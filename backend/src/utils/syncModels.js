@@ -10,6 +10,7 @@ import {
   DeliveryZone,
   RestaurantDeliveryZone,
 } from '../models/index.js';
+import { ensureDatabaseExists } from './ensureDb.js';
 
 /**
  * Configure Sequelize Associations (Relations)
@@ -78,6 +79,9 @@ const configureAssociations = () => {
  */
 const syncModels = async () => {
   try {
+    // Verify database exists before running Sequelize commands
+    await ensureDatabaseExists();
+
     console.log('Initializing database associations...');
     configureAssociations();
 

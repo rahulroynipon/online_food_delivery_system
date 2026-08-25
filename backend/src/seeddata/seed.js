@@ -4,9 +4,13 @@ import { UserRole, UserStatus, ActiveStatus } from '../enums/index.js';
 import { configureAssociations } from '../utils/syncModels.js';
 import { hashPassword } from '../utils/hash.js';
 import { slugify } from '../utils/slugify.js';
+import { ensureDatabaseExists } from '../utils/ensureDb.js';
 
 const seed = async () => {
   try {
+    // Ensure database exists before seeding
+    await ensureDatabaseExists();
+
     console.log('Connecting to database for seeding...');
     configureAssociations(); // Ensure foreign key constraints and relations are configured
     await sequelize.authenticate();
