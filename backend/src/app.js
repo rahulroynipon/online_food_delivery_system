@@ -7,28 +7,35 @@ import errorHandler from './middleware/errorMiddleware.js';
 
 const app = express();
 
+// Define API version prefix constant
+const API_PREFIX = '/api/v1';
+
 // Standard Middlewares
 app.use(cors());
 app.use(express.json());
 
-// API Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Static Folder for Uploads
+app.use(`${API_PREFIX}/uploads`, express.static('uploads'));
 
-// Health Check Endpoint
-app.get('/health', (req, res) => {
+// API Swagger Documentation
+app.use(`${API_PREFIX}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Status Endpoint
+app.get(`${API_PREFIX}/status`, (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Backend API is running cleanly.',
+    message: 'Backend API status is active.',
     timestamp: new Date(),
   });
 });
 
 // Root path redirects to API docs
 app.get('/', (req, res) => {
-  res.redirect('/api-docs');
+  res.redirect(`${API_PREFIX}/api-docs`);
 });
 
 // Centralized Error Handler Middleware
 app.use(errorHandler);
 
+export { API_PREFIX };
 export default app;
