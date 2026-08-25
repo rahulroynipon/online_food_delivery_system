@@ -1,5 +1,6 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.js';
+import { UserRole, UserStatus } from '../enums/index.js';
 
 const User = sequelize.define(
   'User',
@@ -10,25 +11,32 @@ const User = sequelize.define(
       primaryKey: true,
     },
     name: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     email: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
+      type: DataTypes.STRING,
+      allowNull: true,
       unique: true,
       validate: {
         isEmail: true,
       },
     },
+    phone: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     password: {
-      type: DataTypes.STRING(255),
-      allowNull: false,
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     role: {
-      type: DataTypes.ENUM('customer', 'restaurant_owner', 'delivery_partner', 'admin'),
-      defaultValue: 'customer',
-      allowNull: false,
+      type: DataTypes.ENUM(...Object.values(UserRole)),
+      allowNull: true,
+    },
+    status: {
+      type: DataTypes.ENUM(...Object.values(UserStatus)),
+      allowNull: true,
     },
   },
   {

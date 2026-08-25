@@ -1,9 +1,9 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.js';
-import { RestaurantStatus } from '../enums/index.js';
+import { RiderAvailability, RiderStatus } from '../enums/index.js';
 
-const Restaurant = sequelize.define(
-  'Restaurant',
+const Rider = sequelize.define(
+  'Rider',
   {
     id: {
       type: DataTypes.INTEGER,
@@ -19,52 +19,35 @@ const Restaurant = sequelize.define(
       },
       onDelete: 'CASCADE',
     },
-    name: {
+    vehicleType: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    slug: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    phone: {
+    vehicleNumber: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    address: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    latitude: {
+    currentLatitude: {
       type: DataTypes.DECIMAL(10, 8),
       allowNull: true,
     },
-    longitude: {
+    currentLongitude: {
       type: DataTypes.DECIMAL(11, 8),
       allowNull: true,
     },
-    openingTime: {
-      type: DataTypes.TIME,
-      allowNull: true,
-    },
-    closingTime: {
-      type: DataTypes.TIME,
+    availability: {
+      type: DataTypes.ENUM(...Object.values(RiderAvailability)),
       allowNull: true,
     },
     status: {
-      type: DataTypes.ENUM(...Object.values(RestaurantStatus)),
+      type: DataTypes.ENUM(...Object.values(RiderStatus)),
       allowNull: true,
     },
   },
   {
-    tableName: 'restaurants',
+    tableName: 'riders',
     timestamps: true,
   }
 );
 
-export default Restaurant;
+export default Rider;

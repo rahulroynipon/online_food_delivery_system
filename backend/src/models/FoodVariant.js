@@ -1,49 +1,41 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.js';
+import { ActiveStatus } from '../enums/index.js';
 
-const FoodItem = sequelize.define(
-  'FoodItem',
+const FoodVariant = sequelize.define(
+  'FoodVariant',
   {
     id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
     },
-    restaurantId: {
+    foodId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'restaurants',
+        model: 'foods',
         key: 'id',
       },
       onDelete: 'CASCADE',
     },
     name: {
-      type: DataTypes.STRING(150),
-      allowNull: false,
-    },
-    description: {
-      type: DataTypes.TEXT,
+      type: DataTypes.STRING,
       allowNull: true,
     },
     price: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-    },
-    category: {
-      type: DataTypes.STRING(100),
       allowNull: true,
     },
-    isAvailable: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      allowNull: false,
+    status: {
+      type: DataTypes.ENUM(...Object.values(ActiveStatus)),
+      allowNull: true,
     },
   },
   {
-    tableName: 'food_items',
+    tableName: 'food_variants',
     timestamps: true,
   }
 );
 
-export default FoodItem;
+export default FoodVariant;

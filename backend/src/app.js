@@ -5,12 +5,6 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
 import errorHandler from './middleware/errorMiddleware.js';
 
-// Route Imports
-import authRoutes from './routes/authRoutes.js';
-import restaurantRoutes from './routes/restaurantRoutes.js';
-import foodRoutes from './routes/foodRoutes.js';
-import orderRoutes from './routes/orderRoutes.js';
-
 const app = express();
 
 // Standard Middlewares
@@ -28,12 +22,6 @@ app.get('/health', (req, res) => {
     timestamp: new Date(),
   });
 });
-
-// Mount Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/restaurants', restaurantRoutes);
-app.use('/api/food', foodRoutes);
-app.use('/api/orders', orderRoutes);
 
 // Root path redirects to API docs
 app.get('/', (req, res) => {

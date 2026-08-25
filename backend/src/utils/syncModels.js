@@ -1,32 +1,60 @@
 import sequelize from '../config/db.js';
-import User from '../models/User.js';
-import Restaurant from '../models/Restaurant.js';
-import FoodItem from '../models/FoodItem.js';
-import Order from '../models/Order.js';
+import {
+  User,
+  Restaurant,
+  Rider,
+  PlatformCategory,
+  RestaurantCategory,
+  Food,
+  FoodVariant,
+} from '../models/index.js';
 
 /**
  * Configure Sequelize Associations (Relations)
  */
 const configureAssociations = () => {
-  // User <-> Restaurant (One-to-Many)
-  User.hasMany(Restaurant, { foreignKey: 'ownerId', as: 'restaurants', onDelete: 'CASCADE' });
-  Restaurant.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
+  // User <-> Restaurant (One-to-One)
+  User.hasOne(Restaurant, { foreignKey: 'userId', as: 'restaurant', onDelete: 'CASCADE' });
+  Restaurant.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-  // Restaurant <-> FoodItem (One-to-Many)
-  Restaurant.hasMany(FoodItem, {
+  // User <-> Rider (One-to-One)
+  User.hasOne(Rider, { foreignKey: 'userId', as: 'rider', onDelete: 'CASCADE' });
+  Rider.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+  // Restaurant <-> RestaurantCategory (One-to-Many)
+  Restaurant.hasMany(RestaurantCategory, {
     foreignKey: 'restaurantId',
-    as: 'foodItems',
+    as: 'categories',
     onDelete: 'CASCADE',
   });
-  FoodItem.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
+  RestaurantCategory.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
 
-  // User <-> Order (One-to-Many)
-  User.hasMany(Order, { foreignKey: 'customerId', as: 'orders', onDelete: 'SET NULL' });
-  Order.belongsTo(User, { foreignKey: 'customerId', as: 'customer' });
+  // Restaurant <-> Food (One-to-Many)
+  Restaurant.hasMany(Food, { foreignKey: 'restaurantId', as: 'foods', onDelete: 'CASCADE' });
+  Food.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
 
-  // Restaurant <-> Order (One-to-Many)
-  Restaurant.hasMany(Order, { foreignKey: 'restaurantId', as: 'orders', onDelete: 'SET NULL' });
-  Order.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
+  // RestaurantCategory <-> Food (One-to-Many)
+  RestaurantCategory.hasMany(Food, {
+    foreignKey: 'restaurantCategoryId',
+    as: 'foods',
+    onDelete: 'CASCADE',
+  });
+  Food.belongsTo(RestaurantCategory, {
+    foreignKey: 'restaurantCategoryId',
+    as: 'restaurantCategory',
+  });
+
+  // PlatformCategory <-> Food (One-to-Many)
+  PlatformCategory.hasMany(Food, {
+    foreignKey: 'platformCategoryId',
+    as: 'foods',
+    onDelete: 'CASCADE',
+  });
+  Food.belongsTo(PlatformCategory, { foreignKey: 'platformCategoryId', as: 'platformCategory' });
+
+  // Food <-> FoodVariant (One-to-Many)
+  Food.hasMany(FoodVariant, { foreignKey: 'foodId', as: 'variants', onDelete: 'CASCADE' });
+  FoodVariant.belongsTo(Food, { foreignKey: 'foodId', as: 'food' });
 };
 
 /**
@@ -38,8 +66,6 @@ const syncModels = async () => {
     configureAssociations();
 
     console.log('Syncing database schema (Sequelize sync)...');
-    // Using alter: true updates tables to match models without dropping everything.
-    // In production, migrations are preferred, but sync is ideal for initial setup.
     await sequelize.sync({ alter: true });
 
     console.log('Database tables synchronized successfully.');
