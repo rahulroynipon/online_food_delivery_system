@@ -3,6 +3,7 @@ import { User, PlatformCategory } from '../models/index.js';
 import { UserRole, UserStatus, ActiveStatus } from '../enums/index.js';
 import { configureAssociations } from '../utils/syncModels.js';
 import { hashPassword } from '../utils/hash.js';
+import { slugify } from '../utils/slugify.js';
 
 const seed = async () => {
   try {
@@ -38,12 +39,12 @@ const seed = async () => {
     if (categoriesCount === 0) {
       console.log('Seeding default platform categories...');
       const defaultCategories = [
-        { name: 'Burgers & Fast Food', image: 'uploads/categories/burgers.png', status: ActiveStatus.ACTIVE },
-        { name: 'Pizza & Italian', image: 'uploads/categories/pizza.png', status: ActiveStatus.ACTIVE },
-        { name: 'Asian & Noodles', image: 'uploads/categories/asian.png', status: ActiveStatus.ACTIVE },
-        { name: 'Desserts & Ice Cream', image: 'uploads/categories/dessert.png', status: ActiveStatus.ACTIVE },
-        { name: 'Beverages & Coffee', image: 'uploads/categories/drinks.png', status: ActiveStatus.ACTIVE },
-        { name: 'Healthy & Salads', image: 'uploads/categories/healthy.png', status: ActiveStatus.ACTIVE },
+        { name: 'Burgers & Fast Food', slug: slugify('Burgers & Fast Food'), image: 'uploads/categories/burgers.png', status: ActiveStatus.ACTIVE },
+        { name: 'Pizza & Italian', slug: slugify('Pizza & Italian'), image: 'uploads/categories/pizza.png', status: ActiveStatus.ACTIVE },
+        { name: 'Asian & Noodles', slug: slugify('Asian & Noodles'), image: 'uploads/categories/asian.png', status: ActiveStatus.ACTIVE },
+        { name: 'Desserts & Ice Cream', slug: slugify('Desserts & Ice Cream'), image: 'uploads/categories/dessert.png', status: ActiveStatus.ACTIVE },
+        { name: 'Beverages & Coffee', slug: slugify('Beverages & Coffee'), image: 'uploads/categories/drinks.png', status: ActiveStatus.ACTIVE },
+        { name: 'Healthy & Salads', slug: slugify('Healthy & Salads'), image: 'uploads/categories/healthy.png', status: ActiveStatus.ACTIVE },
       ];
       await PlatformCategory.bulkCreate(defaultCategories);
       console.log('Default platform categories seeded successfully.');

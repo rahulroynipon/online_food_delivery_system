@@ -7,6 +7,8 @@ import errorHandler from './middleware/errorMiddleware.js';
 
 // Route Imports
 import authRoutes from './routes/authRoutes.js';
+import deliveryZoneRoutes from './routes/deliveryZoneRoutes.js';
+import platformCategoryRoutes from './routes/platformCategoryRoutes.js';
 
 const app = express();
 
@@ -25,6 +27,8 @@ app.use(`${API_PREFIX}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // Mount Routes
 app.use(`${API_PREFIX}/auth`, authRoutes);
+app.use(`${API_PREFIX}/delivery-zones`, deliveryZoneRoutes);
+app.use(`${API_PREFIX}/platform-categories`, platformCategoryRoutes);
 
 // Status Endpoint
 app.get(`${API_PREFIX}/status`, (req, res) => {

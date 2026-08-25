@@ -14,6 +14,11 @@ const PlatformCategory = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    slug: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
     image: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -26,6 +31,7 @@ const PlatformCategory = sequelize.define(
   {
     tableName: 'platform_categories',
     timestamps: true,
+    paranoid: true, // Enables soft delete (adds deleted_at column)
   }
 );
 

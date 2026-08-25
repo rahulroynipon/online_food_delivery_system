@@ -12,6 +12,11 @@ const DeliveryZone = sequelize.define('DeliveryZone', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  slug: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
   status: {
     type: DataTypes.ENUM(...Object.values(ActiveStatus)),
     allowNull: true,
@@ -19,6 +24,7 @@ const DeliveryZone = sequelize.define('DeliveryZone', {
 }, {
   tableName: 'delivery_zones',
   timestamps: true,
+  paranoid: true, // Enables soft delete (adds deleted_at column)
 });
 
 export default DeliveryZone;
