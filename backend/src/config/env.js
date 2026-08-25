@@ -17,6 +17,13 @@ const env = {
     secret: process.env.JWT_SECRET || 'supersecretjwtsecretkeychangeinproduction',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
+  email: {
+    host: process.env.EMAIL_HOST || 'smtp.mailtrap.io',
+    port: parseInt(process.env.EMAIL_PORT || '2525', 10),
+    user: process.env.EMAIL_USER || '',
+    pass: process.env.EMAIL_PASS || '',
+    from: process.env.EMAIL_FROM || 'no-reply@fooddelivery.com',
+  },
 };
 
 // Check for missing secret in production
