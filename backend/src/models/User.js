@@ -38,6 +38,10 @@ const User = sequelize.define(
       type: DataTypes.ENUM(...Object.values(UserStatus)),
       allowNull: true,
     },
+    avatar: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     tableName: 'users',

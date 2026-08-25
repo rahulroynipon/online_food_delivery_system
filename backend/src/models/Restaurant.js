@@ -60,6 +60,14 @@ const Restaurant = sequelize.define(
       type: DataTypes.ENUM(...Object.values(RestaurantStatus)),
       allowNull: true,
     },
+    logo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    banner: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     tableName: 'restaurants',
