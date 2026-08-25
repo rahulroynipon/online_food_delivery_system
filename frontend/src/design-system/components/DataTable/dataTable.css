@@ -1,0 +1,393 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   DataTable CSS — Layout, Theme Tokens, Animations
+   No hardcoded colors — all values come from design-system --color-* tokens.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Row state tints derived from primary color */
+  --table-row-hover: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  --table-row-selected: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  --table-row-selected-hover: color-mix(in srgb, var(--color-primary) 15%, transparent);
+
+  /* Structure */
+  --table-header-bg: var(--color-muted);
+  --table-border: var(--color-border);
+
+  /* Density heights */
+  --table-row-height-compact: 36px;
+  --table-row-height-comfortable: 48px;
+  --table-row-height-spacious: 64px;
+
+  /* Selection column width */
+  --table-select-col-width: 44px;
+}
+
+/* ── Wrapper ─────────────────────────────────────────────────────────────── */
+.datatable-wrapper {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--table-border);
+  background-color: var(--color-card);
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+.datatable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.datatable-head th {
+  background-color: color-mix(in srgb, var(--color-primary) 4%, var(--color-muted));
+  color: var(--color-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0 var(--spacing-4);
+  white-space: nowrap;
+  user-select: none;
+  border-bottom: 1px solid var(--table-border);
+  height: var(--table-row-height-comfortable);
+  vertical-align: middle;
+}
+
+.datatable-head th.align-left {
+  text-align: left;
+}
+.datatable-head th.align-center {
+  text-align: center;
+}
+.datatable-head th.align-right {
+  text-align: right;
+}
+
+/* Sticky header */
+.datatable-sticky .datatable-head th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--table-border);
+}
+
+/* ── Density — applies to both header AND rows ───────────────────────────── */
+.datatable.density-compact .datatable-head th,
+.datatable.density-compact .datatable-body .datatable-row td {
+  height: var(--table-row-height-compact);
+}
+
+.datatable.density-comfortable .datatable-head th,
+.datatable.density-comfortable .datatable-body .datatable-row td {
+  height: var(--table-row-height-comfortable);
+}
+
+.datatable.density-spacious .datatable-head th,
+.datatable.density-spacious .datatable-body .datatable-row td {
+  height: var(--table-row-height-spacious);
+}
+
+/* ── Rows ────────────────────────────────────────────────────────────────── */
+.datatable-row {
+  border-bottom: 1px solid var(--table-border);
+  transition: background-color 120ms ease;
+}
+
+.datatable-body tr:last-child {
+  border-bottom: none;
+}
+
+.datatable-body tr:last-child td {
+  border-bottom: none;
+}
+
+.datatable-row td {
+  padding: 0 var(--spacing-4);
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+  vertical-align: middle;
+}
+
+.datatable-row td.align-left {
+  text-align: left;
+}
+.datatable-row td.align-center {
+  text-align: center;
+}
+.datatable-row td.align-right {
+  text-align: right;
+}
+
+/* Hoverable */
+.datatable.hoverable .datatable-row:hover {
+  background-color: var(--table-row-hover);
+}
+
+/* Striped rows also get hover — needs higher specificity to beat the stripe rule */
+.datatable.striped.hoverable .datatable-body .datatable-row:nth-child(even):hover {
+  background-color: var(--table-row-hover);
+}
+
+/* Selected */
+.datatable-row.is-selected {
+  background-color: var(--table-row-selected);
+  border-bottom-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.datatable.hoverable .datatable-row.is-selected:hover {
+  background-color: var(--table-row-selected-hover);
+}
+
+/* Striped */
+.datatable.striped .datatable-body .datatable-row:nth-child(even) {
+  background-color: var(--color-muted);
+}
+
+.datatable.striped .datatable-body .datatable-row.is-selected:nth-child(even) {
+  background-color: var(--table-row-selected);
+}
+
+/* Selected + striped hover — needs higher specificity to beat the striped selected rule */
+.datatable.striped.hoverable .datatable-body .datatable-row.is-selected:nth-child(even):hover {
+  background-color: var(--table-row-selected-hover);
+}
+
+/* Bordered */
+.datatable.bordered .datatable-row td,
+.datatable.bordered .datatable-head th {
+  border: 1px solid var(--table-border);
+}
+
+.datatable.bordered .datatable-head th:first-child,
+.datatable.bordered .datatable-row td:first-child {
+  border-left: none;
+}
+
+.datatable.bordered .datatable-head th:last-child,
+.datatable.bordered .datatable-row td:last-child {
+  border-right: none;
+}
+
+.datatable.bordered .datatable-head th {
+  border-top: none;
+}
+
+.datatable.bordered .datatable-body .datatable-row:last-child td {
+  border-bottom: none;
+}
+
+/* ── Selection Column ────────────────────────────────────────────────────── */
+.datatable-col-select {
+  width: var(--table-select-col-width);
+  min-width: var(--table-select-col-width);
+  padding: 0 var(--spacing-2) !important;
+  text-align: center !important;
+}
+
+/* ── Skeleton Loading Shimmer ────────────────────────────────────────────── */
+@keyframes datatable-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.datatable-skeleton {
+  height: 13px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--color-muted) 25%,
+    color-mix(in srgb, var(--color-border) 60%, var(--color-muted)) 50%,
+    var(--color-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: datatable-shimmer 1.6s infinite ease-in-out;
+}
+
+/* ── Empty State Row ─────────────────────────────────────────────────────── */
+.datatable-empty-row td {
+  padding: var(--spacing-12) var(--spacing-4) !important;
+  height: auto !important;
+  text-align: center;
+}
+
+/* ── Pagination Bar ──────────────────────────────────────────────────────── */
+.datatable-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid var(--table-border);
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+
+.datatable-pagination-left,
+.datatable-pagination-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.datatable-pagination-info {
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+  white-space: nowrap;
+}
+
+.datatable-page-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.datatable-page-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 30px;
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.datatable-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  background-color: var(--color-card);
+  border: 1px solid var(--table-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-4);
+  gap: var(--spacing-2);
+}
+
+/* ── Column Visibility Badge ─────────────────────────────────────────────── */
+.datatable-col-vis-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-left: 2px;
+}
+
+/* ── Mobile View ─────────────────────────────────────────────────────────── */
+.datatable-wrapper.is-mobile {
+  border: none;
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.datatable-mobile-container {
+  padding: 0;
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  width: 100%;
+}
+
+.datatable-mobile-card {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-4);
+  box-shadow: var(--shadow-sm);
+  transition: all 150ms ease;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.datatable-mobile-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--color-border) 60%, var(--color-foreground));
+}
+
+.datatable-mobile-card.is-selected {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  background-color: var(--table-row-selected);
+}
+
+.datatable-mobile-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+  padding-bottom: var(--spacing-2);
+}
+
+.datatable-mobile-card-title-area {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+
+.datatable-mobile-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.datatable-mobile-card-id {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.datatable-mobile-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-3);
+}
+
+.datatable-mobile-card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.datatable-mobile-card-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--color-muted-foreground);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.datatable-mobile-card-value {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--color-foreground) 85%, transparent);
+  word-break: break-word;
+}

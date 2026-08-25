@@ -1,0 +1,154 @@
+/* CSS Variables and Layout system for AppShell */
+:root {
+  --appshell-sidebar-width: 256px;
+  --appshell-collapsed-width: 64px;
+  --appshell-header-height: 60px;
+}
+
+.appshell-root {
+  display: flex;
+  min-height: 100%;
+  width: 100%;
+  overflow: visible;
+}
+
+/* Sidebar Styling */
+.appshell-sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  transition: width var(--duration-normal) var(--easing-default);
+  width: var(--appshell-sidebar-width);
+}
+
+.appshell-sidebar.is-collapsed {
+  width: var(--appshell-collapsed-width);
+}
+
+/* Sidebar Variants */
+.appshell-sidebar-floating {
+  top: var(--spacing-4);
+  bottom: var(--spacing-4);
+  left: var(--spacing-4);
+}
+
+/* Mobile Drawer Overlay */
+.appshell-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  animation: appshell-fade-in 200ms ease-out;
+}
+
+.appshell-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  width: var(--appshell-sidebar-width);
+  transform: translateX(0);
+  transition: transform var(--duration-normal) var(--easing-default);
+  background-color: var(--color-sidebar-bg, var(--color-card));
+  border-right: 1px solid var(--color-border);
+}
+
+.appshell-drawer.is-closed {
+  transform: translateX(-100%);
+}
+
+@keyframes appshell-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Header Styling */
+.appshell-header {
+  height: var(--appshell-header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.appshell-header.is-fixed {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+/* Main Layout Offset Container — locked to the viewport; scrolling happens
+   inside .appshell-content so full-height pages (tables) can fill the window
+   while long pages (forms) scroll within the content area. */
+.appshell-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100dvh;
+  overflow: hidden;
+  transition: padding-left var(--duration-normal) var(--easing-default);
+  background-color: var(--color-background);
+}
+
+.appshell-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* No elastic bounce — it visually drags the header/sidebar apart. */
+  overscroll-behavior: none;
+}
+
+/* Header/Main Padding on Desktop */
+@media (min-width: 1024px) {
+  .appshell-main.has-sidebar {
+    padding-left: var(--appshell-sidebar-width);
+  }
+
+  .appshell-main.has-sidebar.is-collapsed {
+    padding-left: var(--appshell-collapsed-width);
+  }
+
+  .appshell-main.has-sidebar.sidebar-floating {
+    padding-left: calc(var(--appshell-sidebar-width) + var(--spacing-8));
+  }
+
+  .appshell-main.has-sidebar.is-collapsed.sidebar-floating {
+    padding-left: calc(var(--appshell-collapsed-width) + var(--spacing-8));
+  }
+}
+
+/* Custom Scrollbar for Sidebar Navigation */
+.appshell-sidebar nav::-webkit-scrollbar,
+.appshell-drawer nav::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.appshell-sidebar nav::-webkit-scrollbar-track,
+.appshell-drawer nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.appshell-sidebar nav::-webkit-scrollbar-thumb,
+.appshell-drawer nav::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+.appshell-sidebar nav::-webkit-scrollbar-thumb:hover,
+.appshell-drawer nav::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}

@@ -1,0 +1,78 @@
+@keyframes tooltip-show-top {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes tooltip-show-bottom {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes tooltip-show-left {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateX(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+  }
+}
+
+@keyframes tooltip-show-right {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateX(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+  }
+}
+
+@keyframes tooltip-hide {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+[data-slot='tooltip-content'][data-state='delayed-open'][data-side='top'],
+[data-slot='tooltip-content'][data-state='instant-open'][data-side='top'] {
+  animation: tooltip-show-top 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+[data-slot='tooltip-content'][data-state='delayed-open'][data-side='bottom'],
+[data-slot='tooltip-content'][data-state='instant-open'][data-side='bottom'] {
+  animation: tooltip-show-bottom 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+[data-slot='tooltip-content'][data-state='delayed-open'][data-side='left'],
+[data-slot='tooltip-content'][data-state='instant-open'][data-side='left'] {
+  animation: tooltip-show-left 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+[data-slot='tooltip-content'][data-state='delayed-open'][data-side='right'],
+[data-slot='tooltip-content'][data-state='instant-open'][data-side='right'] {
+  animation: tooltip-show-right 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+[data-slot='tooltip-content'][data-state='closed'] {
+  animation: tooltip-hide 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

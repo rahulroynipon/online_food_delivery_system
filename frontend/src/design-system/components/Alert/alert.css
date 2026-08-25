@@ -1,0 +1,36 @@
+@keyframes alert-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes alert-fade-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.98);
+    height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    border: 0;
+    overflow: hidden;
+  }
+}
+
+.alert-animate-in {
+  animation: alert-fade-in 250ms var(--easing-default) forwards;
+}
+
+.alert-animate-out {
+  animation: alert-fade-out 200ms var(--easing-default) forwards;
+}

@@ -1,0 +1,36 @@
+/* ─── View Transitions Wave Theme Toggle Animation ────────────────────────────── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+.dark::view-transition-old(root) {
+  z-index: 1;
+}
+
+.dark::view-transition-new(root) {
+  z-index: 9999;
+}
+
+/* Hide scrollbars during the active transition to prevent layout shifts */
+html::view-transition {
+  overflow: hidden !important;
+}
+
+/* Force overflow hidden on HTML and Body while a view transition is active */
+:root:view-transition {
+  overflow: hidden !important;
+}
+
+:root:view-transition body {
+  overflow: hidden !important;
+}
