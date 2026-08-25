@@ -4,9 +4,10 @@ import { User } from '../models/index.js';
 import { comparePassword } from '../utils/hash.js';
 
 // Helper to sign JWT Token
-const generateToken = (id, email, role) => {
+const generateToken = (id, email, role, rememberMe = false) => {
+  const expiresIn = rememberMe ? '30d' : env.jwt.expiresIn;
   return jwt.sign({ id, email, role }, env.jwt.secret, {
-    expiresIn: env.jwt.expiresIn,
+    expiresIn,
   });
 };
 
@@ -17,7 +18,7 @@ const generateToken = (id, email, role) => {
  */
 export const loginUser = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -44,7 +45,7 @@ export const loginUser = async (req, res, next) => {
       });
     }
 
-    const token = generateToken(user.id, user.email, user.role);
+    const token = generateToken(user.id, user.email, user.role, rememberMe);
 
     // Exclude password from output
     const userObj = user.toJSON();

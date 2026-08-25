@@ -6,9 +6,9 @@ import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent } fro
 import { Loader2, LogOut, User as UserIcon, Calendar, Phone, ShieldCheck, Mail } from 'lucide-react';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isInitialized } = useAuthStore();
 
-  if (isLoading) {
+  if (!isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -121,13 +121,13 @@ function Dashboard() {
 
 function App() {
   const initialize = useAuthStore((state) => state.initialize);
-  const isLoading = useAuthStore((state) => state.isLoading);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  if (isLoading) {
+  if (!isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

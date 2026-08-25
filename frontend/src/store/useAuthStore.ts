@@ -17,8 +17,9 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitialized: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
 }
@@ -28,12 +29,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: localStorage.getItem('token'),
   isAuthenticated: false,
   isLoading: true,
+  isInitialized: false,
   error: null,
 
-  login: async (email, password) => {
+  login: async (email, password, rememberMe = false) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.post('/v1/auth/login', { email, password });
+      const response = await api.post('/v1/auth/login', { email, password, rememberMe });
       
       const { token, user } = response.data;
       localStorage.setItem('token', token);
@@ -78,7 +80,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialize: async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      set({ isLoading: false, isAuthenticated: false, user: null });
+      set({ isLoading: false, isAuthenticated: false, user: null, isInitialized: true });
       return;
     }
 
@@ -89,6 +91,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: response.data.user,
         isAuthenticated: true,
         isLoading: false,
+        isInitialized: true,
       });
     } catch (err) {
       // Token is likely invalid or expired
@@ -98,6 +101,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: null,
         isAuthenticated: false,
         isLoading: false,
+        isInitialized: true,
       });
     }
   },

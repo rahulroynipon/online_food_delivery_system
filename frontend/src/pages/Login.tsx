@@ -51,7 +51,7 @@ export default function Login() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setSubmissionError(null);
-    const success = await login(data.email, data.password);
+    const success = await login(data.email, data.password, data.rememberMe);
     if (success) {
       if (data.rememberMe) {
         localStorage.setItem('remembered_email', data.email);
