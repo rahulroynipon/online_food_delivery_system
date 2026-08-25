@@ -20,13 +20,17 @@ export const addFoodItem = async (req, res, next) => {
     const { restaurantId, name, description, price, category, isAvailable } = req.body;
 
     if (!restaurantId || !name || !price) {
-      return res.status(400).json({ success: false, message: 'Please provide restaurantId, name, and price.' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'Please provide restaurantId, name, and price.' });
     }
 
     // Check restaurant ownership
     const isOwner = await checkRestaurantOwnership(req.user.id, restaurantId, req.user.role);
     if (!isOwner) {
-      return res.status(403).json({ success: false, message: 'Not authorized to add food items to this restaurant.' });
+      return res
+        .status(403)
+        .json({ success: false, message: 'Not authorized to add food items to this restaurant.' });
     }
 
     const foodItem = await FoodItem.create({
@@ -57,9 +61,9 @@ export const getFoodItems = async (req, res, next) => {
   try {
     const foodItems = await FoodItem.findAll({
       where: { restaurantId: req.params.restaurantId },
-      order: [['category', 'ASC']]
+      order: [['category', 'ASC']],
     });
-    
+
     return res.status(200).json({
       success: true,
       count: foodItems.length,
@@ -103,9 +107,18 @@ export const updateFoodItem = async (req, res, next) => {
     }
 
     // Check ownership of the restaurant this food item belongs to
-    const isOwner = await checkRestaurantOwnership(req.user.id, foodItem.restaurantId, req.user.role);
+    const isOwner = await checkRestaurantOwnership(
+      req.user.id,
+      foodItem.restaurantId,
+      req.user.role
+    );
     if (!isOwner) {
-      return res.status(403).json({ success: false, message: 'Not authorized to update food items in this restaurant.' });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: 'Not authorized to update food items in this restaurant.',
+        });
     }
 
     const { name, description, price, category, isAvailable } = req.body;
@@ -134,9 +147,18 @@ export const deleteFoodItem = async (req, res, next) => {
     }
 
     // Check ownership of the restaurant this food item belongs to
-    const isOwner = await checkRestaurantOwnership(req.user.id, foodItem.restaurantId, req.user.role);
+    const isOwner = await checkRestaurantOwnership(
+      req.user.id,
+      foodItem.restaurantId,
+      req.user.role
+    );
     if (!isOwner) {
-      return res.status(403).json({ success: false, message: 'Not authorized to delete food items from this restaurant.' });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: 'Not authorized to delete food items from this restaurant.',
+        });
     }
 
     await foodItem.destroy();

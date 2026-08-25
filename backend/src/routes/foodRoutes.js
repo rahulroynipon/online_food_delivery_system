@@ -135,7 +135,8 @@ router.get('/restaurant/:restaurantId', getFoodItems);
  *       200:
  *         description: Food item deleted
  */
-router.route('/:id')
+router
+  .route('/:id')
   .get(getFoodItemById)
   .put(protect, authorize('restaurant_owner', 'admin'), updateFoodItem)
   .delete(protect, authorize('restaurant_owner', 'admin'), deleteFoodItem);

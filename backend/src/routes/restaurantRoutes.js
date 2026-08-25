@@ -52,7 +52,8 @@ const router = express.Router();
  *       200:
  *         description: List of restaurants
  */
-router.route('/')
+router
+  .route('/')
   .post(protect, authorize('restaurant_owner', 'admin'), createRestaurant)
   .get(getRestaurants);
 
@@ -119,7 +120,8 @@ router.route('/')
  *       200:
  *         description: Restaurant deleted
  */
-router.route('/:id')
+router
+  .route('/:id')
   .get(getRestaurantById)
   .put(protect, authorize('restaurant_owner', 'admin'), updateRestaurant)
   .delete(protect, authorize('restaurant_owner', 'admin'), deleteRestaurant);

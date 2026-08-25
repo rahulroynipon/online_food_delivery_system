@@ -7,7 +7,7 @@ const PORT = env.PORT;
 const server = app.listen(PORT, async () => {
   console.log(`Server running in ${env.NODE_ENV} mode on port ${PORT}`);
   console.log(`API Documentation available at http://localhost:${PORT}/api-docs`);
-  
+
   if (env.NODE_ENV !== 'test') {
     await syncModels();
   }

@@ -96,7 +96,12 @@ router.get('/my-orders', protect, authorize('customer', 'admin'), getMyOrders);
  *       403:
  *         description: Forbidden
  */
-router.get('/restaurant/:restaurantId', protect, authorize('restaurant_owner', 'admin'), getRestaurantOrders);
+router.get(
+  '/restaurant/:restaurantId',
+  protect,
+  authorize('restaurant_owner', 'admin'),
+  getRestaurantOrders
+);
 
 /**
  * @swagger
@@ -153,6 +158,11 @@ router.get('/:id', protect, getOrderById);
  *       403:
  *         description: Forbidden
  */
-router.put('/:id/status', protect, authorize('restaurant_owner', 'delivery_partner', 'admin'), updateOrderStatus);
+router.put(
+  '/:id/status',
+  protect,
+  authorize('restaurant_owner', 'delivery_partner', 'admin'),
+  updateOrderStatus
+);
 
 export default router;

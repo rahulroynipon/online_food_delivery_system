@@ -16,11 +16,14 @@ const env = {
   jwt: {
     secret: process.env.JWT_SECRET || 'supersecretjwtsecretkeychangeinproduction',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  }
+  },
 };
 
 // Check for missing secret in production
-if (env.NODE_ENV === 'production' && env.jwt.secret === 'supersecretjwtsecretkeychangeinproduction') {
+if (
+  env.NODE_ENV === 'production' &&
+  env.jwt.secret === 'supersecretjwtsecretkeychangeinproduction'
+) {
   console.warn('WARNING: JWT_SECRET is using default value in production. Please set it in .env.');
 }
 

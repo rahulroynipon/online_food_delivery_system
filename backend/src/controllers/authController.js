@@ -20,13 +20,17 @@ export const registerUser = async (req, res, next) => {
     const { name, email, password, role } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Please provide name, email, and password.' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'Please provide name, email, and password.' });
     }
 
     // Check if user already exists
     const userExists = await User.findOne({ where: { email } });
     if (userExists) {
-      return res.status(400).json({ success: false, message: 'User already exists with this email.' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'User already exists with this email.' });
     }
 
     // Hash password
@@ -68,7 +72,9 @@ export const loginUser = async (req, res, next) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Please provide email and password.' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'Please provide email and password.' });
     }
 
     // Find user
@@ -108,9 +114,9 @@ export const loginUser = async (req, res, next) => {
 export const getMe = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: { exclude: ['password'] }
+      attributes: { exclude: ['password'] },
     });
-    
+
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }

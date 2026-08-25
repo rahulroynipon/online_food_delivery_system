@@ -11,11 +11,18 @@ export const placeOrder = async (req, res, next) => {
     const { restaurantId, items, totalPrice, deliveryAddress } = req.body;
 
     if (!restaurantId || !items || !totalPrice || !deliveryAddress) {
-      return res.status(400).json({ success: false, message: 'Please provide restaurantId, items, totalPrice, and deliveryAddress.' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: 'Please provide restaurantId, items, totalPrice, and deliveryAddress.',
+        });
     }
 
     if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ success: false, message: 'Items list must be a non-empty array.' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'Items list must be a non-empty array.' });
     }
 
     const order = await Order.create({
@@ -55,7 +62,9 @@ export const getOrderById = async (req, res, next) => {
     const isAdmin = req.user.role === 'admin';
 
     if (!isCustomer && !isOwner && !isAdmin) {
-      return res.status(403).json({ success: false, message: 'Not authorized to view this order.' });
+      return res
+        .status(403)
+        .json({ success: false, message: 'Not authorized to view this order.' });
     }
 
     return res.status(200).json({
@@ -76,9 +85,9 @@ export const getMyOrders = async (req, res, next) => {
   try {
     const orders = await Order.findAll({
       where: { customerId: req.user.id },
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
     });
-    
+
     return res.status(200).json({
       success: true,
       count: orders.length,
@@ -103,14 +112,16 @@ export const getRestaurantOrders = async (req, res, next) => {
 
     // Access control: only owner or admin
     if (restaurant.ownerId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Not authorized to view these orders.' });
+      return res
+        .status(403)
+        .json({ success: false, message: 'Not authorized to view these orders.' });
     }
 
     const orders = await Order.findAll({
       where: { restaurantId: req.params.restaurantId },
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
     });
-    
+
     return res.status(200).json({
       success: true,
       count: orders.length,
@@ -132,7 +143,12 @@ export const updateOrderStatus = async (req, res, next) => {
     const allowedStatuses = ['placed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
 
     if (!status || !allowedStatuses.includes(status)) {
-      return res.status(400).json({ success: false, message: `Please provide a valid status: ${allowedStatuses.join(', ')}` });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: `Please provide a valid status: ${allowedStatuses.join(', ')}`,
+        });
     }
 
     const order = await Order.findByPk(req.params.id);
@@ -147,7 +163,9 @@ export const updateOrderStatus = async (req, res, next) => {
     const isAdmin = req.user.role === 'admin';
 
     if (!isOwner && !isRider && !isAdmin) {
-      return res.status(403).json({ success: false, message: 'Not authorized to update this order status.' });
+      return res
+        .status(403)
+        .json({ success: false, message: 'Not authorized to update this order status.' });
     }
 
     await order.update({ status });

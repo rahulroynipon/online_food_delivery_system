@@ -12,14 +12,14 @@ const errorHandler = (err, req, res, next) => {
 
   // Sequelize Unique Constraint Violations
   if (err.name === 'SequelizeUniqueConstraintError') {
-    const fields = err.errors.map(e => e.path).join(', ');
+    const fields = err.errors.map((e) => e.path).join(', ');
     error.message = `Duplicate field value entered: ${fields}.`;
     error.statusCode = 400;
   }
 
   // Sequelize Input Validation Failures
   if (err.name === 'SequelizeValidationError') {
-    const messages = err.errors.map(e => `${e.path}: ${e.message}`).join(', ');
+    const messages = err.errors.map((e) => `${e.path}: ${e.message}`).join(', ');
     error.message = `Validation Error: ${messages}`;
     error.statusCode = 400;
   }

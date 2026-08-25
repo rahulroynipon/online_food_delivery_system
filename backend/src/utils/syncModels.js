@@ -13,7 +13,11 @@ const configureAssociations = () => {
   Restaurant.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
 
   // Restaurant <-> FoodItem (One-to-Many)
-  Restaurant.hasMany(FoodItem, { foreignKey: 'restaurantId', as: 'foodItems', onDelete: 'CASCADE' });
+  Restaurant.hasMany(FoodItem, {
+    foreignKey: 'restaurantId',
+    as: 'foodItems',
+    onDelete: 'CASCADE',
+  });
   FoodItem.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
 
   // User <-> Order (One-to-Many)
@@ -37,10 +41,13 @@ const syncModels = async () => {
     // Using alter: true updates tables to match models without dropping everything.
     // In production, migrations are preferred, but sync is ideal for initial setup.
     await sequelize.sync({ alter: true });
-    
+
     console.log('Database tables synchronized successfully.');
   } catch (error) {
-    console.warn('Could not synchronize database tables (is PostgreSQL running & configured?):', error.message);
+    console.warn(
+      'Could not synchronize database tables (is PostgreSQL running & configured?):',
+      error.message
+    );
   }
 };
 

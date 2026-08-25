@@ -39,9 +39,9 @@ export const createRestaurant = async (req, res, next) => {
 export const getRestaurants = async (req, res, next) => {
   try {
     const restaurants = await Restaurant.findAll({
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
     });
-    
+
     return res.status(200).json({
       success: true,
       count: restaurants.length,
@@ -86,7 +86,9 @@ export const updateRestaurant = async (req, res, next) => {
 
     // Check ownership
     if (restaurant.ownerId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant.' });
+      return res
+        .status(403)
+        .json({ success: false, message: 'Not authorized to update this restaurant.' });
     }
 
     const { name, address, phone, cuisine } = req.body;
@@ -116,7 +118,9 @@ export const deleteRestaurant = async (req, res, next) => {
 
     // Check ownership
     if (restaurant.ownerId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Not authorized to delete this restaurant.' });
+      return res
+        .status(403)
+        .json({ success: false, message: 'Not authorized to delete this restaurant.' });
     }
 
     await restaurant.destroy();
