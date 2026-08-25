@@ -2,7 +2,7 @@ import express from 'express';
 import {
   createDeliveryZone,
   getDeliveryZones,
-  getDeliveryZoneById,
+  getDeliveryZoneBySlug,
   updateDeliveryZone,
   deleteDeliveryZone,
 } from '../controllers/deliveryZoneController.js';
@@ -54,32 +54,32 @@ router.route('/')
 
 /**
  * @swagger
- * /api/v1/delivery-zones/{id}:
+ * /api/v1/delivery-zones/{slug}:
  *   get:
- *     summary: Fetch delivery zone details by ID
+ *     summary: Fetch delivery zone details by Slug
  *     tags: [Delivery Zones]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: slug
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Success
  *       404:
  *         description: Not found
  *   put:
- *     summary: Update delivery zone details
+ *     summary: Update delivery zone details by Slug
  *     tags: [Delivery Zones]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: slug
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       content:
  *         application/json:
@@ -95,22 +95,22 @@ router.route('/')
  *       200:
  *         description: Updated successfully
  *   delete:
- *     summary: Delete a delivery zone
+ *     summary: Delete a delivery zone by Slug
  *     tags: [Delivery Zones]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: slug
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Deleted successfully
  */
-router.route('/:id')
-  .get(getDeliveryZoneById)
+router.route('/:slug')
+  .get(getDeliveryZoneBySlug)
   .put(protect, authorize(UserRole.ADMIN), updateDeliveryZone)
   .delete(protect, authorize(UserRole.ADMIN), deleteDeliveryZone);
 

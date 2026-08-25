@@ -1,6 +1,6 @@
 import { DeliveryZone } from '../models/index.js';
 import { ActiveStatus } from '../enums/index.js';
-import { slugify } from '../utils/slugify.js';
+import { generateUniqueSlug } from '../utils/slugify.js';
 
 /**
  * @desc    Create a new delivery zone
@@ -17,7 +17,7 @@ export const createDeliveryZone = async (req, res, next) => {
 
     const zone = await DeliveryZone.create({
       name,
-      slug: slugify(name),
+      slug: await generateUniqueSlug(DeliveryZone, name),
       status: status || ActiveStatus.ACTIVE,
     });
 
@@ -53,13 +53,13 @@ export const getDeliveryZones = async (req, res, next) => {
 };
 
 /**
- * @desc    Get a single delivery zone by ID
- * @route   GET /api/v1/delivery-zones/:id
+ * @desc    Get a single delivery zone by Slug
+ * @route   GET /api/v1/delivery-zones/:slug
  * @access  Public
  */
-export const getDeliveryZoneById = async (req, res, next) => {
+export const getDeliveryZoneBySlug = async (req, res, next) => {
   try {
-    const zone = await DeliveryZone.findByPk(req.params.id);
+    const zone = await DeliveryZone.findOne({ where: { slug: req.params.slug } });
     if (!zone) {
       return res.status(404).json({ success: false, message: 'Delivery zone not found.' });
     }
@@ -74,13 +74,13 @@ export const getDeliveryZoneById = async (req, res, next) => {
 };
 
 /**
- * @desc    Update a delivery zone
- * @route   PUT /api/v1/delivery-zones/:id
+ * @desc    Update a delivery zone by Slug
+ * @route   PUT /api/v1/delivery-zones/:slug
  * @access  Private (Admin)
  */
 export const updateDeliveryZone = async (req, res, next) => {
   try {
-    const zone = await DeliveryZone.findByPk(req.params.id);
+    const zone = await DeliveryZone.findOne({ where: { slug: req.params.slug } });
     if (!zone) {
       return res.status(404).json({ success: false, message: 'Delivery zone not found.' });
     }
@@ -88,7 +88,7 @@ export const updateDeliveryZone = async (req, res, next) => {
     const { name, status } = req.body;
     const updateData = { name, status };
     if (name) {
-      updateData.slug = slugify(name);
+      updateData.slug = await generateUniqueSlug(DeliveryZone, name, zone.id);
     }
     await zone.update(updateData);
 
@@ -103,13 +103,13 @@ export const updateDeliveryZone = async (req, res, next) => {
 };
 
 /**
- * @desc    Delete a delivery zone
- * @route   DELETE /api/v1/delivery-zones/:id
+ * @desc    Delete a delivery zone by Slug
+ * @route   DELETE /api/v1/delivery-zones/:slug
  * @access  Private (Admin)
  */
 export const deleteDeliveryZone = async (req, res, next) => {
   try {
-    const zone = await DeliveryZone.findByPk(req.params.id);
+    const zone = await DeliveryZone.findOne({ where: { slug: req.params.slug } });
     if (!zone) {
       return res.status(404).json({ success: false, message: 'Delivery zone not found.' });
     }

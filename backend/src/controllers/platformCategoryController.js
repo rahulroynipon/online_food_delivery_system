@@ -1,6 +1,6 @@
 import { PlatformCategory } from '../models/index.js';
 import { ActiveStatus } from '../enums/index.js';
-import { slugify } from '../utils/slugify.js';
+import { generateUniqueSlug } from '../utils/slugify.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -38,7 +38,7 @@ export const createPlatformCategory = async (req, res, next) => {
 
     const category = await PlatformCategory.create({
       name,
-      slug: slugify(name),
+      slug: await generateUniqueSlug(PlatformCategory, name),
       image,
       status: status || ActiveStatus.ACTIVE,
     });
@@ -76,13 +76,13 @@ export const getPlatformCategories = async (req, res, next) => {
 };
 
 /**
- * @desc    Get a single platform category by ID
- * @route   GET /api/v1/platform-categories/:id
+ * @desc    Get a single platform category by Slug
+ * @route   GET /api/v1/platform-categories/:slug
  * @access  Public
  */
-export const getPlatformCategoryById = async (req, res, next) => {
+export const getPlatformCategoryBySlug = async (req, res, next) => {
   try {
-    const category = await PlatformCategory.findByPk(req.params.id);
+    const category = await PlatformCategory.findOne({ where: { slug: req.params.slug } });
     if (!category) {
       return res.status(404).json({ success: false, message: 'Platform category not found.' });
     }
@@ -97,13 +97,13 @@ export const getPlatformCategoryById = async (req, res, next) => {
 };
 
 /**
- * @desc    Update a platform category
- * @route   PUT /api/v1/platform-categories/:id
+ * @desc    Update a platform category by Slug
+ * @route   PUT /api/v1/platform-categories/:slug
  * @access  Private (Admin)
  */
 export const updatePlatformCategory = async (req, res, next) => {
   try {
-    const category = await PlatformCategory.findByPk(req.params.id);
+    const category = await PlatformCategory.findOne({ where: { slug: req.params.slug } });
     if (!category) {
       if (req.file) deleteCategoryImage(req.file.path);
       return res.status(404).json({ success: false, message: 'Platform category not found.' });
@@ -120,7 +120,7 @@ export const updatePlatformCategory = async (req, res, next) => {
 
     const updateData = { name, image, status };
     if (name) {
-      updateData.slug = slugify(name);
+      updateData.slug = await generateUniqueSlug(PlatformCategory, name, category.id);
     }
 
     await category.update(updateData);
@@ -137,13 +137,13 @@ export const updatePlatformCategory = async (req, res, next) => {
 };
 
 /**
- * @desc    Delete a platform category
- * @route   DELETE /api/v1/platform-categories/:id
+ * @desc    Delete a platform category by Slug
+ * @route   DELETE /api/v1/platform-categories/:slug
  * @access  Private (Admin)
  */
 export const deletePlatformCategory = async (req, res, next) => {
   try {
-    const category = await PlatformCategory.findByPk(req.params.id);
+    const category = await PlatformCategory.findOne({ where: { slug: req.params.slug } });
     if (!category) {
       return res.status(404).json({ success: false, message: 'Platform category not found.' });
     }

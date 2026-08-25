@@ -2,13 +2,13 @@ import express from 'express';
 import {
   createPlatformCategory,
   getPlatformCategories,
-  getPlatformCategoryById,
+  getPlatformCategoryBySlug,
   updatePlatformCategory,
   deletePlatformCategory,
 } from '../controllers/platformCategoryController.js';
 import upload from '../middleware/uploadMiddleware.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
-import {UserRole} from '../enums/index.js';
+import { UserRole } from '../enums/index.js';
 
 const router = express.Router();
 
@@ -57,32 +57,32 @@ router.route('/')
 
 /**
  * @swagger
- * /api/v1/platform-categories/{id}:
+ * /api/v1/platform-categories/{slug}:
  *   get:
- *     summary: Fetch Platform Category details by ID
+ *     summary: Fetch Platform Category details by Slug
  *     tags: [Platform Categories]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: slug
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Success
  *       404:
  *         description: Not found
  *   put:
- *     summary: Update platform category details (with optional new image file)
+ *     summary: Update platform category details by Slug (with optional new image file)
  *     tags: [Platform Categories]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: slug
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       content:
  *         multipart/form-data:
@@ -101,22 +101,22 @@ router.route('/')
  *       200:
  *         description: Updated successfully
  *   delete:
- *     summary: Delete a platform category
+ *     summary: Delete a platform category by Slug
  *     tags: [Platform Categories]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: slug
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Deleted successfully
  */
-router.route('/:id')
-  .get(getPlatformCategoryById)
+router.route('/:slug')
+  .get(getPlatformCategoryBySlug)
   .put(protect, authorize(UserRole.ADMIN), upload.single('image'), updatePlatformCategory)
   .delete(protect, authorize(UserRole.ADMIN), deletePlatformCategory);
 
