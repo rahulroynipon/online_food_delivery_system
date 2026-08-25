@@ -7,6 +7,8 @@ import {
   RestaurantCategory,
   Food,
   FoodVariant,
+  DeliveryZone,
+  RestaurantDeliveryZone,
 } from '../models/index.js';
 
 /**
@@ -55,6 +57,20 @@ const configureAssociations = () => {
   // Food <-> FoodVariant (One-to-Many)
   Food.hasMany(FoodVariant, { foreignKey: 'foodId', as: 'variants', onDelete: 'CASCADE' });
   FoodVariant.belongsTo(Food, { foreignKey: 'foodId', as: 'food' });
+
+  // Restaurant <-> DeliveryZone (Many-to-Many via RestaurantDeliveryZone)
+  Restaurant.belongsToMany(DeliveryZone, {
+    through: RestaurantDeliveryZone,
+    foreignKey: 'restaurantId',
+    otherKey: 'deliveryZoneId',
+    as: 'deliveryZones',
+  });
+  DeliveryZone.belongsToMany(Restaurant, {
+    through: RestaurantDeliveryZone,
+    foreignKey: 'deliveryZoneId',
+    otherKey: 'restaurantId',
+    as: 'restaurants',
+  });
 };
 
 /**

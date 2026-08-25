@@ -5,6 +5,8 @@ import PlatformCategory from './PlatformCategory.js';
 import RestaurantCategory from './RestaurantCategory.js';
 import Food from './Food.js';
 import FoodVariant from './FoodVariant.js';
+import DeliveryZone from './DeliveryZone.js';
+import RestaurantDeliveryZone from './RestaurantDeliveryZone.js';
 
 export {
   User,
@@ -14,4 +16,6 @@ export {
   RestaurantCategory,
   Food,
   FoodVariant,
+  DeliveryZone,
+  RestaurantDeliveryZone,
 };
