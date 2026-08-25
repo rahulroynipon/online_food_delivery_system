@@ -6,10 +6,8 @@
 @import './design-system/themes/dark.css';
 @import './design-system/themes/brand.css';
 
-/* ─── Tailwind directives ────────────────────────────────────────────────────── */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config "../tailwind.config.js";
 
 /* ─── Base layer ─────────────────────────────────────────────────────────────── */
 @layer base {
