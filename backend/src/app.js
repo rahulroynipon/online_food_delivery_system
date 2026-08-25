@@ -5,6 +5,9 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
 import errorHandler from './middleware/errorMiddleware.js';
 
+// Route Imports
+import authRoutes from './routes/authRoutes.js';
+
 const app = express();
 
 // Define API version prefix constant
@@ -19,6 +22,9 @@ app.use(`${API_PREFIX}/uploads`, express.static('uploads'));
 
 // API Swagger Documentation
 app.use(`${API_PREFIX}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Mount Routes
+app.use(`${API_PREFIX}/auth`, authRoutes);
 
 // Status Endpoint
 app.get(`${API_PREFIX}/status`, (req, res) => {
