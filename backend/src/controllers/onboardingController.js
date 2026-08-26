@@ -512,5 +512,83 @@ export const getMyRestaurant = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Delete a restaurant and its associated user account
+ * @route   DELETE /api/v1/onboarding/applications/restaurant/:id
+ * @access  Private (Admin Only)
+ */
+export const deleteRestaurant = async (req, res, next) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const restaurant = await Restaurant.findByPk(req.params.id, { transaction });
+    if (!restaurant) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Restaurant not found.' });
+    }
+
+    const userId = restaurant.userId;
+
+    // Delete the restaurant record (cascade should handle related records)
+    await restaurant.destroy({ transaction });
+
+    // Delete the associated user account
+    if (userId) {
+      const user = await User.findByPk(userId, { transaction });
+      if (user) {
+        await user.destroy({ transaction });
+      }
+    }
+
+    await transaction.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Restaurant and associated account deleted successfully.',
+    });
+  } catch (error) {
+    await transaction.rollback();
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete a rider and its associated user account
+ * @route   DELETE /api/v1/onboarding/applications/rider/:id
+ * @access  Private (Admin Only)
+ */
+export const deleteRider = async (req, res, next) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const rider = await Rider.findByPk(req.params.id, { transaction });
+    if (!rider) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Rider not found.' });
+    }
+
+    const userId = rider.userId;
+
+    // Delete the rider record
+    await rider.destroy({ transaction });
+
+    // Delete the associated user account
+    if (userId) {
+      const user = await User.findByPk(userId, { transaction });
+      if (user) {
+        await user.destroy({ transaction });
+      }
+    }
+
+    await transaction.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Rider and associated account deleted successfully.',
+    });
+  } catch (error) {
+    await transaction.rollback();
+    next(error);
+  }
+};
+
 
 

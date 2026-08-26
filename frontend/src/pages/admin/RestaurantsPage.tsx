@@ -13,7 +13,9 @@ import {
   Mail,
   Calendar,
   Info,
-  Edit
+  Edit,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -78,7 +80,7 @@ export default function RestaurantsPage() {
       label: '',
       align: 'right' as const,
       cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-1.5">
+        <div className="flex items-center justify-end gap-1.5 shrink-0 w-max">
           <Button
             size="xs"
             variant="outline"
@@ -97,6 +99,15 @@ export default function RestaurantsPage() {
           >
             Edit
           </Button>
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={() => { setRestaurantToDelete(row); setIsDeleteModalOpen(true); }}
+            leftIcon={<Trash2 size={12} />}
+            className="font-semibold border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white"
+          >
+            Delete
+          </Button>
         </div>
       )
     }
@@ -114,6 +125,10 @@ export default function RestaurantsPage() {
   // Edit State
   const [editApp, setEditApp] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Delete State
+  const [restaurantToDelete, setRestaurantToDelete] = useState<any>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
     description: '',
@@ -224,6 +239,22 @@ export default function RestaurantsPage() {
     setIsModalOpen(true);
   };
 
+  const handleConfirmDelete = async () => {
+    if (!restaurantToDelete) return;
+    setActionLoading(`delete-${restaurantToDelete.id}`);
+    try {
+      await api.delete(`/onboarding/applications/restaurant/${restaurantToDelete.id}`);
+      toast.success('Restaurant and associated account deleted successfully.');
+      setIsDeleteModalOpen(false);
+      setRestaurantToDelete(null);
+      fetchApplications();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to delete restaurant.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   // Filter & Search Logic
   const filteredRestaurants = restaurants.filter((r) => {
     const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
@@ -304,7 +335,7 @@ export default function RestaurantsPage() {
       </div>
 
       {/* Table Container */}
-      <Card className="border border-border/40 shadow-xs bg-card">
+      <Card className="bg-transparent border-none shadow-none">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -610,6 +641,49 @@ export default function RestaurantsPage() {
               </div>
             </Modal.Footer>
           </form>
+        </Modal>
+      )}
+      {/* Delete Confirmation Modal */}
+      {restaurantToDelete && (
+        <Modal open={isDeleteModalOpen} onClose={() => { setIsDeleteModalOpen(false); setRestaurantToDelete(null); }} size="sm">
+          <Modal.Header
+            title="Delete Restaurant"
+            description="This will permanently delete the restaurant profile and its associated merchant account. This action cannot be undone."
+          />
+          <Modal.Content>
+            <div className="flex flex-col items-center text-center gap-4 py-2">
+              <div className="h-14 w-14 rounded-2xl bg-rose-500/10 flex items-center justify-center">
+                <AlertTriangle size={28} className="text-rose-500" />
+              </div>
+              <div>
+                <p className="font-bold text-foreground">Delete <span className="text-rose-500">{restaurantToDelete.name}</span>?</p>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  Owner: {restaurantToDelete.user?.name || 'N/A'} &bull; {restaurantToDelete.user?.email || 'N/A'}
+                </p>
+              </div>
+            </div>
+          </Modal.Content>
+          <Modal.Footer>
+            <div className="flex justify-end gap-2.5 w-full">
+              <Button
+                variant="ghost"
+                onClick={() => { setIsDeleteModalOpen(false); setRestaurantToDelete(null); }}
+                className="font-semibold text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleConfirmDelete}
+                leftIcon={<Trash2 size={13} />}
+                loading={actionLoading === `delete-${restaurantToDelete.id}`}
+                disabled={actionLoading !== null}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs border-transparent shadow-xs"
+              >
+                Yes, Delete
+              </Button>
+            </div>
+          </Modal.Footer>
         </Modal>
       )}
     </div>

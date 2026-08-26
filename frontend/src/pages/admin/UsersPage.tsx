@@ -356,7 +356,7 @@ export default function UsersPage() {
       </div>
 
       {/* Table Container */}
-      <Card className="border border-border/40 shadow-xs bg-card">
+      <Card className="bg-transparent border-none shadow-none">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">

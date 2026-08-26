@@ -14,7 +14,9 @@ import {
   Info,
   Edit,
   ShieldCheck,
-  FileText
+  FileText,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -42,6 +44,10 @@ export default function RidersPage() {
     vehicleNumber: '',
     status: 'PENDING'
   });
+
+  // Delete State
+  const [riderToDelete, setRiderToDelete] = useState<any>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // DataTable Column Definitions
   const columns: DataTableColumn<any>[] = [
@@ -103,7 +109,7 @@ export default function RidersPage() {
       label: '',
       align: 'right' as const,
       cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-1.5">
+        <div className="flex items-center justify-end gap-1.5 shrink-0 w-max">
           <Button
             size="xs"
             variant="outline"
@@ -121,6 +127,15 @@ export default function RidersPage() {
             className="font-semibold border-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white"
           >
             Edit
+          </Button>
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={() => { setRiderToDelete(row); setIsDeleteModalOpen(true); }}
+            leftIcon={<Trash2 size={12} />}
+            className="font-semibold border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white"
+          >
+            Delete
           </Button>
         </div>
       )
@@ -184,6 +199,22 @@ export default function RidersPage() {
   const handleOpenDetails = (app: any) => {
     setSelectedApp(app);
     setIsModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!riderToDelete) return;
+    setActionLoading(`delete-${riderToDelete.id}`);
+    try {
+      await api.delete(`/onboarding/applications/rider/${riderToDelete.id}`);
+      toast.success('Rider and associated account deleted successfully.');
+      setIsDeleteModalOpen(false);
+      setRiderToDelete(null);
+      fetchApplications();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to delete rider.');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleOpenEdit = (app: any) => {
@@ -298,7 +329,7 @@ export default function RidersPage() {
       </div>
 
       {/* Table Container */}
-      <Card className="border border-border/40 shadow-xs bg-card">
+      <Card className="bg-transparent border-none shadow-none">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -563,6 +594,49 @@ export default function RidersPage() {
               </div>
             </Modal.Footer>
           </form>
+        </Modal>
+      )}
+      {/* Delete Confirmation Modal */}
+      {riderToDelete && (
+        <Modal open={isDeleteModalOpen} onClose={() => { setIsDeleteModalOpen(false); setRiderToDelete(null); }} size="sm">
+          <Modal.Header
+            title="Delete Rider"
+            description="This will permanently delete the rider profile and its associated account. This action cannot be undone."
+          />
+          <Modal.Content>
+            <div className="flex flex-col items-center text-center gap-4 py-2">
+              <div className="h-14 w-14 rounded-2xl bg-rose-500/10 flex items-center justify-center">
+                <AlertTriangle size={28} className="text-rose-500" />
+              </div>
+              <div>
+                <p className="font-bold text-foreground">Delete <span className="text-rose-500">{riderToDelete.user?.name || 'this rider'}</span>?</p>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  {riderToDelete.user?.email || 'N/A'} &bull; {riderToDelete.vehicleType || 'N/A'}
+                </p>
+              </div>
+            </div>
+          </Modal.Content>
+          <Modal.Footer>
+            <div className="flex justify-end gap-2.5 w-full">
+              <Button
+                variant="ghost"
+                onClick={() => { setIsDeleteModalOpen(false); setRiderToDelete(null); }}
+                className="font-semibold text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleConfirmDelete}
+                leftIcon={<Trash2 size={13} />}
+                loading={actionLoading === `delete-${riderToDelete.id}`}
+                disabled={actionLoading !== null}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs border-transparent shadow-xs"
+              >
+                Yes, Delete
+              </Button>
+            </div>
+          </Modal.Footer>
         </Modal>
       )}
     </div>

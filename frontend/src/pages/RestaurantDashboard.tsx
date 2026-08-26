@@ -46,10 +46,29 @@ import {
   Check,
   Loader2,
   Upload,
-  ImageIcon
+  ImageIcon,
+  VolumeX,
+  Volume2,
+  ShoppingBag,
+  CreditCard,
+  Settings
 } from 'lucide-react';
 import api from '../lib/axios';
 import { NavLink, useLocation, Outlet, useOutletContext } from 'react-router-dom';
+
+const getRelativeTime = (dateInput: any) => {
+  const date = new Date(dateInput);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  return `${diffDays}d`;
+};
 
 export default function RestaurantDashboard() {
   const navigate = useNavigate();
@@ -67,6 +86,13 @@ export default function RestaurantDashboard() {
     : 'dashboard';
 
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [isMuted, setIsMuted] = useState(() => localStorage.getItem('notif_sound') === 'off');
+
+  const toggleMute = () => {
+    const nextState = !isMuted;
+    setIsMuted(nextState);
+    localStorage.setItem('notif_sound', nextState ? 'off' : 'on');
+  };
 
   // Fetch restaurant profile details
   const fetchProfile = async () => {
@@ -85,6 +111,7 @@ export default function RestaurantDashboard() {
 
   // Sound notification trigger
   const playNotificationSound = () => {
+    if (localStorage.getItem('notif_sound') === 'off') return;
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = ctx.createOscillator();
@@ -316,7 +343,7 @@ export default function RestaurantDashboard() {
                 <button className="relative p-2 rounded-full hover:bg-muted transition-colors cursor-pointer">
                   <Bell className="h-[18px] w-[18px] text-foreground" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 h-[18px] min-w-[18px] px-1 bg-amber-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md ring-2 ring-card animate-bounce">
+                    <span className="absolute -top-0.5 -right-0.5 h-[18px] min-w-[18px] px-1 bg-primary text-primary-foreground text-[9px] font-black rounded-full flex items-center justify-center shadow-md ring-2 ring-card animate-bounce">
                       {unreadCount}
                     </span>
                   )}
@@ -328,12 +355,12 @@ export default function RestaurantDashboard() {
                 <Dropdown.Item closeOnClick={false} content={
                   <div className="flex justify-between items-center w-full py-0.5">
                     <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                        <Bell size={12} className="text-amber-500" />
+                      <div className="h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Bell size={12} className="text-primary" />
                       </div>
                       <span className="font-bold text-[13px] text-foreground tracking-tight">Notifications</span>
                       {unreadCount > 0 && (
-                        <span className="h-5 min-w-5 px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+                        <span className="h-5 min-w-5 px-1.5 bg-primary text-primary-foreground text-[10px] font-black rounded-full flex items-center justify-center">
                           {unreadCount} new
                         </span>
                       )}
@@ -341,7 +368,7 @@ export default function RestaurantDashboard() {
                     {unreadCount > 0 && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleMarkAllAsRead(); }}
-                        className="text-[10px] font-bold text-amber-600 hover:text-amber-700 hover:underline cursor-pointer transition-colors px-2 py-0.5 rounded-md hover:bg-amber-500/5"
+                        className="text-[10px] font-bold text-primary/80 hover:text-primary hover:underline cursor-pointer transition-colors px-2 py-0.5 rounded-md hover:bg-primary/5"
                       >
                         Mark all read
                       </button>
@@ -365,37 +392,106 @@ export default function RestaurantDashboard() {
                     </div>
                   } />
                 ) : (
-                  notifications.slice(0, 5).map((notif) => (
-                    <Dropdown.Item 
-                      key={notif.id}
-                      closeOnClick={true}
-                      onClick={() => handleMarkAsRead(notif.id)}
-                      content={
-                        <div className={`flex items-start gap-3 w-full py-1 ${!notif.read ? 'opacity-100 font-semibold' : 'opacity-70'}`}>
-                          <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-xs font-black ${
-                            notif.read ? 'bg-muted text-muted-foreground' : 'bg-amber-500/10 text-amber-500'
-                          }`}>
-                            {notif.event?.[0] || 'N'}
+                  notifications.slice(0, 5).map((notif) => {
+                    const isOrder = notif.event === 'ORDER';
+                    const isDelivery = notif.event === 'DELIVERY';
+                    const isPayment = notif.event === 'PAYMENT';
+
+                    // Avatar color & icon based on event
+                    let avatarStyle = 'bg-gradient-to-br from-pink-400 to-rose-600 text-white';
+                    let avatarIcon = <Settings size={15} />;
+                    let eventLabel = 'System';
+                    let chipStyle = 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400';
+
+                    if (isOrder) {
+                      avatarStyle = 'bg-gradient-to-br from-indigo-400 to-blue-600 text-white';
+                      avatarIcon = <ShoppingBag size={15} />;
+                      eventLabel = 'Order';
+                      chipStyle = 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400';
+                    } else if (isDelivery) {
+                      avatarStyle = 'bg-gradient-to-br from-teal-400 to-emerald-500 text-white';
+                      avatarIcon = <Bike size={15} />;
+                      eventLabel = 'Delivery';
+                      chipStyle = 'bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-400';
+                    } else if (isPayment) {
+                      avatarStyle = 'bg-gradient-to-br from-amber-400 to-orange-500 text-white';
+                      avatarIcon = <CreditCard size={15} />;
+                      eventLabel = 'Payment';
+                      chipStyle = 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400';
+                    }
+
+                    return (
+                      <Dropdown.Item 
+                        key={notif.id}
+                        closeOnClick={true}
+                        onClick={() => handleMarkAsRead(notif.id)}
+                        content={
+                          <div className={`flex items-start gap-3 w-full group py-0.5 ${!notif.read ? '' : 'opacity-60'}`}>
+                            {/* Gradient Avatar */}
+                            <div className="relative shrink-0 mt-0.5">
+                              <div className={`h-9 w-9 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm ${avatarStyle}`}>
+                                {avatarIcon}
+                              </div>
+                              {!notif.read && (
+                                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-[2.5px] border-popover shadow-sm animate-pulse" />
+                              )}
+                            </div>
+
+                            {/* Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${chipStyle}`}>
+                                  {eventLabel}
+                                </span>
+                                {!notif.read && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wide">
+                                    New
+                                  </span>
+                                )}
+                              </div>
+                              <p className={`text-xs leading-snug line-clamp-2 ${!notif.read ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'}`}>
+                                {notif.message}
+                              </p>
+                              <span className="text-[9px] text-muted-foreground/75 mt-0.5 block">
+                                {getRelativeTime(notif.createdAt)}
+                              </span>
+                            </div>
+
+                            {/* Mark read check */}
+                            {!notif.read && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id, e); }}
+                                className="shrink-0 opacity-0 group-hover:opacity-100 mt-1 p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-all cursor-pointer"
+                                title="Mark as read"
+                              >
+                                <Check size={11} />
+                              </button>
+                            )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-foreground leading-normal line-clamp-2">{notif.message}</p>
-                            <p className="text-[9px] text-muted-foreground mt-1">
-                              {new Date(notif.createdAt).toLocaleDateString()} at {new Date(notif.createdAt).toLocaleTimeString()}
-                            </p>
-                          </div>
-                          {!notif.read && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }}
-                              className="h-5 w-5 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0"
-                            >
-                              <Check size={12} />
-                            </button>
-                          )}
-                        </div>
-                      }
-                    />
-                  ))
+                        }
+                      />
+                    );
+                  })
                 )}
+
+                <Dropdown.Separator />
+
+                {/* Footer Sound Settings Toggle */}
+                <Dropdown.Item
+                  closeOnClick={false}
+                  onClick={toggleMute}
+                  content={
+                    <div className={`flex items-center gap-2 w-full text-[11px] font-semibold ${isMuted ? 'text-rose-500' : 'text-muted-foreground'}`}>
+                      <div className={`relative h-5 w-5 rounded-md flex items-center justify-center ${isMuted ? 'bg-rose-50 dark:bg-rose-500/10' : 'bg-muted'}`}>
+                        {isMuted ? <VolumeX size={11} /> : <Volume2 size={11} />}
+                        {!isMuted && (
+                          <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500 ring-1 ring-popover" />
+                        )}
+                      </div>
+                      <span>{isMuted ? 'Notifications muted' : 'Sound enabled'}</span>
+                    </div>
+                  }
+                />
               </Dropdown.Menu>
             </Dropdown>
 
