@@ -9,8 +9,8 @@ import { protect, authorize } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Apply admin protection middleware to all notification routes
-router.use(protect, authorize('ADMIN'));
+// Apply authorization protection middleware to all notification routes
+router.use(protect, authorize('ADMIN', 'RESTAURANT'));
 
 router.route('/')
   .get(getNotifications)

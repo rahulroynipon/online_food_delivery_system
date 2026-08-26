@@ -8,7 +8,8 @@ import {
    approveRider, 
    rejectRider,
    updateRestaurant,
-   updateRider
+   updateRider,
+   getMyRestaurant
 } from '../controllers/onboardingController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
@@ -110,6 +111,7 @@ router.post('/rider', applyAsRider);
  * @desc    Get all pending applications (Admin Only)
  */
 router.get('/applications', protect, authorize('ADMIN'), getApplications);
+router.get('/my-restaurant', protect, getMyRestaurant);
 
 /**
  * @desc    Approve/Reject Restaurant (Admin Only)

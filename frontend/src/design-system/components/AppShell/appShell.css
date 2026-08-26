@@ -174,7 +174,8 @@
   padding-right: 0;
 }
 
-.appshell-sidebar.is-collapsed a {
+.appshell-sidebar.is-collapsed a,
+.appshell-sidebar.is-collapsed button.appshell-nav-item {
   width: 40px !important;
   height: 40px !important;
   padding: 0 !important;
@@ -183,7 +184,8 @@
   margin-right: auto !important;
 }
 
-.appshell-sidebar.is-collapsed a > div {
+.appshell-sidebar.is-collapsed a > div,
+.appshell-sidebar.is-collapsed button.appshell-nav-item > div {
   gap: 0 !important;
   justify-content: center !important;
 }

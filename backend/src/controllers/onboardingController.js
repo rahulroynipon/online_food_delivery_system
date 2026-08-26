@@ -487,4 +487,30 @@ export const updateRider = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get current logged in merchant's restaurant profile
+ * @route   GET /api/v1/onboarding/my-restaurant
+ * @access  Private (Restaurant Owner Only)
+ */
+export const getMyRestaurant = async (req, res, next) => {
+  try {
+    const restaurant = await Restaurant.findOne({
+      where: { userId: req.user.id },
+      include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email', 'phone', 'role', 'status'] }]
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ success: false, message: 'Restaurant profile not found for this merchant.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      restaurant
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 
