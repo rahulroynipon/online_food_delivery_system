@@ -221,6 +221,12 @@ export default function RestaurantDashboard() {
       path: '/restaurant/menu',
     },
     {
+      id: 'addons',
+      label: 'Store Add-ons',
+      icon: <Layers size={18} />,
+      path: '/restaurant/addons',
+    },
+    {
       id: 'orders',
       label: 'Incoming Orders',
       icon: <ClipboardList size={18} />,

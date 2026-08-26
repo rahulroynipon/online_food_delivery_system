@@ -2,8 +2,8 @@ import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.js';
 import { ActiveStatus } from '../enums/index.js';
 
-const Food = sequelize.define(
-  'Food',
+const RestaurantAddon = sequelize.define(
+  'RestaurantAddon',
   {
     id: {
       type: DataTypes.INTEGER,
@@ -19,51 +19,39 @@ const Food = sequelize.define(
       },
       onDelete: 'CASCADE',
     },
-    restaurantCategoryId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'restaurant_categories',
-        key: 'id',
-      },
-      onDelete: 'CASCADE',
-    },
-    platformCategoryId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'platform_categories',
-        key: 'id',
-      },
-      onDelete: 'CASCADE',
-    },
     name: {
       type: DataTypes.STRING,
-      allowNull: true,
+      allowNull: false,
     },
     slug: {
       type: DataTypes.STRING,
-      allowNull: true,
+      allowNull: false,
       unique: true,
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
     },
     image: {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
     status: {
       type: DataTypes.ENUM(...Object.values(ActiveStatus)),
-      allowNull: true,
+      allowNull: false,
+      defaultValue: 'ACTIVE',
     },
   },
   {
-    tableName: 'foods',
+    tableName: 'restaurant_addons',
     timestamps: true,
-    paranoid: true,
+    paranoid: true, // Enables soft delete (deletedAt timestamp column)
   }
 );
 
-export default Food;
+export default RestaurantAddon;

@@ -23,6 +23,14 @@ const FoodVariant = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    image: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     price: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true,

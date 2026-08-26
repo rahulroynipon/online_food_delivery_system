@@ -53,6 +53,7 @@ const RestaurantCategory = sequelize.define(
   {
     tableName: 'restaurant_categories',
     timestamps: true,
+    paranoid: true,
   }
 );
 

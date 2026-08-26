@@ -18,6 +18,7 @@ import RestaurantOverview from './pages/restaurant/OverviewPage';
 import RestaurantCategories from './pages/restaurant/CategoriesPage';
 import RestaurantMenu from './pages/restaurant/MenuPage';
 import RestaurantOrders from './pages/restaurant/OrdersPage';
+import RestaurantAddons from './pages/restaurant/AddonsPage';
 import api from './lib/axios';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Tabs, toast } from './design-system';
 import { Loader2, LogOut, User as UserIcon, Calendar, Phone, ShieldCheck, Mail, Bell, Store, Bike, Users, CheckCircle, XCircle } from 'lucide-react';
@@ -133,6 +134,7 @@ function App() {
           <Route path="categories" element={<RestaurantCategories />} />
           <Route path="menu" element={<RestaurantMenu />} />
           <Route path="orders" element={<RestaurantOrders />} />
+          <Route path="addons" element={<RestaurantAddons />} />
         </Route>
 
         <Route path="/" element={<DashboardRedirect />} />

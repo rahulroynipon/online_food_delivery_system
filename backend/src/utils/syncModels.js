@@ -18,70 +18,7 @@ import { ensureDatabaseExists } from './ensureDb.js';
  * Configure Sequelize Associations (Relations)
  */
 const configureAssociations = () => {
-  // User <-> Restaurant (One-to-One)
-  User.hasOne(Restaurant, { foreignKey: 'userId', as: 'restaurant', onDelete: 'CASCADE' });
-  Restaurant.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-
-  // User <-> Rider (One-to-One)
-  User.hasOne(Rider, { foreignKey: 'userId', as: 'rider', onDelete: 'CASCADE' });
-  Rider.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-
-  // Restaurant <-> RestaurantCategory (One-to-Many)
-  Restaurant.hasMany(RestaurantCategory, {
-    foreignKey: 'restaurantId',
-    as: 'categories',
-    onDelete: 'CASCADE',
-  });
-  RestaurantCategory.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
-
-  // Restaurant <-> Food (One-to-Many)
-  Restaurant.hasMany(Food, { foreignKey: 'restaurantId', as: 'foods', onDelete: 'CASCADE' });
-  Food.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
-
-  // RestaurantCategory <-> Food (One-to-Many)
-  RestaurantCategory.hasMany(Food, {
-    foreignKey: 'restaurantCategoryId',
-    as: 'foods',
-    onDelete: 'CASCADE',
-  });
-  Food.belongsTo(RestaurantCategory, {
-    foreignKey: 'restaurantCategoryId',
-    as: 'restaurantCategory',
-  });
-
-  // PlatformCategory <-> Food (One-to-Many)
-  PlatformCategory.hasMany(Food, {
-    foreignKey: 'platformCategoryId',
-    as: 'foods',
-    onDelete: 'CASCADE',
-  });
-  Food.belongsTo(PlatformCategory, { foreignKey: 'platformCategoryId', as: 'platformCategory' });
-
-  // PlatformCategory <-> RestaurantCategory (One-to-Many)
-  PlatformCategory.hasMany(RestaurantCategory, {
-    foreignKey: 'platformCategoryId',
-    as: 'restaurantCategories',
-    onDelete: 'SET NULL',
-  });
-  RestaurantCategory.belongsTo(PlatformCategory, { foreignKey: 'platformCategoryId', as: 'platformCategory' });
-
-  // Food <-> FoodVariant (One-to-Many)
-  Food.hasMany(FoodVariant, { foreignKey: 'foodId', as: 'variants', onDelete: 'CASCADE' });
-  FoodVariant.belongsTo(Food, { foreignKey: 'foodId', as: 'food' });
-
-  // Restaurant <-> DeliveryZone (Many-to-Many via RestaurantDeliveryZone)
-  Restaurant.belongsToMany(DeliveryZone, {
-    through: RestaurantDeliveryZone,
-    foreignKey: 'restaurantId',
-    otherKey: 'deliveryZoneId',
-    as: 'deliveryZones',
-  });
-  DeliveryZone.belongsToMany(Restaurant, {
-    through: RestaurantDeliveryZone,
-    foreignKey: 'deliveryZoneId',
-    otherKey: 'restaurantId',
-    as: 'restaurants',
-  });
+  // All associations are centrally configured in models/index.js upon model imports.
 };
 
 /**

@@ -7,8 +7,8 @@ export default function OverviewPage() {
   const [restaurantProfile, setRestaurantProfile] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   
-  // Local active food and orders counts for dashboard metrics
-  const [activeFoodsCount, setActiveFoodsCount] = useState(3);
+  // Local active food and orders counts for dashboard metrics dynamically loaded
+  const [activeFoodsCount, setActiveFoodsCount] = useState(0);
   const [ordersCount, setOrdersCount] = useState(4);
 
   // Fetch restaurant profile details
@@ -26,8 +26,23 @@ export default function OverviewPage() {
     }
   };
 
+  // Fetch active menu items count
+  const fetchMenuMetrics = async () => {
+    try {
+      const response = await api.get('/foods');
+      if (response.data?.success) {
+        const foodList = response.data.foods || [];
+        const activeCount = foodList.filter((f: any) => f.status === 'ACTIVE').length;
+        setActiveFoodsCount(activeCount);
+      }
+    } catch (err) {
+      console.error('Failed to retrieve menu metrics:', err);
+    }
+  };
+
   useEffect(() => {
     fetchProfile();
+    fetchMenuMetrics();
   }, []);
 
   return (

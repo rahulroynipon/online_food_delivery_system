@@ -13,6 +13,8 @@ import onboardingRoutes from './routes/onboardingRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import restaurantCategoryRoutes from './routes/restaurantCategoryRoutes.js';
+import foodRoutes from './routes/foodRoutes.js';
+import addonRoutes from './routes/addonRoutes.js';
 
 const app = express();
 
@@ -37,6 +39,8 @@ app.use(`${API_PREFIX}/onboarding`, onboardingRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/users`, userRoutes);
 app.use(`${API_PREFIX}/restaurant-categories`, restaurantCategoryRoutes);
+app.use(`${API_PREFIX}/foods`, foodRoutes);
+app.use(`${API_PREFIX}/addons`, addonRoutes);
 
 // Status Endpoint
 app.get(`${API_PREFIX}/status`, (req, res) => {
