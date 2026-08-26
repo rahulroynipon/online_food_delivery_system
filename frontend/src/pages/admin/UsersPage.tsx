@@ -11,10 +11,12 @@ import {
   User,
   Mail,
   Phone,
-  ShieldAlert,
+  ShieldCheck,
   Calendar,
   Lock,
-  Filter
+  Filter,
+  Store,
+  Bike
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -324,20 +326,19 @@ export default function UsersPage() {
 
         {/* Right filters */}
         <div className="flex flex-col md:flex-row items-center gap-3 flex-1 max-w-2xl">
-          {/* Role filter Dropdown */}
-          <div className="flex items-center gap-2 bg-muted/10 border border-border/40 px-3 py-1.5 rounded-xl text-xs text-foreground shrink-0 w-full md:w-44">
-            <Filter size={13} className="text-muted-foreground" />
-            <select
+          <div className="shrink-0 w-full md:w-48">
+            <Select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as any)}
-              className="bg-transparent border-none text-xs font-semibold text-foreground focus:outline-hidden w-full cursor-pointer"
-            >
-              <option value="ALL">All Roles</option>
-              <option value="ADMIN">Administrators</option>
-              <option value="CUSTOMER">Customers</option>
-              <option value="RESTAURANT">Merchants</option>
-              <option value="RIDER">Delivery Riders</option>
-            </select>
+              onValueChange={(val) => setRoleFilter(val as any)}
+              size="sm"
+              options={[
+                { value: 'ALL', label: 'All Roles', icon: <Users size={13} className="text-muted-foreground" /> },
+                { value: 'ADMIN', label: 'Administrators', icon: <ShieldCheck size={13} className="text-muted-foreground" /> },
+                { value: 'CUSTOMER', label: 'Customers', icon: <User size={13} className="text-muted-foreground" /> },
+                { value: 'RESTAURANT', label: 'Merchants', icon: <Store size={13} className="text-muted-foreground" /> },
+                { value: 'RIDER', label: 'Delivery Riders', icon: <Bike size={13} className="text-muted-foreground" /> }
+              ]}
+            />
           </div>
 
           {/* Search Input */}

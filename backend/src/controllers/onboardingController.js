@@ -14,7 +14,7 @@ import { broadcastToAdmins } from '../websocket/index.js';
 export const applyAsRestaurant = async (req, res, next) => {
   const transaction = await sequelize.transaction();
   try {
-    const { restaurantName, ownerName, email, phone, description, address, deliveryZoneId, latitude, longitude } = req.body;
+    const { restaurantName, ownerName, email, phone, description, address, deliveryZoneId, latitude, longitude, password } = req.body;
 
     if (!restaurantName || !ownerName || !email || !phone || !description || !address || !deliveryZoneId || !latitude || !longitude) {
       return res.status(400).json({
@@ -44,8 +44,9 @@ export const applyAsRestaurant = async (req, res, next) => {
     // Generate unique slug for restaurant
     const slug = await generateUniqueSlug(Restaurant, restaurantName);
 
-    // Create default hashed password for onboarding account (users can reset it once approved)
-    const hashedPassword = await hashPassword(`onboard_${email.split('@')[0]}`);
+    // Create default/provided hashed password for onboarding account
+    const passToHash = password || `onboard_${email.split('@')[0]}`;
+    const hashedPassword = await hashPassword(passToHash);
 
     // 1. Create User
     const user = await User.create(
@@ -138,7 +139,7 @@ export const applyAsRestaurant = async (req, res, next) => {
 export const applyAsRider = async (req, res, next) => {
   const transaction = await sequelize.transaction();
   try {
-    const { fullName, email, phone, vehicleType, licenseNumber } = req.body;
+    const { fullName, email, phone, vehicleType, licenseNumber, password } = req.body;
 
     if (!fullName || !email || !phone || !vehicleType) {
       return res.status(400).json({
@@ -156,8 +157,9 @@ export const applyAsRider = async (req, res, next) => {
       });
     }
 
-    // Create default hashed password for onboarding account
-    const hashedPassword = await hashPassword(`rider_${email.split('@')[0]}`);
+    // Create default/provided hashed password for onboarding account
+    const passToHash = password || `rider_${email.split('@')[0]}`;
+    const hashedPassword = await hashPassword(passToHash);
 
     // 1. Create User
     const user = await User.create(

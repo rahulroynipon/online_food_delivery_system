@@ -42,6 +42,7 @@ interface RestaurantFormValues {
   deliveryZoneId: number | string;
   latitude: number | string;
   longitude: number | string;
+  password?: string;
 }
 
 interface RiderFormValues {
@@ -50,6 +51,7 @@ interface RiderFormValues {
   phone: string;
   vehicleType: 'BICYCLE' | 'MOTORBIKE' | 'CAR';
   licenseNumber?: string;
+  password?: string;
 }
 
 export default function Partner() {
@@ -574,26 +576,44 @@ export default function Partner() {
                     leftIcon={<FileText className="h-4 w-4" />}
                   />
 
-                  <div className="w-full">
-                    <Controller
-                      name="deliveryZoneId"
-                      control={controlRestaurant}
-                      rules={{ required: 'Delivery zone is required' }}
-                      render={({ field }) => (
-                        <Select
-                          label="Primary Delivery Zone"
-                          required
-                          placeholder="Select a Delivery Zone"
-                          options={zones.map(zone => ({
-                            value: String(zone.id),
-                            label: zone.name
-                          }))}
-                          value={field.value ? String(field.value) : ''}
-                          onValueChange={(val) => field.onChange(val)}
-                          error={restaurantErrors.deliveryZoneId?.message}
-                          disabled={isSubmitting}
-                        />
-                      )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="w-full">
+                      <Controller
+                        name="deliveryZoneId"
+                        control={controlRestaurant}
+                        rules={{ required: 'Delivery zone is required' }}
+                        render={({ field }) => (
+                          <Select
+                            label="Primary Delivery Zone"
+                            required
+                            placeholder="Select a Delivery Zone"
+                            options={zones.map(zone => ({
+                              value: String(zone.id),
+                              label: zone.name
+                            }))}
+                            value={field.value ? String(field.value) : ''}
+                            onValueChange={(val) => field.onChange(val)}
+                            error={restaurantErrors.deliveryZoneId?.message}
+                            disabled={isSubmitting}
+                          />
+                        )}
+                      />
+                    </div>
+
+                    <Input
+                      label="Choose Password"
+                      type="password"
+                      placeholder="At least 6 characters"
+                      error={restaurantErrors.password?.message}
+                      {...registerRestaurant('password', { 
+                        required: 'Password is required',
+                        minLength: {
+                          value: 6,
+                          message: 'Password must be at least 6 characters'
+                        }
+                      })}
+                      disabled={isSubmitting}
+                      className="w-full"
                     />
                   </div>
 
@@ -792,6 +812,22 @@ export default function Partner() {
                       )}
                     </div>
                   </div>
+
+                  <Input
+                    label="Choose Password"
+                    type="password"
+                    placeholder="At least 6 characters"
+                    error={riderErrors.password?.message}
+                    {...registerRider('password', {
+                      required: 'Password is required',
+                      minLength: {
+                        value: 6,
+                        message: 'Password must be at least 6 characters'
+                      }
+                    })}
+                    disabled={isSubmitting}
+                    className="w-full"
+                  />
 
                   <Button
                     type="submit"
