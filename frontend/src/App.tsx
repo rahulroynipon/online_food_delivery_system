@@ -5,6 +5,11 @@ import Login from './pages/Login';
 import Partner from './pages/Partner';
 import Signup from './pages/Signup';
 import AdminDashboard from './pages/AdminDashboard';
+import DashboardPage from './pages/admin/DashboardPage';
+import RestaurantsPage from './pages/admin/RestaurantsPage';
+import RidersPage from './pages/admin/RidersPage';
+import SettingsPage from './pages/admin/SettingsPage';
+import PlaceholderPage from './pages/admin/PlaceholderPage';
 import api from './lib/axios';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Tabs, toast } from './design-system';
 import { Loader2, LogOut, User as UserIcon, Calendar, Phone, ShieldCheck, Mail, Bell, Store, Bike, Users, CheckCircle, XCircle } from 'lucide-react';
@@ -152,15 +157,25 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/partner" element={<Partner />} />
+
+        {/* Admin layout — AdminDashboard renders <Outlet /> */}
         <Route
-          path="/"
+          path="/admin"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <AdminDashboard />
             </ProtectedRoute>
           }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="restaurants" element={<RestaurantsPage />} />
+          <Route path="riders" element={<RidersPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path=":section" element={<PlaceholderPage />} />
+        </Route>
+
+        <Route path="/" element={<Navigate to="/admin" replace />} />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </BrowserRouter>
   );
