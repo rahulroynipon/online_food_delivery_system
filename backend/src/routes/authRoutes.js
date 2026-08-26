@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, logoutUser, getMe } from '../controllers/authController.js';
+import { loginUser, logoutUser, getMe, registerUser } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -61,5 +61,43 @@ router.post('/logout', logoutUser);
  *         description: Unauthorized
  */
 router.get('/me', protect, getMe);
+
+/**
+ * @swagger
+ * /api/v1/auth/register:
+ *   post:
+ *     summary: Register a new customer account
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - phone
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Jane Doe
+ *               email:
+ *                 type: string
+ *                 example: jane@example.com
+ *               phone:
+ *                 type: string
+ *                 example: "+8801700000000"
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       201:
+ *         description: Registered successfully
+ *       400:
+ *         description: Validation error or email already in use
+ */
+router.post('/register', registerUser);
 
 export default router;

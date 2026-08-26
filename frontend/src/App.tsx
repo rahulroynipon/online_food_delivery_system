@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import Login from './pages/Login';
 import Info from './pages/Info';
+import Signup from './pages/Signup';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, toast } from './design-system';
 import { Loader2, LogOut, User as UserIcon, Calendar, Phone, ShieldCheck, Mail, Bell } from 'lucide-react';
 
@@ -249,7 +250,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/info" element={<Info />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/partner" element={<Info />} />
         <Route
           path="/"
           element={

@@ -1,71 +1,68 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useAuthStore } from '../store/useAuthStore';
+import api from '../lib/axios';
 import { 
   Button, 
   Input, 
-  Checkbox,
   Card, 
   CardHeader, 
   CardTitle, 
   CardDescription, 
   CardContent, 
-  Alert 
+  Alert,
+  toast
 } from '../design-system';
-import { Mail, Lock, UtensilsCrossed, ArrowRight, Shield } from 'lucide-react';
+import { Mail, Lock, UtensilsCrossed, ArrowRight, User, Phone } from 'lucide-react';
 
-interface LoginFormValues {
+interface SignupFormValues {
+  name: string;
   email: string;
+  phone: string;
   password: string;
-  rememberMe: boolean;
 }
 
-export default function Login() {
+export default function Signup() {
   const navigate = useNavigate();
-  const { login, isAuthenticated, isLoading, error } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-
-  // Load remembered email on startup
-  const rememberedEmail = localStorage.getItem('remembered_email') || '';
 
   const { 
     register, 
     handleSubmit, 
-    setValue, 
     formState: { errors } 
-  } = useForm<LoginFormValues>({
+  } = useForm<SignupFormValues>({
     defaultValues: {
-      email: rememberedEmail,
+      name: '',
+      email: '',
+      phone: '',
       password: '',
-      rememberMe: !!rememberedEmail,
     }
   });
 
-  // If already authenticated, redirect to home/dashboard
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
-    }
-  }, [isAuthenticated, navigate]);
-
-  const onSubmit = async (data: LoginFormValues) => {
+  const onSubmit = async (data: SignupFormValues) => {
+    setIsLoading(true);
     setSubmissionError(null);
-    const success = await login(data.email, data.password, data.rememberMe);
-    if (success) {
-      if (data.rememberMe) {
-        localStorage.setItem('remembered_email', data.email);
-      } else {
-        localStorage.removeItem('remembered_email');
+    try {
+      // Ensure phone contains prefix +88 if not already present
+      const formattedPhone = data.phone.startsWith('+88') ? data.phone : `+88${data.phone}`;
+      
+      const payload = {
+        ...data,
+        phone: formattedPhone
+      };
+
+      const response = await api.post('/v1/auth/register', payload);
+      if (response.data?.success) {
+        toast.success('Registration successful! Please sign in.');
+        navigate('/login');
       }
-      navigate('/');
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Registration failed. Please check your inputs.';
+      setSubmissionError(message);
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleQuickFill = () => {
-    setValue('email', 'admin@fooddelivery.com');
-    setValue('password', 'admin123');
-    setSubmissionError(null);
   };
 
   return (
@@ -88,26 +85,40 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Login Card */}
+        {/* Signup Card */}
         <Card hoverable className="backdrop-blur-md bg-card/80 border-border shadow-xl rounded-2xl overflow-hidden">
           <CardHeader className="text-center pt-8 pb-4">
-            <CardTitle className="text-xl font-semibold tracking-tight">Welcome Back</CardTitle>
-            <CardDescription>Enter your credentials to access your account</CardDescription>
+            <CardTitle className="text-xl font-semibold tracking-tight">Create Account</CardTitle>
+            <CardDescription>Sign up as a customer to start ordering food</CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6 pt-0 px-8 pb-8">
             {/* Show API or submission errors */}
-            {(error || submissionError) && (
+            {submissionError && (
               <Alert 
                 severity="error" 
-                title="Authentication Error"
+                title="Registration Error"
                 className="rounded-xl"
               >
-                {submissionError || error}
+                {submissionError}
               </Alert>
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <Input
+                label="Full Name"
+                type="text"
+                placeholder="John Doe"
+                leftIcon={<User className="h-4 w-4" />}
+                error={errors.name?.message}
+                {...register('name', {
+                  required: 'Full name is required',
+                })}
+                disabled={isLoading}
+                clearable
+                className="w-full"
+              />
+
               <Input
                 label="Email Address"
                 type="email"
@@ -119,6 +130,25 @@ export default function Login() {
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                     message: 'Please enter a valid email address',
+                  }
+                })}
+                disabled={isLoading}
+                clearable
+                className="w-full"
+              />
+
+              <Input
+                label="Phone Number"
+                prefix="+88"
+                type="text"
+                placeholder="017XXXXXXXX"
+                leftIcon={<Phone className="h-4 w-4" />}
+                error={errors.phone?.message}
+                {...register('phone', {
+                  required: 'Phone number is required',
+                  pattern: {
+                    value: /^01[3-9]\d{8}$/,
+                    message: 'Phone number must be an 11-digit mobile number starting with 01'
                   }
                 })}
                 disabled={isLoading}
@@ -144,63 +174,25 @@ export default function Login() {
                 className="w-full"
               />
 
-              <div className="flex justify-between items-center text-xs pt-1">
-                <Checkbox 
-                  label="Remember me" 
-                  className="w-auto"
-                  size='sm'
-                  disabled={isLoading}
-                  {...register('rememberMe')}
-                />
-                <a href="#forgot" className="text-primary hover:underline font-medium">
-                  Forgot Password?
-                </a>
-              </div>
-
               <Button
                 type="submit"
                 variant="primary"
                 fullWidth
                 loading={isLoading}
                 rightIcon={<ArrowRight className="h-4 w-4" />}
-                className="shadow-md shadow-primary/10"
+                className="shadow-md shadow-primary/10 mt-2"
               >
-                Sign In
+                Sign Up
               </Button>
             </form>
-
-            {/* Quick Demo Credentials Info Banner */}
-            <div 
-              onClick={handleQuickFill}
-              className="group/demo p-4 rounded-xl border border-dashed border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors flex items-start gap-3"
-            >
-              <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover/demo:scale-105 transition-transform duration-200 shrink-0">
-                <Shield className="h-4 w-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs font-semibold text-foreground">
-                    System Administrator Login
-                  </p>
-                  <span className="text-[10px] text-primary font-semibold group-hover/demo:underline">
-                    Autofill
-                  </span>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-normal">
-                  Email: <span className="font-mono text-foreground select-all">admin@fooddelivery.com</span>
-                  <br />
-                  Password: <span className="font-mono text-foreground select-all">admin123</span>
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
         <div className="text-center mt-8 space-y-2 text-xs text-muted-foreground">
           <p>
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-primary font-semibold hover:underline">
-              Sign Up
+            Already have an account?{' '}
+            <Link to="/login" className="text-primary font-semibold hover:underline">
+              Sign In
             </Link>
           </p>
           <p>

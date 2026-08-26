@@ -810,8 +810,8 @@ export default function Info() {
         </div>
       </main>
 
-      <Modal open={isMapModalOpen} onClose={handleCloseMap} title="Select Business Location">
-        <Modal.Content className="space-y-4">
+      <Modal open={isMapModalOpen} onClose={handleCloseMap} size='lg'  title="Select Business Location">
+        <Modal.Content className="space-y-4 ">
           <div className="text-xs text-muted-foreground leading-relaxed">
             Click on the map, drag the pin, or search for your address to select your restaurant's exact location.
           </div>
