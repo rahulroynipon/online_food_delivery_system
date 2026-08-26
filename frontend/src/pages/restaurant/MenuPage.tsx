@@ -120,7 +120,7 @@ export default function MenuPage() {
           </div>
 
           {/* Foods List Table */}
-          <Card className="border border-border/40 shadow-xs bg-card">
+          <Card className="bg-transparent border-none shadow-none">
             <CardContent className="p-0">
               <DataTable
                 data={foodsStatusFilter === 'ALL' ? foods : foods.filter((f: any) => f.status === foodsStatusFilter)}
@@ -219,7 +219,7 @@ export default function MenuPage() {
                     label: '',
                     align: 'right' as const,
                     cell: ({ row }: { row: any }) => (
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-2 shrink-0 w-max">
                         <Button
                           size="xs"
                           variant={row.status === 'ACTIVE' ? 'tertiary' : 'primary'}
