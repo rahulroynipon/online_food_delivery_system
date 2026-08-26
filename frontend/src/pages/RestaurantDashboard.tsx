@@ -226,7 +226,7 @@ export default function RestaurantDashboard() {
       icon: <ClipboardList size={18} />,
       path: '/restaurant/orders',
       badge: activeOrdersCount > 0 ? (
-        <span className={`h-5 min-w-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center bg-amber-500 text-white shadow-xs`}>
+        <span className={`h-5 min-w-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center bg-primary text-primary-foreground shadow-xs`}>
           {activeOrdersCount}
         </span>
       ) : null
@@ -239,8 +239,8 @@ export default function RestaurantDashboard() {
       <Sidebar className="border-r border-border/40 bg-card flex flex-col select-none overflow-y-auto shrink-0">
         {/* Sidebar Header Brand */}
         <div className="h-16 flex items-center px-6 border-b border-border/10 gap-3 shrink-0">
-          <div className="h-9 w-9 rounded-xl bg-amber-500 flex items-center justify-center shadow-md shadow-amber-500/10">
-            <UtensilsCrossed size={18} className="text-white" />
+          <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/10">
+            <UtensilsCrossed size={18} className="text-primary-foreground" />
           </div>
           <span className="font-extrabold text-sm tracking-tight text-foreground appshell-sidebar-label">Merchant Portal</span>
         </div>

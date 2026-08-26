@@ -63,7 +63,7 @@ export default function MenuPage() {
           size="sm"
           onClick={() => setIsFoodModalOpen(true)}
           leftIcon={<Plus size={16} />}
-          className="font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-xs"
+          className="font-bold bg-primary hover:bg-primary/95 text-primary-foreground shadow-xs border-transparent"
         >
           Add Food Item
         </Button>
@@ -83,7 +83,7 @@ export default function MenuPage() {
                 label: 'Dish / Item Name',
                 cell: ({ row }: { row: any }) => (
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                    <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                       <UtensilsCrossed size={14} />
                     </div>
                     <div>
@@ -193,7 +193,7 @@ export default function MenuPage() {
                 <Button variant="ghost" size="sm" onClick={() => setIsFoodModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button variant="primary" type="submit" size="sm" className="bg-amber-500 hover:bg-amber-600 text-white shadow-xs">
+                <Button variant="primary" type="submit" size="sm" className="bg-primary hover:bg-primary/95 text-primary-foreground shadow-xs border-transparent font-semibold">
                   Add to Menu
                 </Button>
               </div>

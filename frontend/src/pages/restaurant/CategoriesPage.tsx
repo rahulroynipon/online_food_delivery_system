@@ -160,7 +160,7 @@ export default function CategoriesPage() {
           size="sm"
           onClick={openAddCategory}
           leftIcon={<Plus size={16} />}
-          className="font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-xs"
+          className="font-bold bg-primary hover:bg-primary/95 text-primary-foreground shadow-xs border-transparent"
         >
           Create Store Category
         </Button>
@@ -168,7 +168,7 @@ export default function CategoriesPage() {
 
       {categoriesLoading ? (
         <div className="flex flex-col items-center justify-center py-12 gap-2">
-          <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <span className="text-xs text-muted-foreground font-semibold">Loading custom categories...</span>
         </div>
       ) : (
@@ -193,7 +193,7 @@ export default function CategoriesPage() {
                   {status.charAt(0) + status.slice(1).toLowerCase()}
                   {count > 0 && (
                     <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${
-                      isSelected ? 'bg-amber-500/10 text-amber-600' : 'bg-muted text-muted-foreground'
+                      isSelected ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
                     }`}>
                       {count}
                     </span>
@@ -365,7 +365,7 @@ export default function CategoriesPage() {
                 <Button variant="ghost" size="sm" onClick={() => setIsCategoryModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button variant="primary" type="submit" size="sm" className="bg-amber-500 hover:bg-amber-600 text-white shadow-xs">
+                <Button variant="primary" type="submit" size="sm" className="bg-primary hover:bg-primary/95 text-primary-foreground shadow-xs border-transparent font-semibold">
                   {editingCategory ? 'Update Category' : 'Create Category'}
                 </Button>
               </div>

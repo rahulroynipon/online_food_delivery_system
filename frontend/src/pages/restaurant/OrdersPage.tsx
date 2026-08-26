@@ -67,7 +67,7 @@ export default function OrdersPage() {
                       size="xs"
                       variant="primary"
                       onClick={() => handleUpdateOrderStatus(order.id, 'PREPARING')}
-                      className="bg-amber-500 hover:bg-amber-600 text-white shadow-xs font-semibold"
+                      className="bg-primary hover:bg-primary/95 text-primary-foreground shadow-xs font-semibold border-transparent"
                     >
                       Accept & Prepare
                     </Button>

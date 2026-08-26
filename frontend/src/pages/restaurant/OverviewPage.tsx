@@ -58,7 +58,7 @@ export default function OverviewPage() {
               <p className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Today's Orders</p>
               <p className="text-2xl font-black text-foreground mt-1.5">{ordersCount}</p>
             </div>
-            <div className="h-10 w-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <ClipboardList size={18} />
             </div>
           </CardContent>
