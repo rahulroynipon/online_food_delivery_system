@@ -1,12 +1,131 @@
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, Button, toast } from '../../design-system';
-import { Bike, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Card, CardContent, Button, toast, Badge, Modal, DataTable, Avatar, Input, Select, type DataTableColumn } from '../../design-system';
+import { 
+  Bike, 
+  Loader2, 
+  CheckCircle, 
+  XCircle, 
+  Search, 
+  Eye, 
+  User, 
+  Phone, 
+  Mail,
+  Calendar,
+  Info,
+  Edit,
+  ShieldCheck,
+  FileText
+} from 'lucide-react';
 import api from '../../lib/axios';
 
 export default function RidersPage() {
   const [riders, setRiders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Search and Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'ACTIVE' | 'REJECTED'>('ALL');
+
+  // Modal Details State
+  const [selectedApp, setSelectedApp] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Edit State
+  const [editApp, setEditApp] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    vehicleType: 'MOTORBIKE',
+    vehicleNumber: '',
+    status: 'PENDING'
+  });
+
+  // DataTable Column Definitions
+  const columns: DataTableColumn<any>[] = [
+    {
+      id: 'rider',
+      label: 'Rider Partner',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <Avatar 
+            src="" // Riders don't have profile pictures in the schema, initials will be fallback
+            alt={row.user?.name} 
+            fallback={<User size={14} />} 
+            size="md"
+          />
+          <div>
+            <p className="font-extrabold text-sm text-foreground">{row.user?.name || 'N/A'}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 capitalize">
+              {row.vehicleType?.toLowerCase() || 'N/A'} Rider
+            </p>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'contact',
+      label: 'Contact Info',
+      cell: ({ row }) => (
+        <div>
+          <p className="font-semibold text-foreground">{row.user?.email || 'N/A'}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{row.user?.phone || 'N/A'}</p>
+        </div>
+      )
+    },
+    {
+      id: 'vehicle',
+      label: 'License / Plate No.',
+      cell: ({ row }) => (
+        <span className="font-mono text-muted-foreground bg-muted/40 px-2 py-0.5 rounded border border-border/20">
+          {row.vehicleNumber || 'N/A'}
+        </span>
+      )
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      cell: ({ row }) => getStatusBadge(row.status)
+    },
+    {
+      id: 'date',
+      label: 'Applied Date',
+      cell: ({ row }) => new Date(row.createdAt).toLocaleDateString(undefined, { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      })
+    },
+    {
+      id: 'actions',
+      label: '',
+      align: 'right' as const,
+      cell: ({ row }) => (
+        <div className="flex items-center justify-end gap-1.5">
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={() => handleOpenDetails(row)}
+            leftIcon={<Eye size={12} />}
+            className="font-semibold"
+          >
+            View
+          </Button>
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={() => handleOpenEdit(row)}
+            leftIcon={<Edit size={12} />}
+            className="font-semibold border-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white"
+          >
+            Edit
+          </Button>
+        </div>
+      )
+    }
+  ];
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -22,13 +141,20 @@ export default function RidersPage() {
     }
   };
 
-  useEffect(() => { fetchApplications(); }, []);
+  useEffect(() => { 
+    fetchApplications(); 
+  }, []);
 
   const handleApprove = async (id: number) => {
     setActionLoading(`approve-${id}`);
     try {
       await api.post(`/onboarding/applications/rider/${id}/approve`);
       toast.success('Rider application approved!');
+      
+      if (selectedApp && selectedApp.id === id) {
+        setSelectedApp((prev: any) => ({ ...prev, status: 'ACTIVE', user: prev.user ? { ...prev.user, status: 'ACTIVE' } : null }));
+      }
+      
       fetchApplications();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to approve rider.');
@@ -42,6 +168,11 @@ export default function RidersPage() {
     try {
       await api.post(`/onboarding/applications/rider/${id}/reject`);
       toast.info('Rider application rejected.');
+      
+      if (selectedApp && selectedApp.id === id) {
+        setSelectedApp((prev: any) => ({ ...prev, status: 'REJECTED', user: prev.user ? { ...prev.user, status: 'REJECTED' } : null }));
+      }
+      
       fetchApplications();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to reject rider.');
@@ -50,78 +181,391 @@ export default function RidersPage() {
     }
   };
 
-  const pending = riders.filter((r) => r.status === 'PENDING');
+  const handleOpenDetails = (app: any) => {
+    setSelectedApp(app);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (app: any) => {
+    setEditApp(app);
+    setEditForm({
+      fullName: app.user?.name || '',
+      email: app.user?.email || '',
+      phone: app.user?.phone || '',
+      vehicleType: app.vehicleType || 'MOTORBIKE',
+      vehicleNumber: app.vehicleNumber || '',
+      status: app.status || 'PENDING'
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editApp) return;
+
+    setActionLoading(`save-${editApp.id}`);
+    try {
+      const response = await api.put(`/onboarding/applications/rider/${editApp.id}`, editForm);
+      if (response.data?.success) {
+        toast.success('Rider updated successfully!');
+        setIsEditModalOpen(false);
+        fetchApplications();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update rider application.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Filter & Search Logic
+  const filteredRiders = riders.filter((r) => {
+    const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
+    const matchesSearch = 
+      (r.user?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (r.user?.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (r.vehicleNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (r.vehicleType || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return <Badge variant="soft" color="warning" className="font-bold text-[10px] tracking-wide uppercase px-2.5 py-0.5">Pending</Badge>;
+      case 'ACTIVE':
+        return <Badge variant="soft" color="success" className="font-bold text-[10px] tracking-wide uppercase px-2.5 py-0.5">Active</Badge>;
+      case 'REJECTED':
+        return <Badge variant="soft" color="danger" className="font-bold text-[10px] tracking-wide uppercase px-2.5 py-0.5">Rejected</Badge>;
+      default:
+        return <Badge variant="soft" color="neutral" className="font-bold text-[10px] tracking-wide uppercase px-2.5 py-0.5">{status}</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h2 className="text-2xl font-black text-foreground tracking-tight">Rider Onboarding</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">Manage new delivery rider applications and registration requests.</p>
+      {/* Page Title Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-foreground tracking-tight">Delivery Riders</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Manage new delivery rider applications, vehicle licenses and statuses.</p>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-xs font-semibold text-muted-foreground">Loading applications...</span>
+      {/* Tabs and Search Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/60 backdrop-blur-md p-4 rounded-2xl border border-border/40 shadow-xs">
+        {/* Status Tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-muted/30 rounded-xl w-fit">
+          {(['ALL', 'PENDING', 'ACTIVE', 'REJECTED'] as const).map((status) => {
+            const count = status === 'ALL' 
+              ? riders.length 
+              : riders.filter(r => r.status === status).length;
+            const isActive = statusFilter === status;
+            return (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-200 cursor-pointer ${
+                  isActive 
+                    ? 'bg-card text-foreground shadow-xs font-bold' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {status.charAt(0) + status.slice(1).toLowerCase()}
+                {count > 0 && (
+                  <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${
+                    isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      ) : pending.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-border/30 rounded-2xl bg-muted/5">
-          <Bike className="h-10 w-10 text-muted-foreground/60 mx-auto mb-3" />
-          <h4 className="text-sm font-bold text-foreground">No Pending Rider Applications</h4>
-          <p className="text-xs text-muted-foreground mt-1">Newly submitted rider partner applications will appear here.</p>
+
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search by rider name, email, license number..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-muted/20 border border-border/40 rounded-xl text-xs placeholder:text-muted-foreground focus:outline-hidden focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-all text-foreground"
+          />
         </div>
-      ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {pending.map((app) => (
-            <Card key={app.id} className="border border-border/50 shadow-sm bg-card flex flex-col justify-between">
-              <CardHeader className="pb-3 border-b border-border/10">
-                <div className="flex justify-between items-start gap-4">
+      </div>
+
+      {/* Table Container */}
+      <Card className="border border-border/40 shadow-xs bg-card">
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="text-xs font-semibold text-muted-foreground">Loading applications...</span>
+            </div>
+          ) : filteredRiders.length === 0 ? (
+            <div className="text-center py-20">
+              <Bike className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+              <h4 className="text-sm font-bold text-foreground">No riders found</h4>
+              <p className="text-xs text-muted-foreground mt-1">There are no onboarding riders matching the filters.</p>
+            </div>
+          ) : (
+            <DataTable
+              data={filteredRiders}
+              columns={columns}
+              pagination={false}
+              searchable={false}
+              toolbar={null}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Details Modal */}
+      {selectedApp && (
+        <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} size="lg">
+          <Modal.Header 
+            title="Rider Application details" 
+            description="Review details, vehicle licenses and onboarding status."
+          />
+          <Modal.Content className="space-y-6">
+            {/* Split Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column: Rider Contacts */}
+              <div className="space-y-4">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-primary border-b border-border/10 pb-2">
+                  Personal Information
+                </h3>
+                <div className="space-y-3">
                   <div>
-                    <CardTitle className="font-extrabold text-base text-foreground">{app.user?.name}</CardTitle>
-                    <span className="inline-flex items-center text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase tracking-wide mt-1.5">
-                      Pending Review
-                    </span>
+                    <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Full Name</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <User size={14} className="text-muted-foreground" />
+                      <p className="text-xs font-semibold text-foreground">{selectedApp.user?.name || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Email Address</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Mail size={14} className="text-muted-foreground" />
+                      <p className="text-xs font-medium text-foreground">{selectedApp.user?.email || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Phone Number</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Phone size={14} className="text-muted-foreground" />
+                      <p className="text-xs font-medium text-foreground">{selectedApp.user?.phone || 'N/A'}</p>
+                    </div>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-4 text-xs">
-                <div className="space-y-1">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Contact Details</p>
-                  <p className="text-foreground font-semibold">{app.user?.email}</p>
-                  <p className="text-muted-foreground">{app.user?.phone}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4 bg-muted/20 p-3 rounded-xl border border-border/30">
+              </div>
+
+              {/* Right Column: Vehicle & Status */}
+              <div className="space-y-4">
+                <h3 className="text-xs uppercase font-extrabold tracking-wider text-primary border-b border-border/10 pb-2">
+                  Vehicle & Verification Details
+                </h3>
+                <div className="space-y-3">
                   <div>
-                    <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Vehicle Type</p>
-                    <p className="text-foreground font-semibold capitalize mt-0.5">{app.vehicleType?.toLowerCase()}</p>
+                    <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Vehicle Type</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Bike size={14} className="text-muted-foreground" />
+                      <p className="text-xs font-semibold text-foreground capitalize">{selectedApp.vehicleType?.toLowerCase() || 'N/A'}</p>
+                    </div>
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">License Number</p>
-                    <p className="text-foreground font-mono mt-0.5">{app.vehicleNumber || 'N/A'}</p>
+                    <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">License Number</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <FileText size={14} className="text-muted-foreground" />
+                      <p className="text-xs font-mono text-foreground font-bold">{selectedApp.vehicleNumber || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Application Status</label>
+                      <div className="mt-1">{getStatusBadge(selectedApp.status)}</div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Submitted On</label>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                        <Calendar size={13} />
+                        <span>
+                          {new Date(selectedApp.createdAt).toLocaleDateString(undefined, { 
+                            month: 'short', 
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-3 pt-3 border-t border-border/10">
+              </div>
+            </div>
+          </Modal.Content>
+          
+          <Modal.Footer>
+            <div className="flex items-center justify-between w-full">
+              {/* Left Note */}
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground max-w-sm">
+                <Info size={12} className="shrink-0" />
+                <span>Approving will allow this rider partner to accept orders and login.</span>
+              </div>
+              
+              {/* Right Action buttons */}
+              <div className="flex gap-2.5">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsModalOpen(false)}
+                  className="font-semibold text-xs"
+                >
+                  Close
+                </Button>
+                
+                {selectedApp.status === 'PENDING' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white font-semibold text-xs"
+                      loading={actionLoading === `reject-${selectedApp.id}`}
+                      disabled={actionLoading !== null}
+                      onClick={() => handleReject(selectedApp.id)}
+                      leftIcon={<XCircle size={14} />}
+                    >
+                      Reject
+                    </Button>
+                    <Button
+                      variant="primary"
+                      className="bg-emerald-600 hover:bg-emerald-700 font-semibold text-xs border-transparent shadow-sm text-white"
+                      loading={actionLoading === `approve-${selectedApp.id}`}
+                      disabled={actionLoading !== null}
+                      onClick={() => handleApprove(selectedApp.id)}
+                      leftIcon={<CheckCircle size={14} />}
+                    >
+                      Approve
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </Modal.Footer>
+        </Modal>
+      )}
+
+      {/* Edit Modal */}
+      {editApp && (
+        <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} size="lg">
+          <Modal.Header 
+            title="Edit Rider Details" 
+            description="Modify personal contacts, vehicle license, and active onboarding status."
+          />
+          <form onSubmit={handleSaveEdit}>
+            <Modal.Content className="space-y-6">
+              {/* Split Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column: Personal info */}
+                <div className="space-y-4">
+                  <h3 className="text-xs uppercase font-extrabold tracking-wider text-primary border-b border-border/10 pb-2">
+                    Personal Information
+                  </h3>
+                  <div className="space-y-4">
+                    <Input
+                      label="Full Name"
+                      required
+                      leftIcon={<User size={15} className="text-muted-foreground" />}
+                      value={editForm.fullName}
+                      onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                    />
+                    <Input
+                      label="Email Address"
+                      type="email"
+                      required
+                      leftIcon={<Mail size={15} className="text-muted-foreground" />}
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    />
+                    <Input
+                      label="Phone Number"
+                      required
+                      leftIcon={<Phone size={15} className="text-muted-foreground" />}
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column: Vehicle & Status info */}
+                <div className="space-y-4">
+                  <h3 className="text-xs uppercase font-extrabold tracking-wider text-primary border-b border-border/10 pb-2">
+                    Vehicle Details & Status
+                  </h3>
+                  <div className="space-y-4">
+                    <Select
+                      label="Vehicle Type"
+                      value={editForm.vehicleType}
+                      onValueChange={(val) => setEditForm({ ...editForm, vehicleType: val })}
+                      width="100%"
+                      options={[
+                        { value: 'BICYCLE', label: 'Bicycle' },
+                        { value: 'MOTORBIKE', label: 'Motorbike' },
+                        { value: 'CAR', label: 'Car' }
+                      ]}
+                    />
+                    <Input
+                      label="License / Plate Number"
+                      required
+                      leftIcon={<FileText size={15} className="text-muted-foreground" />}
+                      value={editForm.vehicleNumber}
+                      onChange={(e) => setEditForm({ ...editForm, vehicleNumber: e.target.value })}
+                    />
+                    <Select
+                      label="Application Status"
+                      value={editForm.status}
+                      onValueChange={(val) => setEditForm({ ...editForm, status: val })}
+                      width="100%"
+                      options={[
+                        { value: 'PENDING', label: 'PENDING' },
+                        { value: 'ACTIVE', label: 'ACTIVE' },
+                        { value: 'SUSPENDED', label: 'SUSPENDED' },
+                        { value: 'REJECTED', label: 'REJECTED' }
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Modal.Content>
+            
+            <Modal.Footer>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <Info size={12} />
+                  <span>Saves will update both corresponding rider profile and user credential tables.</span>
+                </div>
+                <div className="flex gap-2.5">
                   <Button
-                    size="sm" variant="outline"
-                    className="flex-1 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white"
-                    loading={actionLoading === `approve-${app.id}`}
-                    disabled={actionLoading !== null}
-                    onClick={() => handleApprove(app.id)}
-                    leftIcon={<CheckCircle className="h-4 w-4" />}
-                  >Approve</Button>
+                    variant="ghost"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="font-semibold text-xs"
+                  >
+                    Cancel
+                  </Button>
                   <Button
-                    size="sm" variant="outline"
-                    className="flex-1 border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white"
-                    loading={actionLoading === `reject-${app.id}`}
+                    variant="primary"
+                    type="submit"
+                    className="bg-primary hover:bg-primary/95 text-white font-semibold text-xs shadow-xs"
+                    loading={actionLoading === `save-${editApp.id}`}
                     disabled={actionLoading !== null}
-                    onClick={() => handleReject(app.id)}
-                    leftIcon={<XCircle className="h-4 w-4" />}
-                  >Reject</Button>
+                  >
+                    Save Changes
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            </Modal.Footer>
+          </form>
+        </Modal>
       )}
     </div>
   );

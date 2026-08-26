@@ -6,7 +6,9 @@ import {
    approveRestaurant, 
    rejectRestaurant, 
    approveRider, 
-   rejectRider 
+   rejectRider,
+   updateRestaurant,
+   updateRider
 } from '../controllers/onboardingController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
@@ -114,11 +116,13 @@ router.get('/applications', protect, authorize('ADMIN'), getApplications);
  */
 router.post('/applications/restaurant/:id/approve', protect, authorize('ADMIN'), approveRestaurant);
 router.post('/applications/restaurant/:id/reject', protect, authorize('ADMIN'), rejectRestaurant);
+router.put('/applications/restaurant/:id', protect, authorize('ADMIN'), updateRestaurant);
 
 /**
  * @desc    Approve/Reject Rider (Admin Only)
  */
 router.post('/applications/rider/:id/approve', protect, authorize('ADMIN'), approveRider);
 router.post('/applications/rider/:id/reject', protect, authorize('ADMIN'), rejectRider);
+router.put('/applications/rider/:id', protect, authorize('ADMIN'), updateRider);
 
 export default router;

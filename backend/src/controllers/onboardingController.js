@@ -382,3 +382,107 @@ export const rejectRider = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc    Update a restaurant application/profile (Admin Only)
+ * @route   PUT /api/v1/onboarding/applications/restaurant/:id
+ * @access  Private (Admin Only)
+ */
+export const updateRestaurant = async (req, res, next) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const restaurant = await Restaurant.findByPk(req.params.id, { transaction });
+    if (!restaurant) {
+      return res.status(404).json({ success: false, message: 'Restaurant application not found.' });
+    }
+
+    const { name, description, address, latitude, longitude, phone, status, ownerName, email, userPhone } = req.body;
+
+    // Update restaurant fields
+    if (name !== undefined) restaurant.name = name;
+    if (description !== undefined) restaurant.description = description;
+    if (address !== undefined) restaurant.address = address;
+    if (latitude !== undefined) restaurant.latitude = parseFloat(latitude);
+    if (longitude !== undefined) restaurant.longitude = parseFloat(longitude);
+    if (phone !== undefined) restaurant.phone = phone;
+    if (status !== undefined) restaurant.status = status;
+
+    await restaurant.save({ transaction });
+
+    // Update associated User profile fields if provided
+    const user = await User.findByPk(restaurant.userId, { transaction });
+    if (user) {
+      if (ownerName !== undefined) user.name = ownerName;
+      if (email !== undefined) user.email = email;
+      if (userPhone !== undefined) user.phone = userPhone;
+      if (status !== undefined) {
+        user.status = status;
+      }
+      await user.save({ transaction });
+    }
+
+    await transaction.commit();
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Restaurant updated successfully.',
+      restaurant: {
+        ...restaurant.toJSON(),
+        user: user ? user.toJSON() : null
+      }
+    });
+  } catch (error) {
+    await transaction.rollback();
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update a rider application/profile (Admin Only)
+ * @route   PUT /api/v1/onboarding/applications/rider/:id
+ * @access  Private (Admin Only)
+ */
+export const updateRider = async (req, res, next) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const rider = await Rider.findByPk(req.params.id, { transaction });
+    if (!rider) {
+      return res.status(404).json({ success: false, message: 'Rider application not found.' });
+    }
+
+    const { vehicleType, vehicleNumber, status, fullName, email, phone } = req.body;
+
+    // Update rider fields
+    if (vehicleType !== undefined) rider.vehicleType = vehicleType;
+    if (vehicleNumber !== undefined) rider.vehicleNumber = vehicleNumber;
+    if (status !== undefined) rider.status = status;
+
+    await rider.save({ transaction });
+
+    // Update associated User profile fields if provided
+    const user = await User.findByPk(rider.userId, { transaction });
+    if (user) {
+      if (fullName !== undefined) user.name = fullName;
+      if (email !== undefined) user.email = email;
+      if (phone !== undefined) user.phone = phone;
+      if (status !== undefined) {
+        user.status = status;
+      }
+      await user.save({ transaction });
+    }
+
+    await transaction.commit();
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Rider updated successfully.',
+      rider: {
+        ...rider.toJSON(),
+        user: user ? user.toJSON() : null
+      }
+    });
+  } catch (error) {
+    await transaction.rollback();
+    next(error);
+  }
+};
+
+
