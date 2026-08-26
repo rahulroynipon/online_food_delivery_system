@@ -417,7 +417,6 @@ export function Menu({
 
     const finalStyle: React.CSSProperties = {
       position: 'fixed',
-      left: leftVal,
       top: topVal,
       bottom: bottomVal,
       zIndex: 9999,
@@ -429,6 +428,31 @@ export function Menu({
       finalStyle.width = width;
     } else if (typeof width === 'string' && !width.startsWith('w-')) {
       finalStyle.width = width;
+    }
+
+    // Position relative to viewport width
+    if (typeof leftVal === 'number') {
+      const viewportWidth = window.innerWidth;
+      const isMobile = viewportWidth <= 640;
+      const resolvedWidth =
+        typeof finalStyle.width === 'number'
+          ? finalStyle.width
+          : menuEl
+            ? menuEl.getBoundingClientRect().width || menuWidth
+            : menuWidth;
+
+      if (isMobile) {
+        // Center horizontally in the viewport on mobile
+        finalStyle.left = Math.max(8, (viewportWidth - resolvedWidth) / 2);
+      } else {
+        // Desktop: clamp so it never overflows either edge
+        finalStyle.left = Math.min(
+          Math.max(leftVal, 8),
+          viewportWidth - resolvedWidth - 8
+        );
+      }
+    } else {
+      finalStyle.left = leftVal;
     }
 
     setDropdownStyle(finalStyle);
