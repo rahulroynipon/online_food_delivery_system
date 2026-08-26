@@ -9,6 +9,7 @@ import errorHandler from './middleware/errorMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import deliveryZoneRoutes from './routes/deliveryZoneRoutes.js';
 import platformCategoryRoutes from './routes/platformCategoryRoutes.js';
+import onboardingRoutes from './routes/onboardingRoutes.js';
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use(`${API_PREFIX}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/delivery-zones`, deliveryZoneRoutes);
 app.use(`${API_PREFIX}/platform-categories`, platformCategoryRoutes);
+app.use(`${API_PREFIX}/onboarding`, onboardingRoutes);
 
 // Status Endpoint
 app.get(`${API_PREFIX}/status`, (req, res) => {

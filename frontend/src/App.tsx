@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import Login from './pages/Login';
+import Info from './pages/Info';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent } from './design-system';
 import { Loader2, LogOut, User as UserIcon, Calendar, Phone, ShieldCheck, Mail } from 'lucide-react';
 
@@ -139,6 +140,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/info" element={<Info />} />
         <Route
           path="/"
           element={

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuthStore } from '../store/useAuthStore';
 import { 
@@ -196,12 +196,11 @@ export default function Login() {
           </CardContent>
         </Card>
 
-        {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8">
           Don't have an account?{' '}
-          <a href="#signup" className="text-primary font-semibold hover:underline">
-            Sign Up
-          </a>
+          <Link to="/info" className="text-primary font-semibold hover:underline">
+            Apply Now
+          </Link>
         </p>
       </div>
     </div>

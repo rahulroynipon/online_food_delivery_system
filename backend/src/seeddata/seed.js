@@ -1,5 +1,5 @@
 import sequelize from '../config/db.js';
-import { User, PlatformCategory } from '../models/index.js';
+import { User, PlatformCategory, DeliveryZone } from '../models/index.js';
 import { UserRole, UserStatus, ActiveStatus } from '../enums/index.js';
 import { configureAssociations } from '../utils/syncModels.js';
 import { hashPassword } from '../utils/hash.js';
@@ -27,7 +27,7 @@ const seed = async () => {
       await User.create({
         name: 'System Admin',
         email: adminEmail,
-        phone: '+15550199',
+        phone: '+8801700000000',
         password: hashedPassword,
         role: UserRole.ADMIN,
         status: UserStatus.ACTIVE,
@@ -54,6 +54,22 @@ const seed = async () => {
       console.log('Default platform categories seeded successfully.');
     } else {
       console.log('Platform categories already exist. Skipping...');
+    }
+
+    // 3. Seed Default Delivery Zones
+    const zonesCount = await DeliveryZone.count();
+    if (zonesCount === 0) {
+      console.log('Seeding default delivery zones...');
+      const defaultZones = [
+        { name: 'Downtown Core', slug: slugify('Downtown Core'), status: ActiveStatus.ACTIVE },
+        { name: 'North District', slug: slugify('North District'), status: ActiveStatus.ACTIVE },
+        { name: 'East Coast', slug: slugify('East Coast'), status: ActiveStatus.ACTIVE },
+        { name: 'West Valley', slug: slugify('West Valley'), status: ActiveStatus.ACTIVE },
+      ];
+      await DeliveryZone.bulkCreate(defaultZones);
+      console.log('Default delivery zones seeded successfully.');
+    } else {
+      console.log('Delivery zones already exist. Skipping...');
     }
 
     console.log('Seeding script completed.');
