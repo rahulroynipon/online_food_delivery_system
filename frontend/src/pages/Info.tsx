@@ -12,7 +12,9 @@ import {
   CardContent, 
   Tabs, 
   Alert,
-  Select
+  Select,
+  Modal,
+  toast
 } from '../design-system';
 import { 
   UtensilsCrossed, 
@@ -23,7 +25,11 @@ import {
   Clock, 
   TrendingUp,
   MapPin,
-  FileText
+  FileText,
+  Navigation,
+  Map,
+  Loader2,
+  Search
 } from 'lucide-react';
 
 interface RestaurantFormValues {
@@ -34,6 +40,8 @@ interface RestaurantFormValues {
   description: string;
   address: string;
   deliveryZoneId: number | string;
+  latitude: number | string;
+  longitude: number | string;
 }
 
 interface RiderFormValues {
@@ -78,10 +86,15 @@ export default function Info() {
     handleSubmit: handleRestaurantSubmit,
     formState: { errors: restaurantErrors },
     reset: resetRestaurant,
-    control: controlRestaurant
+    control: controlRestaurant,
+    setValue: setValueRestaurant,
+    watch: watchRestaurant
   } = useForm<RestaurantFormValues>({
     defaultValues: {
-      deliveryZoneId: ''
+      deliveryZoneId: '',
+      address: '',
+      latitude: '',
+      longitude: ''
     }
   });
 
@@ -100,6 +113,198 @@ export default function Info() {
   });
 
   const selectedVehicle = watchRider('vehicleType');
+
+  // Location detection and Map modal state
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [isMapLoading, setIsMapLoading] = useState(false);
+  const [tempAddress, setTempAddress] = useState('');
+  const [selectedLatLng, setSelectedLatLng] = useState<{ lat: number; lng: number } | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const mapRef = React.useRef<any>(null);
+  const markerRef = React.useRef<any>(null);
+
+  const initMap = async () => {
+    setIsMapLoading(true);
+    try {
+      if (!(window as any).L) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Leaflet load failed'));
+          document.body.appendChild(script);
+        });
+      }
+
+      let startLat = 23.8103;
+      let startLng = 90.4125;
+
+      if (selectedLatLng) {
+        startLat = selectedLatLng.lat;
+        startLng = selectedLatLng.lng;
+      }
+
+      setTimeout(() => {
+        const L = (window as any).L;
+        if (!L) return;
+
+        if (mapRef.current) {
+          mapRef.current.remove();
+        }
+
+        const mapInstance = L.map('leaflet-map-container').setView([startLat, startLng], 13);
+        mapRef.current = mapInstance;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(mapInstance);
+
+        const markerInstance = L.marker([startLat, startLng], { draggable: true }).addTo(mapInstance);
+        markerRef.current = markerInstance;
+
+        const updateCoords = async (lat: number, lng: number) => {
+          setSelectedLatLng({ lat, lng });
+          setIsGeocoding(true);
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+            const data = await res.json();
+            if (data && data.display_name) {
+              setTempAddress(data.display_name);
+            }
+          } catch (err) {
+            console.error('Error reverse geocoding coordinates:', err);
+          } finally {
+            setIsGeocoding(false);
+          }
+        };
+
+        if (!tempAddress) {
+          updateCoords(startLat, startLng);
+        }
+
+        mapInstance.on('click', (e: any) => {
+          const { lat, lng } = e.latlng;
+          markerInstance.setLatLng([lat, lng]);
+          updateCoords(lat, lng);
+        });
+
+        markerInstance.on('dragend', () => {
+          const { lat, lng } = markerInstance.getLatLng();
+          updateCoords(lat, lng);
+        });
+
+        setIsMapLoading(false);
+      }, 300);
+
+    } catch (err) {
+      console.error('Failed to load map:', err);
+      toast.error('Failed to load interactive map. Please try again.');
+      setIsMapLoading(false);
+    }
+  };
+
+  const handleOpenMap = () => {
+    setIsMapModalOpen(true);
+    initMap();
+  };
+
+  const handleCloseMap = () => {
+    setIsMapModalOpen(false);
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+    markerRef.current = null;
+    setSearchQuery('');
+  };
+
+  const handleMapSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearchingLocation(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const { lat, lon, display_name } = data[0];
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+
+        setSelectedLatLng({ lat: latitude, lng: longitude });
+        setTempAddress(display_name);
+
+        if (mapRef.current) {
+          mapRef.current.setView([latitude, longitude], 14);
+        }
+        if (markerRef.current) {
+          markerRef.current.setLatLng([latitude, longitude]);
+        }
+        toast.success('Location found!');
+      } else {
+        toast.error('Location not found. Please try a different search term.');
+      }
+    } catch (err) {
+      console.error('Map search error:', err);
+      toast.error('Failed to search location. Please try again.');
+    } finally {
+      setIsSearchingLocation(false);
+    }
+  };
+
+  const handleAutoDetectLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setIsDetectingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setSelectedLatLng({ lat: latitude, lng: longitude });
+
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await res.json();
+          if (data && data.display_name) {
+            setValueRestaurant('address', data.display_name, { shouldValidate: true });
+            setValueRestaurant('latitude', latitude, { shouldValidate: true });
+            setValueRestaurant('longitude', longitude, { shouldValidate: true });
+            setTempAddress(data.display_name);
+            toast.success('Location auto-detected successfully!');
+          } else {
+            toast.error('Failed to resolve coordinates to an address.');
+          }
+        } catch (err) {
+          console.error('Reverse geocoding error:', err);
+          setValueRestaurant('address', `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`, { shouldValidate: true });
+          setValueRestaurant('latitude', latitude, { shouldValidate: true });
+          setValueRestaurant('longitude', longitude, { shouldValidate: true });
+          toast.info('Coordinates set as address.');
+        } finally {
+          setIsDetectingLocation(false);
+        }
+      },
+      (err) => {
+        console.error('Geolocation error:', err);
+        toast.error('Unable to retrieve location. Please enable location access in your browser.');
+        setIsDetectingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
 
   const onRestaurantSubmit = async (data: RestaurantFormValues) => {
     setIsSubmitting(true);
@@ -369,40 +574,117 @@ export default function Info() {
                     leftIcon={<FileText className="h-4 w-4" />}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
-                    <Input
-                      label="Business Location Address"
-                      placeholder="e.g. 123 Main St, New York, NY"
-                      error={restaurantErrors.address?.message}
-                      {...registerRestaurant('address', { required: 'Location address is required' })}
-                      disabled={isSubmitting}
-                      className="w-full"
-                      leftIcon={<MapPin className="h-4 w-4" />}
+                  <div className="w-full">
+                    <Controller
+                      name="deliveryZoneId"
+                      control={controlRestaurant}
+                      rules={{ required: 'Delivery zone is required' }}
+                      render={({ field }) => (
+                        <Select
+                          label="Primary Delivery Zone"
+                          required
+                          placeholder="Select a Delivery Zone"
+                          options={zones.map(zone => ({
+                            value: String(zone.id),
+                            label: zone.name
+                          }))}
+                          value={field.value ? String(field.value) : ''}
+                          onValueChange={(val) => field.onChange(val)}
+                          error={restaurantErrors.deliveryZoneId?.message}
+                          disabled={isSubmitting}
+                        />
+                      )}
                     />
+                  </div>
 
-                    {/* Delivery Zone Selection using custom Select */}
-                    <div className="w-full">
-                      <Controller
-                        name="deliveryZoneId"
-                        control={controlRestaurant}
-                        rules={{ required: 'Delivery zone is required' }}
-                        render={({ field }) => (
-                          <Select
-                            label="Primary Delivery Zone"
-                            required
-                            placeholder="Select a Delivery Zone"
-                            options={zones.map(zone => ({
-                              value: String(zone.id),
-                              label: zone.name
-                            }))}
-                            value={field.value ? String(field.value) : ''}
-                            onValueChange={(val) => field.onChange(val)}
-                            error={restaurantErrors.deliveryZoneId?.message}
-                            disabled={isSubmitting}
-                          />
-                        )}
-                      />
+                  <div className="flex flex-col gap-1.5 w-full">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-0.5 select-none">
+                      Business Location Address
+                      <span className="font-bold text-[var(--color-danger)]">*</span>
+                    </label>
+
+                    {/* Display card */}
+                    <div className="flex flex-col justify-center p-4 rounded-xl border border-border/40 bg-card/65 shadow-xs transition-all relative overflow-hidden min-h-[105px]">
+                      {watchRestaurant('address') ? (
+                        <div className="space-y-2.5 animate-fade-in">
+                          <div className="flex items-start gap-2.5">
+                            <div className="h-6 w-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                              <MapPin className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-foreground leading-relaxed">
+                                {watchRestaurant('address')}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-1 font-semibold uppercase tracking-wider">
+                                Lat: {Number(watchRestaurant('latitude')).toFixed(6)} | Lng: {Number(watchRestaurant('longitude')).toFixed(6)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 pt-2 border-t border-border/10">
+                            <Button 
+                              type="button" 
+                              size="xs" 
+                              variant="outline" 
+                              onClick={handleOpenMap}
+                              leftIcon={<Map className="h-3.5 w-3.5" />}
+                            >
+                              Change Location
+                            </Button>
+                            <Button 
+                              type="button" 
+                              size="xs" 
+                              variant="ghost" 
+                              onClick={handleAutoDetectLocation}
+                              loading={isDetectingLocation}
+                              leftIcon={<Navigation className="h-3.5 w-3.5" />}
+                            >
+                              Auto-Detect
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center py-2 animate-fade-in">
+                          <p className="text-xs text-muted-foreground mb-3 font-medium">
+                            No location selected. Please select from map or auto-detect.
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              type="button" 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={handleOpenMap}
+                              leftIcon={<Map className="h-4 w-4" />}
+                              className="shadow-sm"
+                            >
+                              Select on Map
+                            </Button>
+                            <Button 
+                              type="button" 
+                              size="sm" 
+                              variant="ghost" 
+                              onClick={handleAutoDetectLocation}
+                              loading={isDetectingLocation}
+                              leftIcon={<Navigation className="h-4 w-4" />}
+                            >
+                              Auto-Detect
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Coordinates Validation Errors */}
+                    {(restaurantErrors.address?.message || restaurantErrors.latitude?.message || restaurantErrors.longitude?.message) && (
+                      <p className="text-xs font-medium text-[var(--color-danger)] mt-1">
+                        {restaurantErrors.address?.message || restaurantErrors.latitude?.message || restaurantErrors.longitude?.message}
+                      </p>
+                    )}
+
+                    {/* Hidden registers for form control */}
+                    <input type="hidden" {...registerRestaurant('address', { required: 'Please select a location on the map' })} />
+                    <input type="hidden" {...registerRestaurant('latitude', { required: 'Please select a location on the map' })} />
+                    <input type="hidden" {...registerRestaurant('longitude', { required: 'Please select a location on the map' })} />
                   </div>
 
                   <Button
@@ -527,6 +809,86 @@ export default function Info() {
           </Card>
         </div>
       </main>
+
+      <Modal open={isMapModalOpen} onClose={handleCloseMap} title="Select Business Location">
+        <Modal.Content className="space-y-4">
+          <div className="text-xs text-muted-foreground leading-relaxed">
+            Click on the map, drag the pin, or search for your address to select your restaurant's exact location.
+          </div>
+          
+          <div className="flex gap-2">
+            <Input
+              placeholder="Search city, area, or street name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleMapSearch();
+                }
+              }}
+              disabled={isMapLoading || isSearchingLocation}
+              className="flex-1"
+              leftIcon={<Search className="h-4 w-4 text-muted-foreground" />}
+            />
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleMapSearch}
+              disabled={isMapLoading || isSearchingLocation || !searchQuery.trim()}
+              loading={isSearchingLocation}
+              className="px-5 shrink-0"
+              leftIcon={<Search className="h-4 w-4" />}
+            >
+              Search
+            </Button>
+          </div>
+          
+          <div className="relative">
+            <div 
+              id="leaflet-map-container" 
+              className="h-[320px] w-full rounded-2xl border border-border/60 shadow-inner z-10 bg-muted/20"
+            />
+            {isMapLoading && (
+              <div className="absolute inset-0 bg-card/60 backdrop-blur-xs flex items-center justify-center z-20 rounded-2xl">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="text-xs font-semibold text-muted-foreground">Loading interactive map...</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 rounded-xl border border-border/40 bg-muted/10 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-muted-foreground">Selected Address</span>
+              {isGeocoding && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+            </div>
+            <p className="text-xs font-medium text-foreground min-h-[36px] leading-relaxed">
+              {tempAddress || 'Locating target location...'}
+            </p>
+          </div>
+        </Modal.Content>
+        <Modal.Footer>
+          <Button variant="ghost" onClick={handleCloseMap} disabled={isMapLoading}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={() => {
+              setValueRestaurant('address', tempAddress, { shouldValidate: true });
+              if (selectedLatLng) {
+                setValueRestaurant('latitude', selectedLatLng.lat, { shouldValidate: true });
+                setValueRestaurant('longitude', selectedLatLng.lng, { shouldValidate: true });
+              }
+              handleCloseMap();
+            }}
+            disabled={isMapLoading || isGeocoding || !tempAddress}
+          >
+            Confirm Location
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

@@ -14,12 +14,12 @@ import { broadcastToAdmins } from '../websocket/index.js';
 export const applyAsRestaurant = async (req, res, next) => {
   const transaction = await sequelize.transaction();
   try {
-    const { restaurantName, ownerName, email, phone, description, address, deliveryZoneId } = req.body;
+    const { restaurantName, ownerName, email, phone, description, address, deliveryZoneId, latitude, longitude } = req.body;
 
-    if (!restaurantName || !ownerName || !email || !phone || !description || !address || !deliveryZoneId) {
+    if (!restaurantName || !ownerName || !email || !phone || !description || !address || !deliveryZoneId || !latitude || !longitude) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required restaurant application fields, including a delivery zone.',
+        message: 'Please provide all required restaurant application fields, including map coordinates (latitude and longitude).',
       });
     }
 
@@ -69,6 +69,8 @@ export const applyAsRestaurant = async (req, res, next) => {
         phone,
         address,
         description,
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
         status: RestaurantStatus.PENDING,
       },
       { transaction }

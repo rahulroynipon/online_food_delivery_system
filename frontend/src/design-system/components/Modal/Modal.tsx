@@ -186,7 +186,7 @@ export const Content = React.forwardRef<HTMLDivElement, ModalContentProps>(
     return (
       <div
         ref={ref}
-        className={cn('overflow-y-auto px-6 py-5 flex-1 min-h-0', className)}
+        className={cn('overflow-y-auto px-3 py-2 md:px-6 md:py-5 flex-1 min-h-0', className)}
         style={style}
         {...props}
       >
@@ -205,7 +205,7 @@ export const Footer = React.forwardRef<HTMLDivElement, ModalFooterProps>(
       <div
         ref={ref}
         className={cn(
-          'flex items-center justify-end gap-3 px-6 py-4 bg-[var(--color-muted)]/10 shrink-0',
+          'flex items-center justify-end gap-3 px-3 py-2 md:px-6 md:py-4 bg-[var(--color-muted)]/10 shrink-0',
           showSeparator && 'border-t border-[var(--color-border)]/50',
           className
         )}
