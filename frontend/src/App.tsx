@@ -140,7 +140,7 @@ function App() {
           <Route path="addons" element={<RestaurantAddons />} />
         </Route>
 
-        <Route path="/" element={<DashboardRedirect />} />
+        <Route path="/" element={<>hi</>} />
         <Route path="*" element={<DashboardRedirect />} />
       </Routes>
     </BrowserRouter>
