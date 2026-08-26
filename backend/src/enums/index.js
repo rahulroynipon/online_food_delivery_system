@@ -4,5 +4,6 @@ import RestaurantStatus from './RestaurantStatus.js';
 import RiderStatus from './RiderStatus.js';
 import RiderAvailability from './RiderAvailability.js';
 import ActiveStatus from './ActiveStatus.js';
+import NotificationEvent from './NotificationEvent.js';
 
-export { UserRole, UserStatus, RestaurantStatus, RiderStatus, RiderAvailability, ActiveStatus };
+export { UserRole, UserStatus, RestaurantStatus, RiderStatus, RiderAvailability, ActiveStatus, NotificationEvent };

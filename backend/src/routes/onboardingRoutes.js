@@ -1,5 +1,14 @@
 import express from 'express';
-import { applyAsRestaurant, applyAsRider } from '../controllers/onboardingController.js';
+import { 
+   applyAsRestaurant, 
+   applyAsRider, 
+   getApplications, 
+   approveRestaurant, 
+   rejectRestaurant, 
+   approveRider, 
+   rejectRider 
+} from '../controllers/onboardingController.js';
+import { protect, authorize } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -94,5 +103,22 @@ router.post('/restaurant', applyAsRestaurant);
  *         description: Validation error or account already exists
  */
 router.post('/rider', applyAsRider);
+
+/**
+ * @desc    Get all pending applications (Admin Only)
+ */
+router.get('/applications', protect, authorize('ADMIN'), getApplications);
+
+/**
+ * @desc    Approve/Reject Restaurant (Admin Only)
+ */
+router.post('/applications/restaurant/:id/approve', protect, authorize('ADMIN'), approveRestaurant);
+router.post('/applications/restaurant/:id/reject', protect, authorize('ADMIN'), rejectRestaurant);
+
+/**
+ * @desc    Approve/Reject Rider (Admin Only)
+ */
+router.post('/applications/rider/:id/approve', protect, authorize('ADMIN'), approveRider);
+router.post('/applications/rider/:id/reject', protect, authorize('ADMIN'), rejectRider);
 
 export default router;

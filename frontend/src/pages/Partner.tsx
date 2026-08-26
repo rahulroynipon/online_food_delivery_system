@@ -66,7 +66,7 @@ export default function Partner() {
   useEffect(() => {
     const fetchZones = async () => {
       try {
-        const response = await api.get('/v1/delivery-zones');
+        const response = await api.get('/delivery-zones');
         if (response.data && response.data.deliveryZones) {
           const activeZones = response.data.deliveryZones.filter(
             (z: any) => z.status === 'ACTIVE'
@@ -319,7 +319,7 @@ export default function Partner() {
         phone: formattedPhone,
         deliveryZoneId: parseInt(data.deliveryZoneId as string, 10)
       };
-      await api.post('/v1/onboarding/restaurant', payload);
+      await api.post('/onboarding/restaurant', payload);
       setIsSubmitted(true);
       resetRestaurant();
     } catch (err: any) {
@@ -341,7 +341,7 @@ export default function Partner() {
         ...data,
         phone: formattedPhone
       };
-      await api.post('/v1/onboarding/rider', payload);
+      await api.post('/onboarding/rider', payload);
       setIsSubmitted(true);
       resetRider();
     } catch (err: any) {

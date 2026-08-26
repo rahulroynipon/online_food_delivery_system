@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email, password, rememberMe = false) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.post('/v1/auth/login', { email, password, rememberMe });
+      const response = await api.post('/auth/login', { email, password, rememberMe });
       
       const { token, user } = response.data;
       localStorage.setItem('token', token);
@@ -64,7 +64,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       // call logout endpoint if server has any cleanup (optional but good practice)
-      await api.post('/v1/auth/logout').catch(() => {});
+      await api.post('/auth/logout').catch(() => {});
     } finally {
       localStorage.removeItem('token');
       set({
@@ -86,7 +86,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get('/v1/auth/me');
+      const response = await api.get('/auth/me');
       set({
         user: response.data.user,
         isAuthenticated: true,

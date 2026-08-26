@@ -4,8 +4,10 @@ import { useAuthStore } from './store/useAuthStore';
 import Login from './pages/Login';
 import Partner from './pages/Partner';
 import Signup from './pages/Signup';
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, toast } from './design-system';
-import { Loader2, LogOut, User as UserIcon, Calendar, Phone, ShieldCheck, Mail, Bell } from 'lucide-react';
+import AdminDashboard from './pages/AdminDashboard';
+import api from './lib/axios';
+import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Tabs, toast } from './design-system';
+import { Loader2, LogOut, User as UserIcon, Calendar, Phone, ShieldCheck, Mail, Bell, Store, Bike, Users, CheckCircle, XCircle } from 'lucide-react';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isInitialized } = useAuthStore();
@@ -22,66 +24,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function Dashboard() {
-  const { user, token, logout } = useAuthStore();
-  const [notifications, setNotifications] = useState<{ id: string; event: string; message: string; timestamp: Date }[]>([]);
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const { user, logout } = useAuthStore();
 
-  useEffect(() => {
-    if (user?.role !== 'ADMIN') return;
+  if (user?.role === 'ADMIN') {
+    return <AdminDashboard />;
+  }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.hostname;
-    const wsUrl = `${protocol}//${host}:5005?token=${token}`;
-
-    console.log('[WebSocket] Connecting to:', wsUrl);
-    const ws = new WebSocket(wsUrl);
-
-    ws.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.event === 'NEW_RESTAURANT_APPLICATION') {
-          const message = `New Restaurant: "${payload.data.name}" by ${payload.data.owner}`;
-          toast.success(message, { duration: 6000 });
-          setNotifications((prev) => [
-            {
-              id: payload.data.id + '-' + Date.now(),
-              event: payload.event,
-              message,
-              timestamp: new Date(payload.timestamp),
-            },
-            ...prev,
-          ]);
-        } else if (payload.event === 'NEW_RIDER_APPLICATION') {
-          const message = `New Rider: ${payload.data.fullName} (${payload.data.vehicleType})`;
-          toast.info(message, { duration: 6000 });
-          setNotifications((prev) => [
-            {
-              id: payload.data.id + '-' + Date.now(),
-              event: payload.event,
-              message,
-              timestamp: new Date(payload.timestamp),
-            },
-            ...prev,
-          ]);
-        }
-      } catch (err) {
-        console.error('[WebSocket] Parsing message error:', err);
-      }
-    };
-
-    ws.onerror = (err) => {
-      console.error('[WebSocket] Connection error:', err);
-    };
-
-    ws.onclose = () => {
-      console.log('[WebSocket] Connection closed');
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, [user, token]);
-
+  // FALLBACK FOR OTHER ROLES
   return (
     <div className="min-h-screen bg-muted/20 text-foreground select-none">
       {/* Header */}
@@ -97,55 +46,6 @@ function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {user?.role === 'ADMIN' && (
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsNotifOpen(!isNotifOpen)}
-                  className="relative p-2 rounded-full hover:bg-muted"
-                >
-                  <Bell className="h-5 w-5 text-foreground" />
-                  {notifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-primary text-primary-foreground text-[10px] font-black rounded-full flex items-center justify-center animate-bounce shadow-md">
-                      {notifications.length}
-                    </span>
-                  )}
-                </Button>
-
-                {isNotifOpen && (
-                  <div className="absolute right-0 mt-3 w-80 max-h-96 overflow-y-auto bg-card border border-border/80 rounded-2xl shadow-2xl z-50 p-4 animate-fade-in divide-y divide-border/10">
-                    <div className="flex justify-between items-center pb-3">
-                      <h3 className="font-bold text-sm text-foreground">Notifications</h3>
-                      {notifications.length > 0 && (
-                        <button
-                          onClick={() => setNotifications([])}
-                          className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
-                        >
-                          Clear all
-                        </button>
-                      )}
-                    </div>
-                    {notifications.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-muted-foreground">
-                        No new onboarding applications.
-                      </div>
-                    ) : (
-                      <div className="pt-2 space-y-3">
-                        {notifications.map((notif) => (
-                          <div key={notif.id} className="text-xs py-2 flex flex-col gap-1">
-                            <span className="font-medium text-foreground">{notif.message}</span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {new Date(notif.timestamp).toLocaleTimeString()}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
             <Button 
               variant="ghost" 
               size="sm"

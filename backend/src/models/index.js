@@ -7,6 +7,7 @@ import Food from './Food.js';
 import FoodVariant from './FoodVariant.js';
 import DeliveryZone from './DeliveryZone.js';
 import RestaurantDeliveryZone from './RestaurantDeliveryZone.js';
+import Notification from './Notification.js';
 
 export {
   User,
@@ -18,4 +19,5 @@ export {
   FoodVariant,
   DeliveryZone,
   RestaurantDeliveryZone,
+  Notification,
 };

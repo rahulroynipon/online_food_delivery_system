@@ -52,7 +52,7 @@ export default function Signup() {
         phone: formattedPhone
       };
 
-      const response = await api.post('/v1/auth/register', payload);
+      const response = await api.post('/auth/register', payload);
       if (response.data?.success) {
         toast.success('Registration successful! Please sign in.');
         navigate('/login');
