@@ -88,6 +88,7 @@ export const applyAsRestaurant = async (req, res, next) => {
     // Create Notification
     await Notification.create(
       {
+        userId: user.id,
         event: NotificationEvent.NEW_RESTAURANT_APPLICATION,
         message: `New Restaurant: "${restaurant.name}" by ${user.name}`,
         read: false,
@@ -186,6 +187,7 @@ export const applyAsRider = async (req, res, next) => {
     // Create Notification
     await Notification.create(
       {
+        userId: user.id,
         event: NotificationEvent.NEW_RIDER_APPLICATION,
         message: `New Rider: ${user.name} (${vehicleType})`,
         read: false,

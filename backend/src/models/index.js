@@ -9,6 +9,10 @@ import DeliveryZone from './DeliveryZone.js';
 import RestaurantDeliveryZone from './RestaurantDeliveryZone.js';
 import Notification from './Notification.js';
 
+// Associations
+User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
+Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 export {
   User,
   Restaurant,

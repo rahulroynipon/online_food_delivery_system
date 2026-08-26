@@ -1,4 +1,4 @@
-import { Notification } from '../models/index.js';
+import { Notification, User } from '../models/index.js';
 
 /**
  * @desc    Get all notifications (latest 10)
@@ -10,6 +10,14 @@ export const getNotifications = async (req, res, next) => {
     const notifications = await Notification.findAll({
       order: [['createdAt', 'DESC']],
       limit: 10,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email'],
+          required: false, // LEFT JOIN — keeps seeded notifications with null userId
+        },
+      ],
     });
 
     return res.status(200).json({
