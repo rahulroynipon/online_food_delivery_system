@@ -70,3 +70,38 @@ export const sendVerificationEmail = async (to, name, confirmUrl) => {
     text: `Hello ${name},\n\nPlease confirm your email by visiting: ${confirmUrl}`,
   });
 };
+
+/**
+ * Sends a confirmation email to a newly applied Restaurant or Rider.
+ * @param {string} to - Receiver email address
+ * @param {string} name - Receiver name
+ * @param {'restaurant' | 'rider'} type - Onboarding type
+ * @returns {Promise<Object>} Sent message details
+ */
+export const sendOnboardingConfirmationEmail = async (to, name, type) => {
+  const isRestaurant = type === 'restaurant';
+  const subject = isRestaurant
+    ? 'BiteSpeed - Restaurant Onboarding Application Received'
+    : 'BiteSpeed - Rider Onboarding Application Received';
+
+  const html = `
+    <div style="font-family: sans-serif; line-height: 1.5; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e4e4e7; border-radius: 8px;">
+      <h2 style="color: #d70f64; text-align: center;">Application Received!</h2>
+      <p>Hello ${name},</p>
+      <p>Thank you for submitting your onboarding application to join BiteSpeed as a <strong>${isRestaurant ? 'Restaurant Partner' : 'Delivery Rider'}</strong>.</p>
+      <p>Our onboarding team is currently reviewing your details. We will verify your application and reach out to you via email or phone within 2-3 business days.</p>
+      <br />
+      <p>Best regards,</p>
+      <p><strong>The BiteSpeed Team</strong></p>
+      <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
+      <p style="font-size: 12px; color: #777; text-align: center;">This is an automated email. Please do not reply directly to this message.</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text: `Hello ${name},\n\nThank you for applying to join BiteSpeed as a ${isRestaurant ? 'Restaurant Partner' : 'Delivery Rider'}. Our onboarding team will review your application within 2-3 business days.`,
+  });
+};

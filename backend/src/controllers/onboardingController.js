@@ -3,6 +3,8 @@ import { User, Restaurant, Rider, DeliveryZone, RestaurantDeliveryZone } from '.
 import { UserRole, UserStatus, RestaurantStatus, RiderStatus, RiderAvailability } from '../enums/index.js';
 import { hashPassword } from '../utils/hash.js';
 import { generateUniqueSlug } from '../utils/slugify.js';
+import { sendOnboardingConfirmationEmail } from '../utils/email.js';
+import { broadcastToAdmins } from '../websocket/index.js';
 
 /**
  * @desc    Submit Restaurant onboarding application
@@ -83,6 +85,20 @@ export const applyAsRestaurant = async (req, res, next) => {
 
     await transaction.commit();
 
+    // Send confirmation email asynchronously (do not block client response)
+    sendOnboardingConfirmationEmail(user.email, user.name, 'restaurant').catch((err) => {
+      console.error('[Onboarding] Error sending restaurant onboarding confirmation email:', err);
+    });
+
+    // Broadcast WebSocket notification to admins
+    broadcastToAdmins('NEW_RESTAURANT_APPLICATION', {
+      id: restaurant.id,
+      name: restaurant.name,
+      owner: user.name,
+      email: user.email,
+      status: restaurant.status,
+    });
+
     return res.status(201).json({
       success: true,
       message: 'Restaurant onboarding application submitted successfully.',
@@ -156,6 +172,20 @@ export const applyAsRider = async (req, res, next) => {
     );
 
     await transaction.commit();
+
+    // Send confirmation email asynchronously (do not block client response)
+    sendOnboardingConfirmationEmail(user.email, user.name, 'rider').catch((err) => {
+      console.error('[Onboarding] Error sending rider onboarding confirmation email:', err);
+    });
+
+    // Broadcast WebSocket notification to admins
+    broadcastToAdmins('NEW_RIDER_APPLICATION', {
+      id: rider.id,
+      fullName: user.name,
+      email: user.email,
+      vehicleType: rider.vehicleType,
+      status: rider.status,
+    });
 
     return res.status(201).json({
       success: true,

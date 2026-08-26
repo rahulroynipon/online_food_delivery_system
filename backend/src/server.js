@@ -1,6 +1,7 @@
 import app, { API_PREFIX } from './app.js';
 import env from './config/env.js';
 import syncModels from './utils/syncModels.js';
+import { initWebSocket } from './websocket/index.js';
 
 const PORT = env.PORT;
 
@@ -12,5 +13,8 @@ const server = app.listen(PORT, async () => {
     await syncModels();
   }
 });
+
+// Initialize WebSocket server with the HTTP server
+initWebSocket(server);
 
 export default server;
