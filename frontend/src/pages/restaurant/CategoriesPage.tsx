@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, Button, Badge, DataTable, Select, Input, Modal, toast } from '../../design-system';
-import { Plus, Edit, Trash2, Loader2, Upload, ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, Upload, ImageIcon, Power } from 'lucide-react';
 import api from '../../lib/axios';
 
 export default function CategoriesPage() {
@@ -60,6 +60,19 @@ export default function CategoriesPage() {
       }
     } catch (err) {
       console.error('Failed to fetch platform categories:', err);
+    }
+  };
+
+  const handleToggleCategoryStatus = async (category: any) => {
+    const nextStatus = category.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    try {
+      const response = await api.put(`/restaurant-categories/${category.slug}/status`);
+      if (response.data?.success) {
+        toast.success(`Successfully set "${category.name}" to ${nextStatus.toLowerCase()}.`);
+        fetchRestaurantCategories();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to toggle category status.');
     }
   };
 
@@ -256,6 +269,15 @@ export default function CategoriesPage() {
                     align: 'right' as const,
                     cell: ({ row }: { row: any }) => (
                       <div className="flex items-center justify-end gap-2 shrink-0 w-max">
+                        <Button
+                          size="xs"
+                          variant={row.status === 'ACTIVE' ? 'tertiary' : 'primary'}
+                          onClick={() => handleToggleCategoryStatus(row)}
+                          leftIcon={<Power size={12} />}
+                          className="font-semibold"
+                        >
+                          {row.status === 'ACTIVE' ? 'Hide' : 'Activate'}
+                        </Button>
                         <Button
                           size="xs"
                           variant="tertiary"

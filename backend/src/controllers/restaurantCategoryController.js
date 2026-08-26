@@ -238,3 +238,42 @@ export const deleteRestaurantCategory = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc    Toggle custom category storefront active status
+ * @route   PUT /api/v1/restaurant-categories/:slug/status
+ * @access  Private (Restaurant Owner Only)
+ */
+export const toggleCategoryStatus = async (req, res, next) => {
+  try {
+    const restaurant = await Restaurant.findOne({ where: { userId: req.user.id } });
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Restaurant profile not found.',
+      });
+    }
+
+    const category = await RestaurantCategory.findOne({
+      where: { slug: req.params.slug, restaurantId: restaurant.id },
+    });
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: 'Store category not found.',
+      });
+    }
+
+    const nextStatus = category.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    await category.update({ status: nextStatus });
+
+    return res.status(200).json({
+      success: true,
+      message: `Store category status updated to ${nextStatus}.`,
+      status: nextStatus,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

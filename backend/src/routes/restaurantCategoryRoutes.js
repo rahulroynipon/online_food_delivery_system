@@ -3,7 +3,8 @@ import {
   getMyCategories,
   createRestaurantCategory,
   updateRestaurantCategory,
-  deleteRestaurantCategory
+  deleteRestaurantCategory,
+  toggleCategoryStatus
 } from '../controllers/restaurantCategoryController.js';
 import upload from '../middleware/uploadMiddleware.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
@@ -20,5 +21,8 @@ router.route('/')
 router.route('/:slug')
   .put(upload.single('image'), updateRestaurantCategory)
   .delete(deleteRestaurantCategory);
+
+router.route('/:slug/status')
+  .put(toggleCategoryStatus);
 
 export default router;
