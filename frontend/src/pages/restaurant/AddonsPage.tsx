@@ -235,7 +235,7 @@ export default function AddonsPage() {
                     id: 'price',
                     label: 'Add-on Price',
                     cell: ({ row }: { row: any }) => (
-                      <span className="font-extrabold text-foreground">${Number(row.price || 0).toFixed(2)}</span>
+                      <span className="font-extrabold text-foreground">৳{Number(row.price || 0).toFixed(2)}</span>
                     )
                   },
                   {
@@ -311,7 +311,7 @@ export default function AddonsPage() {
                 onChange={(e) => setAddonForm({ ...addonForm, name: e.target.value })}
               />
               <Input
-                label="Price ($ USD)"
+                label="Price (৳ Taka)"
                 required
                 type="number"
                 step="0.01"

@@ -95,7 +95,7 @@ export default function OverviewPage() {
           <CardContent className="p-5 flex items-center justify-between">
             <div>
               <p className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Today's Revenue</p>
-              <p className="text-2xl font-black text-foreground mt-1.5">$50.44</p>
+              <p className="text-2xl font-black text-foreground mt-1.5">৳50.44</p>
             </div>
             <div className="h-10 w-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
               <DollarSign size={18} />

@@ -58,7 +58,7 @@ export default function OrdersPage() {
                   </div>
                   <p className="text-xs font-extrabold text-foreground">{order.customerName}</p>
                   <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">{order.items}</p>
-                  <p className="text-xs font-black text-foreground">Total payout: ${Number(order.total).toFixed(2)}</p>
+                  <p className="text-xs font-black text-foreground">Total payout: ৳{Number(order.total).toFixed(2)}</p>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">

@@ -307,7 +307,7 @@ export default function MenuPage() {
                           row.variants.map((v: any) => (
                             <div key={v.id} className="text-[11px] leading-tight">
                               <span className="font-semibold text-muted-foreground">{v.name}:</span>{' '}
-                              <span className="font-extrabold text-foreground">${Number(v.price).toFixed(2)}</span>
+                              <span className="font-extrabold text-foreground">৳{Number(v.price).toFixed(2)}</span>
                             </div>
                           ))
                         ) : (
@@ -500,7 +500,7 @@ export default function MenuPage() {
                         </div>
                         <div className="w-[120px]">
                           <Input
-                            label="Price ($ USD)"
+                            label="Price (৳ Taka)"
                             required
                             type="number"
                             step="0.01"
