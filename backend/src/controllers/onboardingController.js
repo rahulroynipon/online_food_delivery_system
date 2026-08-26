@@ -590,5 +590,49 @@ export const deleteRider = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Restaurant owner toggles their own open/closed status
+ * @route   PUT /api/v1/onboarding/my-restaurant/toggle-open
+ * @access  Private (Restaurant Only)
+ */
+export const toggleMyRestaurantOpen = async (req, res, next) => {
+  try {
+    const restaurant = await Restaurant.findOne({ where: { userId: req.user.id } });
+    if (!restaurant) {
+      return res.status(404).json({ success: false, message: 'Restaurant profile not found.' });
+    }
+
+    restaurant.isOpen = !restaurant.isOpen;
+    await restaurant.save();
+
+    return res.status(200).json({
+      success: true,
+      message: restaurant.isOpen ? 'Your restaurant is now open!' : 'Your restaurant is now closed.',
+      isOpen: restaurant.isOpen,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+export const toggleRestaurantOpen = async (req, res, next) => {
+  try {
+    const restaurant = await Restaurant.findByPk(req.params.id);
+    if (!restaurant) {
+      return res.status(404).json({ success: false, message: 'Restaurant not found.' });
+    }
+
+    restaurant.isOpen = !restaurant.isOpen;
+    await restaurant.save();
+
+    return res.status(200).json({
+      success: true,
+      message: restaurant.isOpen ? 'Restaurant is now open.' : 'Restaurant is now closed.',
+      isOpen: restaurant.isOpen,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 

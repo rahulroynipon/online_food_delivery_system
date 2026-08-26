@@ -15,7 +15,9 @@ import {
   Info,
   Edit,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  DoorOpen,
+  DoorClosed
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -76,6 +78,13 @@ export default function RestaurantsPage() {
       })
     },
     {
+      id: 'open',
+      label: 'Open?',
+      cell: ({ row }) => row.isOpen
+        ? <Badge variant="soft" color="success" className="font-bold text-[10px] tracking-wide uppercase px-2.5 py-0.5">Open</Badge>
+        : <Badge variant="soft" color="neutral" className="font-bold text-[10px] tracking-wide uppercase px-2.5 py-0.5">Closed</Badge>
+    },
+    {
       id: 'actions',
       label: '',
       align: 'right' as const,
@@ -98,6 +107,19 @@ export default function RestaurantsPage() {
             className="font-semibold border-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white"
           >
             Edit
+          </Button>
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={() => handleToggleOpen(row.id, row.isOpen)}
+            loading={actionLoading === `toggle-open-${row.id}`}
+            leftIcon={row.isOpen ? <DoorClosed size={12} /> : <DoorOpen size={12} />}
+            className={row.isOpen
+              ? 'font-semibold border-slate-400/20 text-slate-500 hover:bg-slate-500 hover:text-white'
+              : 'font-semibold border-emerald-500/20 text-emerald-600 hover:bg-emerald-500 hover:text-white'
+            }
+          >
+            {row.isOpen ? 'Close' : 'Open'}
           </Button>
           <Button
             size="xs"
@@ -237,6 +259,23 @@ export default function RestaurantsPage() {
   const handleOpenDetails = (app: any) => {
     setSelectedApp(app);
     setIsModalOpen(true);
+  };
+
+  const handleToggleOpen = async (id: number, currentIsOpen: boolean) => {
+    setActionLoading(`toggle-open-${id}`);
+    try {
+      const response = await api.put(`/onboarding/applications/restaurant/${id}/toggle-open`);
+      if (response.data?.success) {
+        toast.success(response.data.message);
+        setRestaurants((prev) =>
+          prev.map((r) => r.id === id ? { ...r, isOpen: !currentIsOpen } : r)
+        );
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update open status.');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleConfirmDelete = async () => {

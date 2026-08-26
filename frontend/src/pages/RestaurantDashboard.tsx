@@ -51,7 +51,9 @@ import {
   Volume2,
   ShoppingBag,
   CreditCard,
-  Settings
+  Settings,
+  DoorOpen,
+  DoorClosed
 } from 'lucide-react';
 import api from '../lib/axios';
 import { NavLink, useLocation, Outlet, useOutletContext } from 'react-router-dom';
@@ -76,6 +78,7 @@ export default function RestaurantDashboard() {
   const { user, logout, token } = useAuthStore();
   const [restaurantProfile, setRestaurantProfile] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [isOpenLoading, setIsOpenLoading] = useState(false);
 
   const activePage = location.pathname.endsWith('/menu') 
     ? 'menu' 
@@ -106,6 +109,21 @@ export default function RestaurantDashboard() {
       toast.error('Could not retrieve merchant store profile.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleOpen = async () => {
+    setIsOpenLoading(true);
+    try {
+      const response = await api.put('/onboarding/my-restaurant/toggle-open');
+      if (response.data?.success) {
+        setRestaurantProfile((prev: any) => prev ? { ...prev, isOpen: response.data.isOpen } : prev);
+        toast.success(response.data.message);
+      }
+    } catch {
+      toast.error('Failed to update open status.');
+    } finally {
+      setIsOpenLoading(false);
     }
   };
 
@@ -326,15 +344,37 @@ export default function RestaurantDashboard() {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-4">
-            {restaurantProfile?.status === 'ACTIVE' ? (
-              <Badge variant="soft" color="success" className="font-extrabold text-[9px] tracking-wide uppercase px-2.5 py-0.5">
-                Active
-              </Badge>
-            ) : (
-              <Badge variant="soft" color="warning" className="font-extrabold text-[9px] tracking-wide uppercase px-2.5 py-0.5">
-                Pending Verification
-              </Badge>
+          <div className="flex items-center gap-3">
+         
+
+            {/* Open / Close Toggle */}
+            {restaurantProfile?.status === 'ACTIVE' && (
+              <button
+                onClick={handleToggleOpen}
+                disabled={isOpenLoading}
+                title={restaurantProfile?.isOpen ? 'Click to close restaurant' : 'Click to open restaurant'}
+                className={`
+                  relative flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-extrabold tracking-wide uppercase transition-all duration-200 cursor-pointer select-none
+                  ${restaurantProfile?.isOpen
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20'
+                    : 'bg-muted/40 border-border/40 text-muted-foreground hover:bg-muted/60'
+                  }
+                  ${isOpenLoading ? 'opacity-60 cursor-not-allowed' : ''}
+                `}
+              >
+                {isOpenLoading ? (
+                  <Loader2 size={11} className="animate-spin" />
+                ) : restaurantProfile?.isOpen ? (
+                  <DoorOpen size={11} />
+                ) : (
+                  <DoorClosed size={11} />
+                )}
+                <span>{restaurantProfile?.isOpen ? 'Open' : 'Closed'}</span>
+                {/* Live indicator dot */}
+                {restaurantProfile?.isOpen && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                )}
+              </button>
             )}
 
             {/* Notification Dropdown */}

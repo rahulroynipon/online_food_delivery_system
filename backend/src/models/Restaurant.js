@@ -56,6 +56,11 @@ const Restaurant = sequelize.define(
       type: DataTypes.TIME,
       allowNull: true,
     },
+    isOpen: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
     status: {
       type: DataTypes.ENUM(...Object.values(RestaurantStatus)),
       allowNull: true,
