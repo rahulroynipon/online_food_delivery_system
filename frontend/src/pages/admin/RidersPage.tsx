@@ -507,7 +507,6 @@ export default function RidersPage() {
                       label="Vehicle Type"
                       value={editForm.vehicleType}
                       onValueChange={(val) => setEditForm({ ...editForm, vehicleType: val })}
-                      width="100%"
                       options={[
                         { value: 'BICYCLE', label: 'Bicycle' },
                         { value: 'MOTORBIKE', label: 'Motorbike' },
@@ -525,7 +524,6 @@ export default function RidersPage() {
                       label="Application Status"
                       value={editForm.status}
                       onValueChange={(val) => setEditForm({ ...editForm, status: val })}
-                      width="100%"
                       options={[
                         { value: 'PENDING', label: 'PENDING' },
                         { value: 'ACTIVE', label: 'ACTIVE' },

@@ -570,7 +570,6 @@ export default function RestaurantsPage() {
                       label="Application Status"
                       value={editForm.status}
                       onValueChange={(val) => setEditForm({ ...editForm, status: val })}
-                      width="100%"
                       options={[
                         { value: 'PENDING', label: 'PENDING' },
                         { value: 'ACTIVE', label: 'ACTIVE' },
