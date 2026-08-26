@@ -52,7 +52,7 @@ interface RiderFormValues {
   licenseNumber?: string;
 }
 
-export default function Info() {
+export default function Partner() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('restaurant');
   const [isSubmitting, setIsSubmitting] = useState(false);
