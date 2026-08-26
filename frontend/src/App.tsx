@@ -14,6 +14,10 @@ import ZonesPage from './pages/admin/ZonesPage';
 import UsersPage from './pages/admin/UsersPage';
 import PlaceholderPage from './pages/admin/PlaceholderPage';
 import RestaurantDashboard from './pages/RestaurantDashboard';
+import RestaurantOverview from './pages/restaurant/OverviewPage';
+import RestaurantCategories from './pages/restaurant/CategoriesPage';
+import RestaurantMenu from './pages/restaurant/MenuPage';
+import RestaurantOrders from './pages/restaurant/OrdersPage';
 import api from './lib/axios';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Tabs, toast } from './design-system';
 import { Loader2, LogOut, User as UserIcon, Calendar, Phone, ShieldCheck, Mail, Bell, Store, Bike, Users, CheckCircle, XCircle } from 'lucide-react';
@@ -124,31 +128,12 @@ function App() {
               <RestaurantDashboard />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/restaurant/categories"
-          element={
-            <ProtectedRoute allowedRole="RESTAURANT">
-              <RestaurantDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/restaurant/menu"
-          element={
-            <ProtectedRoute allowedRole="RESTAURANT">
-              <RestaurantDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/restaurant/orders"
-          element={
-            <ProtectedRoute allowedRole="RESTAURANT">
-              <RestaurantDashboard />
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route index element={<RestaurantOverview />} />
+          <Route path="categories" element={<RestaurantCategories />} />
+          <Route path="menu" element={<RestaurantMenu />} />
+          <Route path="orders" element={<RestaurantOrders />} />
+        </Route>
 
         <Route path="/" element={<DashboardRedirect />} />
         <Route path="*" element={<DashboardRedirect />} />

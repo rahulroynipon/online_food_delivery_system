@@ -470,7 +470,7 @@ export default function AdminDashboard() {
         </Header>
 
         {/* Right Main Content */}
-        <Content className="p-8 overflow-y-auto">
+        <Content className="p-5 md:p-8 overflow-y-auto">
           <Outlet/>
         </Content>
       </Main>
