@@ -19,9 +19,23 @@ const RestaurantCategory = sequelize.define(
       },
       onDelete: 'CASCADE',
     },
+    platformCategoryId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'platform_categories',
+        key: 'id',
+      },
+      onDelete: 'SET NULL',
+    },
     name: {
       type: DataTypes.STRING,
       allowNull: true,
+    },
+    slug: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
     },
     description: {
       type: DataTypes.TEXT,
@@ -29,6 +43,10 @@ const RestaurantCategory = sequelize.define(
     },
     status: {
       type: DataTypes.ENUM(...Object.values(ActiveStatus)),
+      allowNull: true,
+    },
+    image: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
   },

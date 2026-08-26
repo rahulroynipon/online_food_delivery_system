@@ -57,6 +57,14 @@ const configureAssociations = () => {
   });
   Food.belongsTo(PlatformCategory, { foreignKey: 'platformCategoryId', as: 'platformCategory' });
 
+  // PlatformCategory <-> RestaurantCategory (One-to-Many)
+  PlatformCategory.hasMany(RestaurantCategory, {
+    foreignKey: 'platformCategoryId',
+    as: 'restaurantCategories',
+    onDelete: 'SET NULL',
+  });
+  RestaurantCategory.belongsTo(PlatformCategory, { foreignKey: 'platformCategoryId', as: 'platformCategory' });
+
   // Food <-> FoodVariant (One-to-Many)
   Food.hasMany(FoodVariant, { foreignKey: 'foodId', as: 'variants', onDelete: 'CASCADE' });
   FoodVariant.belongsTo(Food, { foreignKey: 'foodId', as: 'food' });

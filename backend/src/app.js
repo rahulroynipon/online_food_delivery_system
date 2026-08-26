@@ -12,6 +12,7 @@ import platformCategoryRoutes from './routes/platformCategoryRoutes.js';
 import onboardingRoutes from './routes/onboardingRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import restaurantCategoryRoutes from './routes/restaurantCategoryRoutes.js';
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use(`${API_PREFIX}/platform-categories`, platformCategoryRoutes);
 app.use(`${API_PREFIX}/onboarding`, onboardingRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/users`, userRoutes);
+app.use(`${API_PREFIX}/restaurant-categories`, restaurantCategoryRoutes);
 
 // Status Endpoint
 app.get(`${API_PREFIX}/status`, (req, res) => {

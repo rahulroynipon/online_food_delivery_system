@@ -125,6 +125,30 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/restaurant/categories"
+          element={
+            <ProtectedRoute allowedRole="RESTAURANT">
+              <RestaurantDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/restaurant/menu"
+          element={
+            <ProtectedRoute allowedRole="RESTAURANT">
+              <RestaurantDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/restaurant/orders"
+          element={
+            <ProtectedRoute allowedRole="RESTAURANT">
+              <RestaurantDashboard />
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="/" element={<DashboardRedirect />} />
         <Route path="*" element={<DashboardRedirect />} />
