@@ -11,6 +11,7 @@ import RidersPage from './pages/admin/RidersPage';
 import SettingsPage from './pages/admin/SettingsPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
 import ZonesPage from './pages/admin/ZonesPage';
+import UsersPage from './pages/admin/UsersPage';
 import PlaceholderPage from './pages/admin/PlaceholderPage';
 import api from './lib/axios';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Tabs, toast } from './design-system';
@@ -172,6 +173,7 @@ function App() {
           <Route index element={<DashboardPage />} />
           <Route path="restaurants" element={<RestaurantsPage />} />
           <Route path="riders" element={<RidersPage />} />
+          <Route path="users" element={<UsersPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="zones" element={<ZonesPage />} />
           <Route path="settings" element={<SettingsPage />} />
