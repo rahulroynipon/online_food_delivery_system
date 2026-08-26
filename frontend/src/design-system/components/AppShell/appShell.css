@@ -174,3 +174,18 @@
   padding-right: 0;
 }
 
+.appshell-sidebar.is-collapsed a {
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.appshell-sidebar.is-collapsed a > div {
+  gap: 0 !important;
+  justify-content: center !important;
+}
+
+
