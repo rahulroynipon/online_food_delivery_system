@@ -28,6 +28,10 @@ export default function CategoriesPage() {
   const [modalMode, setModalMode] = useState<'ADD' | 'EDIT'>('ADD');
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   
+  // Delete Modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
+  
   // Form State
   const [form, setForm] = useState({
     name: '',
@@ -131,16 +135,20 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleDelete = async (slug: string) => {
-    if (!window.confirm('Are you sure you want to delete this category? This will soft-delete it from the system.')) {
-      return;
-    }
+  const handleOpenDelete = (category: any) => {
+    setCategoryToDelete(category);
+    setIsDeleteModalOpen(true);
+  };
 
-    setActionLoading(`delete-${slug}`);
+  const handleConfirmDelete = async () => {
+    if (!categoryToDelete) return;
+
+    setActionLoading(`delete-${categoryToDelete.slug}`);
     try {
-      const response = await api.delete(`/platform-categories/${slug}`);
+      const response = await api.delete(`/platform-categories/${categoryToDelete.slug}`);
       if (response.data?.success) {
         toast.success('Category deleted successfully.');
+        setIsDeleteModalOpen(false);
         fetchCategories();
       }
     } catch (err: any) {
@@ -222,9 +230,7 @@ export default function CategoriesPage() {
           <Button
             size="xs"
             variant="outline"
-            loading={actionLoading === `delete-${row.slug}`}
-            disabled={actionLoading !== null}
-            onClick={() => handleDelete(row.slug)}
+            onClick={() => handleOpenDelete(row)}
             leftIcon={<Trash2 size={12} />}
             className="font-semibold border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white"
           >
@@ -418,6 +424,50 @@ export default function CategoriesPage() {
               </div>
             </Modal.Footer>
           </form>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {categoryToDelete && (
+        <Modal open={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} size="sm">
+          <Modal.Header 
+            title="Delete Platform Category" 
+            description="Are you sure you want to delete this category? It will immediately disappear from client applications."
+          />
+          <Modal.Content>
+            <div className="flex items-center gap-3 p-3 bg-rose-500/10 border border-rose-500/25 rounded-2xl">
+              <Avatar 
+                src={categoryToDelete.image ? getImageUrl(categoryToDelete.image) : ''} 
+                alt={categoryToDelete.name} 
+                fallback={<Layers size={14} />} 
+                size="md"
+              />
+              <div>
+                <p className="font-extrabold text-sm text-foreground">{categoryToDelete.name}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">slug: {categoryToDelete.slug}</p>
+              </div>
+            </div>
+          </Modal.Content>
+          <Modal.Footer>
+            <div className="flex gap-2.5 justify-end w-full">
+              <Button
+                variant="ghost"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="font-semibold text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                className="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs border-transparent shadow-xs"
+                loading={actionLoading === `delete-${categoryToDelete.slug}`}
+                disabled={actionLoading !== null}
+                onClick={handleConfirmDelete}
+              >
+                Delete Category
+              </Button>
+            </div>
+          </Modal.Footer>
         </Modal>
       )}
     </div>
