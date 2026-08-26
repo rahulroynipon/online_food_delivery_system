@@ -274,7 +274,7 @@ export default function RestaurantDashboard() {
                     }`}>
                       {item.icon}
                     </div>
-                    <span className="appshell-sidebar-label">{item.label}</span>
+                    <span className="appshell-sidebar-label text-nowrap">{item.label}</span>
                   </div>
                 </>
               )}

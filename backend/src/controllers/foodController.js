@@ -1,4 +1,4 @@
-import { Food, FoodVariant, RestaurantCategory, Restaurant } from '../models/index.js';
+import { Food, FoodVariant, RestaurantCategory, Restaurant, RestaurantAddon } from '../models/index.js';
 import { generateUniqueSlug } from '../utils/slugify.js';
 import fs from 'fs';
 
@@ -7,6 +7,12 @@ const deleteFoodImage = (imagePath) => {
     fs.unlink(imagePath, (err) => {
       if (err) console.error(`Failed to delete local image file: ${imagePath}`, err);
     });
+  }
+};
+
+const cleanAllFiles = (files) => {
+  if (files && files.length > 0) {
+    files.forEach(f => deleteFoodImage(f.path));
   }
 };
 
@@ -37,6 +43,11 @@ export const getFoods = async (req, res, next) => {
           as: 'restaurantCategory',
           attributes: ['id', 'name', 'slug'],
         },
+        {
+          model: RestaurantAddon,
+          as: 'addons',
+          through: { attributes: [] },
+        },
       ],
       order: [['createdAt', 'DESC']],
     });
@@ -57,9 +68,11 @@ export const getFoods = async (req, res, next) => {
  */
 export const createFood = async (req, res, next) => {
   try {
+
+
     const restaurant = await Restaurant.findOne({ where: { userId: req.user.id } });
     if (!restaurant) {
-      if (req.file) deleteFoodImage(req.file.path);
+      cleanAllFiles(req.files);
       return res.status(404).json({
         success: false,
         message: 'Restaurant profile not found for this merchant account.',
@@ -72,7 +85,7 @@ export const createFood = async (req, res, next) => {
       try {
         variantsData = typeof req.body.variants === 'string' ? JSON.parse(req.body.variants) : req.body.variants;
       } catch (err) {
-        if (req.file) deleteFoodImage(req.file.path);
+        cleanAllFiles(req.files);
         return res.status(400).json({
           success: false,
           message: 'Invalid variants JSON format.',
@@ -80,8 +93,30 @@ export const createFood = async (req, res, next) => {
       }
     }
 
+    let addonIdsData = [];
+    if (req.body.addonIds) {
+      try {
+        addonIdsData = typeof req.body.addonIds === 'string' ? JSON.parse(req.body.addonIds) : req.body.addonIds;
+      } catch (err) {
+        cleanAllFiles(req.files);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid addonIds JSON format.',
+        });
+      }
+    }
+
+    const targetStatus = status || 'ACTIVE';
+    if (targetStatus === 'ACTIVE' && variantsData.length === 0 && !price) {
+      cleanAllFiles(req.files);
+      return res.status(400).json({
+        success: false,
+        message: 'At least one variant with a price is required to set the storefront status as ACTIVE.',
+      });
+    }
+
     if (!name || !restaurantCategoryId || (variantsData.length === 0 && !price)) {
-      if (req.file) deleteFoodImage(req.file.path);
+      cleanAllFiles(req.files);
       return res.status(400).json({
         success: false,
         message: 'Name, Category, and Price (or at least one variant with a price) are required.',
@@ -93,15 +128,15 @@ export const createFood = async (req, res, next) => {
     });
 
     if (!category) {
-      if (req.file) deleteFoodImage(req.file.path);
+      cleanAllFiles(req.files);
       return res.status(404).json({
         success: false,
         message: 'Selected custom category not found under your restaurant.',
       });
     }
 
-    const imagePath = req.file ? req.file.path : null;
-
+    const mainImageFile = req.files ? req.files.find(f => f.fieldname === 'image') : null;
+    const imagePath = mainImageFile ? mainImageFile.path : null;
     const slug = await generateUniqueSlug(Food, name);
 
     const food = await Food.create({
@@ -112,26 +147,37 @@ export const createFood = async (req, res, next) => {
       slug,
       description,
       image: imagePath,
-      status: status || 'ACTIVE',
+      status: targetStatus,
     });
 
     if (variantsData && variantsData.length > 0) {
-      for (const v of variantsData) {
+      for (let i = 0; i < variantsData.length; i++) {
+        const v = variantsData[i];
+        const variantImageFile = req.files ? req.files.find(f => f.fieldname === `variant_image_${i}`) : null;
+        const variantImagePath = variantImageFile ? variantImageFile.path : null;
+
         await FoodVariant.create({
           foodId: food.id,
           name: v.name || 'Regular',
           price: parseFloat(v.price || 0),
+          image: variantImagePath,
           status: v.status || 'ACTIVE',
         });
       }
     } else {
-      // Create default "Regular" variant with the price fallback
+      // Create default "Regular" variant with the price fallback and main image fallback
       await FoodVariant.create({
         foodId: food.id,
         name: 'Regular',
         price: parseFloat(price),
+        image: imagePath,
         status: 'ACTIVE',
       });
+    }
+
+    // Link addons
+    if (addonIdsData && addonIdsData.length > 0) {
+      await food.setAddons(addonIdsData);
     }
 
     const populatedFood = await Food.findByPk(food.id, {
@@ -145,6 +191,11 @@ export const createFood = async (req, res, next) => {
           as: 'restaurantCategory',
           attributes: ['id', 'name', 'slug'],
         },
+        {
+          model: RestaurantAddon,
+          as: 'addons',
+          through: { attributes: [] },
+        },
       ],
     });
 
@@ -154,7 +205,7 @@ export const createFood = async (req, res, next) => {
       food: populatedFood,
     });
   } catch (error) {
-    if (req.file) deleteFoodImage(req.file.path);
+    cleanAllFiles(req.files);
     next(error);
   }
 };
@@ -187,7 +238,7 @@ export const updateFood = async (req, res, next) => {
       });
     }
 
-    const { name, description, restaurantCategoryId, price, status, variants } = req.body;
+    const { name, description, restaurantCategoryId, price, status, variants, addonIds } = req.body;
     let variantsData = null;
     if (variants) {
       try {
@@ -197,6 +248,34 @@ export const updateFood = async (req, res, next) => {
         return res.status(400).json({
           success: false,
           message: 'Invalid variants JSON format.',
+        });
+      }
+    }
+
+    let addonIdsData = null;
+    if (addonIds) {
+      try {
+        addonIdsData = typeof addonIds === 'string' ? JSON.parse(addonIds) : addonIds;
+      } catch (err) {
+        if (req.file) deleteFoodImage(req.file.path);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid addonIds JSON format.',
+        });
+      }
+    }
+
+    const targetStatus = status || food.status;
+    if (targetStatus === 'ACTIVE') {
+      const activeVariantsExist = variantsData !== null 
+        ? variantsData.length > 0 
+        : (await FoodVariant.count({ where: { foodId: food.id } })) > 0;
+
+      if (!activeVariantsExist) {
+        if (req.file) deleteFoodImage(req.file.path);
+        return res.status(400).json({
+          success: false,
+          message: 'At least one pricing variant is required to set storefront status as ACTIVE.',
         });
       }
     }
@@ -216,7 +295,7 @@ export const updateFood = async (req, res, next) => {
         where: { id: restaurantCategoryId, restaurantId: restaurant.id },
       });
       if (!category) {
-        if (req.file) deleteFoodImage(req.file.path);
+        cleanAllFiles(req.files);
         return res.status(404).json({
           success: false,
           message: 'Selected custom category not found.',
@@ -226,36 +305,71 @@ export const updateFood = async (req, res, next) => {
       updateData.platformCategoryId = category.platformCategoryId;
     }
 
-    if (req.file) {
+    const mainImageFile = req.files ? req.files.find(f => f.fieldname === 'image') : null;
+    if (mainImageFile) {
       if (food.image) {
         deleteFoodImage(food.image);
       }
-      updateData.image = req.file.path;
+      updateData.image = mainImageFile.path;
     }
 
     await food.update(updateData);
 
     if (variantsData !== null) {
-      // Remove all previous variants for this food item
+      // First, get all old variants to clean up their deleted images if necessary
+      const oldVariants = await FoodVariant.findAll({ where: { foodId: food.id } });
+      const oldImages = oldVariants.map(v => v.image).filter(Boolean);
+
+      // Re-create the new variants list
       await FoodVariant.destroy({ where: { foodId: food.id } });
       
-      // Re-create the new variants list
-      for (const v of variantsData) {
+      const newImages = [];
+
+      for (let i = 0; i < variantsData.length; i++) {
+        const v = variantsData[i];
+        const variantImageFile = req.files ? req.files.find(f => f.fieldname === `variant_image_${i}`) : null;
+        let variantImagePath = variantImageFile ? variantImageFile.path : (v.image || null);
+
         await FoodVariant.create({
           foodId: food.id,
           name: v.name || 'Regular',
           price: parseFloat(v.price || 0),
+          image: variantImagePath,
           status: v.status || 'ACTIVE',
         });
+
+        if (variantImagePath) {
+          newImages.push(variantImagePath);
+        }
       }
+
+      // Delete old variant image files that are no longer used
+      oldImages.forEach(img => {
+        if (!newImages.includes(img)) {
+          deleteFoodImage(img);
+        }
+      });
     } else if (price) {
+      const mainImageFile = req.files ? req.files.find(f => f.fieldname === 'image') : null;
+      const imagePath = mainImageFile ? mainImageFile.path : null;
+
       const [variant] = await FoodVariant.findOrCreate({
         where: { foodId: food.id, name: 'Regular' },
-        defaults: { price: parseFloat(price), status: 'ACTIVE' },
+        defaults: { price: parseFloat(price), status: 'ACTIVE', image: imagePath },
       });
       if (variant) {
-        await variant.update({ price: parseFloat(price) });
+        const updateVariantData = { price: parseFloat(price) };
+        if (imagePath) {
+          if (variant.image) deleteFoodImage(variant.image);
+          updateVariantData.image = imagePath;
+        }
+        await variant.update(updateVariantData);
       }
+    }
+
+    // Link addons
+    if (addonIdsData !== null) {
+      await food.setAddons(addonIdsData);
     }
 
     const populatedFood = await Food.findByPk(food.id, {
@@ -269,6 +383,11 @@ export const updateFood = async (req, res, next) => {
           as: 'restaurantCategory',
           attributes: ['id', 'name', 'slug'],
         },
+        {
+          model: RestaurantAddon,
+          as: 'addons',
+          through: { attributes: [] },
+        },
       ],
     });
 
@@ -278,7 +397,7 @@ export const updateFood = async (req, res, next) => {
       food: populatedFood,
     });
   } catch (error) {
-    if (req.file) deleteFoodImage(req.file.path);
+    cleanAllFiles(req.files);
     next(error);
   }
 };
@@ -357,6 +476,57 @@ export const toggleFoodStatus = async (req, res, next) => {
       success: true,
       message: `Storefront status updated to ${nextStatus}.`,
       status: nextStatus,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get single food item details by slug
+ * @route   GET /api/v1/foods/details/:slug
+ * @access  Private (Restaurant Owner Only)
+ */
+export const getFoodBySlug = async (req, res, next) => {
+  try {
+    const restaurant = await Restaurant.findOne({ where: { userId: req.user.id } });
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Restaurant profile not found.',
+      });
+    }
+
+    const food = await Food.findOne({
+      where: { slug: req.params.slug, restaurantId: restaurant.id },
+      include: [
+        {
+          model: FoodVariant,
+          as: 'variants',
+        },
+        {
+          model: RestaurantCategory,
+          as: 'restaurantCategory',
+          attributes: ['id', 'name', 'slug'],
+        },
+        {
+          model: RestaurantAddon,
+          as: 'addons',
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    if (!food) {
+      return res.status(404).json({
+        success: false,
+        message: 'Food item not found.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      food,
     });
   } catch (error) {
     next(error);

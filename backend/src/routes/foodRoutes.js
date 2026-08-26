@@ -5,6 +5,7 @@ import {
   updateFood,
   deleteFood,
   toggleFoodStatus,
+  getFoodBySlug,
 } from '../controllers/foodController.js';
 import upload from '../middleware/uploadMiddleware.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
@@ -17,10 +18,13 @@ router.use(protect, authorize(UserRole.RESTAURANT));
 
 router.route('/')
   .get(getFoods)
-  .post(upload.single('image'), createFood);
+  .post(upload.any(), createFood);
+
+router.route('/details/:slug')
+  .get(getFoodBySlug);
 
 router.route('/:id')
-  .put(upload.single('image'), updateFood)
+  .put(upload.any(), updateFood)
   .delete(deleteFood);
 
 router.route('/:id/status')

@@ -255,32 +255,28 @@ export default function AddonsPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         <Button
                           size="xs"
-                          variant="outline"
+                          variant={row.status === 'ACTIVE' ? 'tertiary' : 'primary'}
                           onClick={() => handleToggleAddonStatus(row)}
                           leftIcon={<Power size={12} />}
-                          className={`font-semibold ${
-                            row.status === 'ACTIVE'
-                              ? 'border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white'
-                              : 'border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white'
-                          }`}
+                          className="font-semibold"
                         >
                           {row.status === 'ACTIVE' ? 'Hide' : 'Activate'}
                         </Button>
                         <Button
                           size="xs"
-                          variant="outline"
+                          variant="tertiary"
                           onClick={() => openEditAddon(row)}
                           leftIcon={<Edit size={12} />}
-                          className="border-border/60 hover:bg-muted"
+                          className="font-semibold"
                         >
                           Edit
                         </Button>
                         <Button
                           size="xs"
-                          variant="outline"
+                          variant="danger-soft"
                           onClick={() => setDeleteTargetAddon(row)}
                           leftIcon={<Trash2 size={12} />}
-                          className="border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white"
+                          className="font-semibold"
                         >
                           Delete
                         </Button>

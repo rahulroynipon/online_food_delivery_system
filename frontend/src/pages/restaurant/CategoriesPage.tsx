@@ -258,19 +258,19 @@ export default function CategoriesPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         <Button
                           size="xs"
-                          variant="outline"
+                          variant="tertiary"
                           onClick={() => openEditCategory(row)}
                           leftIcon={<Edit size={12} />}
-                          className="border-border/60 hover:bg-muted"
+                          className="font-semibold"
                         >
                           Edit
                         </Button>
                         <Button
                           size="xs"
-                          variant="outline"
+                          variant="danger-soft"
                           onClick={() => setDeleteTargetCategory(row)}
                           leftIcon={<Trash2 size={12} />}
-                          className="border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white"
+                          className="font-semibold"
                         >
                           Delete
                         </Button>
