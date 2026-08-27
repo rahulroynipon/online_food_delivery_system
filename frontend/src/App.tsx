@@ -20,6 +20,9 @@ import RestaurantMenu from './pages/restaurant/MenuPage';
 import RestaurantOrders from './pages/restaurant/OrdersPage';
 import RestaurantAddons from './pages/restaurant/AddonsPage';
 import FoodFormPage from './pages/restaurant/FoodFormPage';
+import HomePage from './pages/customer/HomePage';
+import CustomerRestaurants from './pages/customer/RestaurantsPage';
+import CustomerRestaurantMenu from './pages/customer/RestaurantMenuPage';
 import api from './lib/axios';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Tabs, toast } from './design-system';
 import { Loader2, LogOut, User as UserIcon, Calendar, Phone, ShieldCheck, Mail, Bell, Store, Bike, Users, CheckCircle, XCircle } from 'lucide-react';
@@ -77,7 +80,11 @@ function DashboardRedirect() {
     return <Navigate to="/restaurant" replace />;
   }
 
-  // Default fallback for customer/rider
+  if (user.role === 'CUSTOMER') {
+    return <Navigate to="/" replace />;
+  }
+
+  // Default fallback for rider
   return <Navigate to="/login" replace />;
 }
 
@@ -140,7 +147,9 @@ function App() {
           <Route path="addons" element={<RestaurantAddons />} />
         </Route>
 
-        <Route path="/" element={<>hi</>} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/restaurants" element={<CustomerRestaurants />} />
+        <Route path="/restaurant/:slug" element={<CustomerRestaurantMenu />} />
         <Route path="*" element={<DashboardRedirect />} />
       </Routes>
     </BrowserRouter>

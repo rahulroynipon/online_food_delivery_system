@@ -23,7 +23,7 @@ interface LoginFormValues {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, isAuthenticated, isLoading, error } = useAuthStore();
+  const { login, isAuthenticated, isLoading, error, user } = useAuthStore();
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   // Load remembered email on startup
@@ -42,12 +42,23 @@ export default function Login() {
     }
   });
 
-  // If already authenticated, redirect to home/dashboard
-  useEffect(() => {
-    if (isAuthenticated) {
+  const redirectBasedOnRole = (usr: any) => {
+    if (!usr) return;
+    if (usr.role === 'ADMIN') {
+      navigate('/admin');
+    } else if (usr.role === 'RESTAURANT') {
+      navigate('/restaurant');
+    } else {
       navigate('/');
     }
-  }, [isAuthenticated, navigate]);
+  };
+
+  // If already authenticated, redirect to role-specific dashboard
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      redirectBasedOnRole(user);
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const onSubmit = async (data: LoginFormValues) => {
     setSubmissionError(null);
@@ -58,7 +69,8 @@ export default function Login() {
       } else {
         localStorage.removeItem('remembered_email');
       }
-      navigate('/');
+      const currentUser = useAuthStore.getState().user;
+      redirectBasedOnRole(currentUser);
     }
   };
 

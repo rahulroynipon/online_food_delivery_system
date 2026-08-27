@@ -15,6 +15,7 @@ import userRoutes from './routes/userRoutes.js';
 import restaurantCategoryRoutes from './routes/restaurantCategoryRoutes.js';
 import foodRoutes from './routes/foodRoutes.js';
 import addonRoutes from './routes/addonRoutes.js';
+import publicRestaurantRoutes from './routes/publicRestaurantRoutes.js';
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use(`${API_PREFIX}/users`, userRoutes);
 app.use(`${API_PREFIX}/restaurant-categories`, restaurantCategoryRoutes);
 app.use(`${API_PREFIX}/foods`, foodRoutes);
 app.use(`${API_PREFIX}/addons`, addonRoutes);
+app.use(`${API_PREFIX}/public/restaurants`, publicRestaurantRoutes);
 
 // Status Endpoint
 app.get(`${API_PREFIX}/status`, (req, res) => {
