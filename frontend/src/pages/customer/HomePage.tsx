@@ -34,6 +34,8 @@ interface Restaurant {
   rating?: number | string;
   openingTime?: string;
   closingTime?: string;
+  logo?: string;
+  banner?: string;
 }
 
 export default function HomePage() {
@@ -65,6 +67,24 @@ export default function HomePage() {
     const ampm = hour >= 12 ? 'PM' : 'AM';
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minStr} ${ampm}`;
+  };
+
+  const getLogoUrl = (logoPath?: string | null) => {
+    if (!logoPath) return '';
+    if (logoPath.startsWith('http') || logoPath.startsWith('/')) {
+      return logoPath;
+    }
+    const cleanPath = logoPath.startsWith('uploads/') ? logoPath.substring(8) : logoPath;
+    return `${api.defaults.baseURL}/uploads/${cleanPath}`;
+  };
+
+  const getBannerUrl = (bannerPath?: string | null) => {
+    if (!bannerPath) return '';
+    if (bannerPath.startsWith('http') || bannerPath.startsWith('/')) {
+      return bannerPath;
+    }
+    const cleanPath = bannerPath.startsWith('uploads/') ? bannerPath.substring(8) : bannerPath;
+    return `${api.defaults.baseURL}/uploads/${cleanPath}`;
   };
 
   // Fetch Platform Categories on mount
@@ -246,8 +266,8 @@ export default function HomePage() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map((n) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((n) => (
                 <div key={n} className="h-48 rounded-2xl bg-card/45 border border-border/20 animate-pulse" />
               ))}
             </div>
@@ -262,17 +282,27 @@ export default function HomePage() {
               </p>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
               {restaurants.map((res) => (
                 <Link key={res.id} to={`/restaurant/${res.slug}`} className="group">
                   <Card className="overflow-hidden border border-border/40 hover:border-primary/30 bg-card/65 group-hover:bg-card transition-all duration-300 shadow-2xs group-hover:shadow-xs rounded-2xl relative h-full flex flex-col justify-between">
                     
                     {/* Header Banner Background */}
-                    <div className="h-28 bg-gradient-to-tr from-primary/10 via-primary/5 to-transparent relative border-b border-border/10 flex items-center justify-center overflow-hidden">
-                      <Utensils className="h-12 w-12 text-primary/10 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300" />
+                    <div className="h-32 bg-card relative border-b border-border/10 flex items-center justify-center overflow-hidden">
+                      {res.banner ? (
+                        <img
+                          src={getBannerUrl(res.banner)}
+                          alt={`${res.name} banner`}
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-gradient-to-tr from-primary/10 via-primary/5 to-transparent flex items-center justify-center">
+                          <Utensils className="h-8 w-8 text-primary/10 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300" />
+                        </div>
+                      )}
                       
                       {/* Active Status Pill */}
-                      <span className={`absolute top-3 right-3 text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md shadow-2xs border ${
+                      <span className={`absolute top-2 right-2 text-[8px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded-md shadow-2xs border z-10 ${
                         res.isOpen 
                           ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
                           : 'bg-slate-500/10 text-slate-500 border-slate-500/20'
@@ -281,7 +311,24 @@ export default function HomePage() {
                       </span>
                     </div>
 
-                    <div className="p-4 flex-1 flex flex-col justify-between">
+                    {/* Logo Avatar Overlap Container */}
+                    <div className="relative px-4 select-none h-6">
+                      <div className="absolute -top-6 left-4 h-12 w-12 rounded-xl border-2 border-card bg-card overflow-hidden shadow-sm flex items-center justify-center shrink-0">
+                        {res.logo ? (
+                          <img
+                            src={getLogoUrl(res.logo)}
+                            alt={res.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                            {res.name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-4 pt-2 flex-1 flex flex-col justify-between">
                       <div className="space-y-1">
                         <div className="flex items-center justify-between gap-1.5">
                           <h3 className="text-sm font-extrabold text-foreground group-hover:text-primary transition-colors truncate">
