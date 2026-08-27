@@ -63,30 +63,24 @@ export default function FoodCustomizerModal({
   }, [food]);
 
   const handleVariantToggle = (variant: any) => {
-    setSelectedVariants((prev) => {
-      const exists = prev.some((v) => v.id === variant.id);
-      if (exists) {
-        return prev.filter((v) => v.id !== variant.id);
-      } else {
-        return [...prev, {
-          id: variant.id,
-          name: variant.name,
-          price: parseFloat(String(variant.price || 0)),
-          quantity: 1
-        }];
-      }
-    });
+    // Exclusive select: set selection to exactly this variant
+    setSelectedVariants([{
+      id: variant.id,
+      name: variant.name,
+      price: parseFloat(String(variant.price || 0)),
+      quantity: 1
+    }]);
   };
 
   const handleVariantQuantityChange = (variantId: number, change: number) => {
     setSelectedVariants((prev) => {
       return prev.map((item) => {
         if (item.id === variantId) {
-          const nextQty = item.quantity + change;
-          return nextQty > 0 ? { ...item, quantity: nextQty } : null;
+          const nextQty = Math.max(1, item.quantity + change);
+          return { ...item, quantity: nextQty };
         }
         return item;
-      }).filter(Boolean) as any[];
+      });
     });
   };
 
