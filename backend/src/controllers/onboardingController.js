@@ -32,6 +32,38 @@ export const applyAsRestaurant = async (req, res, next) => {
       });
     }
 
+    // Verify restaurant coordinates fall within the delivery zone radius boundary
+    if (zone.latitude && zone.longitude && zone.radiusKm) {
+      const getDistanceKm = (lat1, lon1, lat2, lon2) => {
+        const R = 6371; // Radius of the Earth in km
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1 * (Math.PI / 180)) *
+            Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; // Distance in km
+      };
+
+      const distance = getDistanceKm(
+        parseFloat(zone.latitude),
+        parseFloat(zone.longitude),
+        parseFloat(latitude),
+        parseFloat(longitude)
+      );
+
+      const zoneRadius = parseFloat(zone.radiusKm);
+      if (distance > zoneRadius) {
+        return res.status(400).json({
+          success: false,
+          message: `The selected restaurant location falls outside the boundary of the chosen delivery zone "${zone.name}". (Your location is ${distance.toFixed(2)} km away, but the zone radius limit is only ${zoneRadius.toFixed(2)} km).`,
+        });
+      }
+    }
+
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {

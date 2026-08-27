@@ -62,7 +62,13 @@ export default function Partner() {
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   
   // Available delivery zones state
-  const [zones, setZones] = useState<{ id: number; name: string }[]>([]);
+  const [zones, setZones] = useState<{
+    id: number;
+    name: string;
+    latitude?: string | number;
+    longitude?: string | number;
+    radiusKm?: string | number;
+  }[]>([]);
 
   // Fetch active delivery zones on mount
   useEffect(() => {
@@ -149,9 +155,15 @@ export default function Partner() {
       let startLat = 23.8103;
       let startLng = 90.4125;
 
+      const selectedZoneId = watchRestaurant('deliveryZoneId');
+      const selectedZone = zones.find(z => String(z.id) === String(selectedZoneId));
+
       if (selectedLatLng) {
         startLat = selectedLatLng.lat;
         startLng = selectedLatLng.lng;
+      } else if (selectedZone && selectedZone.latitude && selectedZone.longitude) {
+        startLat = parseFloat((selectedZone as any).latitude);
+        startLng = parseFloat((selectedZone as any).longitude);
       }
 
       setTimeout(() => {
@@ -168,6 +180,27 @@ export default function Partner() {
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors'
         }).addTo(mapInstance);
+
+        // Draw Selected Zone geofence if present
+        if (selectedZone && (selectedZone as any).latitude && (selectedZone as any).longitude && (selectedZone as any).radiusKm) {
+          const zoneLat = parseFloat((selectedZone as any).latitude);
+          const zoneLng = parseFloat((selectedZone as any).longitude);
+          const zoneRadius = parseFloat((selectedZone as any).radiusKm);
+
+          const zoneCircle = L.circle([zoneLat, zoneLng], {
+            color: '#d70f64', // brand primary
+            fillColor: '#d70f64',
+            fillOpacity: 0.08,
+            radius: zoneRadius * 1000,
+            weight: 2,
+            dashArray: '6, 6' // Dashed line style
+          }).addTo(mapInstance);
+
+          // Center and fit view to the zone if selecting location first time
+          if (!selectedLatLng) {
+            mapInstance.fitBounds(zoneCircle.getBounds(), { padding: [20, 20] });
+          }
+        }
 
         const markerInstance = L.marker([startLat, startLng], { draggable: true }).addTo(mapInstance);
         markerRef.current = markerInstance;
@@ -188,7 +221,7 @@ export default function Partner() {
           }
         };
 
-        if (!tempAddress) {
+        if (!tempAddress && !selectedLatLng) {
           updateCoords(startLat, startLng);
         }
 
@@ -202,6 +235,11 @@ export default function Partner() {
           const { lat, lng } = markerInstance.getLatLng();
           updateCoords(lat, lng);
         });
+
+        // Force leaflet map size recalculation
+        setTimeout(() => {
+          mapInstance.invalidateSize();
+        }, 150);
 
         setIsMapLoading(false);
       }, 300);
@@ -625,7 +663,13 @@ export default function Partner() {
 
                     {/* Display card */}
                     <div className="flex flex-col justify-center p-4 rounded-xl border border-border/40 bg-card/65 shadow-xs transition-all relative overflow-hidden min-h-[105px]">
-                      {watchRestaurant('address') ? (
+                      {!watchRestaurant('deliveryZoneId') ? (
+                        <div className="flex flex-col items-center justify-center text-center py-2 animate-fade-in">
+                          <p className="text-xs text-muted-foreground font-medium">
+                            Please select a Primary Delivery Zone above to configure your location.
+                          </p>
+                        </div>
+                      ) : watchRestaurant('address') ? (
                         <div className="space-y-2.5 animate-fade-in">
                           <div className="flex items-start gap-2.5">
                             <div className="h-6 w-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
@@ -651,22 +695,12 @@ export default function Partner() {
                             >
                               Change Location
                             </Button>
-                            <Button 
-                              type="button" 
-                              size="xs" 
-                              variant="ghost" 
-                              onClick={handleAutoDetectLocation}
-                              loading={isDetectingLocation}
-                              leftIcon={<Navigation className="h-3.5 w-3.5" />}
-                            >
-                              Auto-Detect
-                            </Button>
                           </div>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center text-center py-2 animate-fade-in">
                           <p className="text-xs text-muted-foreground mb-3 font-medium">
-                            No location selected. Please select from map or auto-detect.
+                            No location selected. Please select your restaurant location on the map.
                           </p>
                           <div className="flex items-center gap-2">
                             <Button 
@@ -678,16 +712,6 @@ export default function Partner() {
                               className="shadow-sm"
                             >
                               Select on Map
-                            </Button>
-                            <Button 
-                              type="button" 
-                              size="sm" 
-                              variant="ghost" 
-                              onClick={handleAutoDetectLocation}
-                              loading={isDetectingLocation}
-                              leftIcon={<Navigation className="h-4 w-4" />}
-                            >
-                              Auto-Detect
                             </Button>
                           </div>
                         </div>
