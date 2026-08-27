@@ -52,9 +52,73 @@ export default function RestaurantMenuPage() {
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Scroll spy active category id state
+  const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
+
   // Customizer Modal state
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+
+  // Set default active category when categories load
+  useEffect(() => {
+    if (categories.length > 0 && !activeCategoryId) {
+      setActiveCategoryId(categories[0].id);
+    }
+  }, [categories]);
+
+  // Category smooth scroll click handler
+  const handleCategoryClick = (e: React.MouseEvent, catId: number) => {
+    e.preventDefault();
+    const element = document.getElementById(`category-${catId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActiveCategoryId(catId);
+    }
+  };
+
+  // Scroll Spy IntersectionObserver Effect
+  useEffect(() => {
+    if (categories.length === 0) return;
+
+    const activeSections = new Map<number, boolean>();
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        const idStr = entry.target.id.replace('category-', '');
+        const id = parseInt(idStr, 10);
+        if (entry.isIntersecting) {
+          activeSections.set(id, true);
+        } else {
+          activeSections.delete(id);
+        }
+      });
+
+      if (activeSections.size > 0) {
+        const activeList = Array.from(activeSections.keys());
+        const firstActive = categories.find((cat) => activeList.includes(cat.id));
+        if (firstActive) {
+          setActiveCategoryId(firstActive.id);
+        }
+      }
+    };
+
+    const observer = new IntersectionObserver(observerCallback, {
+      root: null, // viewport
+      rootMargin: '-20% 0px -60% 0px', // active when section is in the top-middle range of viewport
+      threshold: 0
+    });
+
+    categories.forEach((cat) => {
+      const el = document.getElementById(`category-${cat.id}`);
+      if (el) {
+        observer.observe(el);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [categories]);
 
   const formatTime = (timeStr?: string | null) => {
     if (!timeStr) return '';
@@ -206,19 +270,26 @@ export default function RestaurantMenuPage() {
               
               {/* Category Sticky Sidebar Navigation */}
               {categories.length > 0 && (
-                <aside className="w-full md:w-56 sticky top-20 z-10 shrink-0 select-none bg-card/45 p-3 rounded-2xl border border-border/40 space-y-1">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-3 py-1 pb-2 border-b border-border/10">
+                <aside className="w-full md:w-56 sticky top-[72px] md:top-20 z-10 shrink-0 select-none bg-card/90 backdrop-blur-md p-3 rounded-2xl border border-border/40 md:space-y-1 flex flex-row overflow-x-auto gap-2 md:flex-col md:overflow-x-visible scrollbar-none">
+                  <p className="hidden md:block text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-3 py-1 pb-2 border-b border-border/10">
                     Menu Categories
                   </p>
-                  {categories.map((cat) => (
-                    <a
-                      key={cat.id}
-                      href={`#category-${cat.id}`}
-                      className="block w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-foreground/80 hover:text-primary hover:bg-primary/5 transition-all truncate"
-                    >
-                      {cat.name}
-                    </a>
-                  ))}
+                  {categories.map((cat) => {
+                    const isActive = activeCategoryId === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={(e) => handleCategoryClick(e, cat.id)}
+                        className={`inline-block md:block shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all truncate border-b-2 md:border-b-0 md:border-l-2 cursor-pointer text-left ${
+                          isActive
+                            ? 'bg-primary/10 text-primary border-primary'
+                            : 'text-foreground/75 hover:bg-muted/45 hover:text-foreground border-transparent'
+                        }`}
+                      >
+                        {cat.name}
+                      </button>
+                    );
+                  })}
                 </aside>
               )}
 
