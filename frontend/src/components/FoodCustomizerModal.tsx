@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, ShoppingBag } from 'lucide-react';
-import { Button } from '../design-system';
+import { Button, Checkbox, toast } from '../design-system';
 import { CartItem } from '../store/useCustomerStore';
 import api from '../lib/axios';
 
@@ -26,22 +26,28 @@ export default function FoodCustomizerModal({
   const variants = food.variants || [];
   const addons = food.addons || [];
 
-  // Set default to first variant selected with quantity 1 and empty addons list
+  // Set default to first variant selected with quantity 1
   const [selectedVariants, setSelectedVariants] = useState<{
     id: number;
     name: string;
     price: number;
     quantity: number;
-    addons: { id: number; name: string; price: number; quantity: number }[];
   }[]>(
     variants[0] ? [{
       id: variants[0].id,
       name: variants[0].name,
       price: parseFloat(String(variants[0].price || 0)),
-      quantity: 1,
-      addons: []
+      quantity: 1
     }] : []
   );
+
+  // Set selected addons globally
+  const [selectedAddons, setSelectedAddons] = useState<{
+    id: number;
+    name: string;
+    price: number;
+    quantity: number;
+  }[]>([]);
 
   // Reset local state when food changes
   useEffect(() => {
@@ -50,10 +56,10 @@ export default function FoodCustomizerModal({
         id: variants[0].id,
         name: variants[0].name,
         price: parseFloat(String(variants[0].price || 0)),
-        quantity: 1,
-        addons: []
+        quantity: 1
       }] : []
     );
+    setSelectedAddons([]);
   }, [food]);
 
   const handleVariantToggle = (variant: any) => {
@@ -66,8 +72,7 @@ export default function FoodCustomizerModal({
           id: variant.id,
           name: variant.name,
           price: parseFloat(String(variant.price || 0)),
-          quantity: 1,
-          addons: []
+          quantity: 1
         }];
       }
     });
@@ -85,48 +90,38 @@ export default function FoodCustomizerModal({
     });
   };
 
-  const handleNestedAddonToggle = (variantId: number, addon: any) => {
-    setSelectedVariants((prev) => {
-      return prev.map((sv) => {
-        if (sv.id === variantId) {
-          const exists = sv.addons.some((a) => a.id === addon.id);
-          const nextAddons = exists
-            ? sv.addons.filter((a) => a.id !== addon.id)
-            : [...sv.addons, {
-                id: addon.id,
-                name: addon.name,
-                price: parseFloat(String(addon.price || 0)),
-                quantity: 1
-              }];
-          return { ...sv, addons: nextAddons };
-        }
-        return sv;
-      });
+  const handleAddonToggle = (addon: any) => {
+    setSelectedAddons((prev) => {
+      const exists = prev.some((a) => a.id === addon.id);
+      if (exists) {
+        return prev.filter((a) => a.id !== addon.id);
+      } else {
+        return [...prev, {
+          id: addon.id,
+          name: addon.name,
+          price: parseFloat(String(addon.price || 0)),
+          quantity: 1
+        }];
+      }
     });
   };
 
-  const handleNestedAddonQuantityChange = (variantId: number, addonId: number, change: number) => {
-    setSelectedVariants((prev) => {
-      return prev.map((sv) => {
-        if (sv.id === variantId) {
-          const nextAddons = sv.addons.map((a) => {
-            if (a.id === addonId) {
-              const nextQty = a.quantity + change;
-              return nextQty > 0 ? { ...a, quantity: nextQty } : null;
-            }
-            return a;
-          }).filter(Boolean) as any[];
-          return { ...sv, addons: nextAddons };
+  const handleAddonQuantityChange = (addonId: number, change: number) => {
+    setSelectedAddons((prev) => {
+      return prev.map((a) => {
+        if (a.id === addonId) {
+          const nextQty = a.quantity + change;
+          return nextQty > 0 ? { ...a, quantity: nextQty } : null;
         }
-        return sv;
-      });
+        return a;
+      }).filter(Boolean) as any[];
     });
   };
 
-  // Compute live price (sum of each variant price + its custom addons) multiplied by its quantity
+  // Compute live price (sum of each variant price + selected addons cost) multiplied by its quantity
+  const addonsUnitCost = selectedAddons.reduce((sum, a) => sum + a.price * a.quantity, 0);
   const totalPrice = selectedVariants.reduce((acc, sv) => {
-    const addonsCost = sv.addons.reduce((sum, a) => sum + a.price * a.quantity, 0);
-    return acc + (sv.price + addonsCost) * sv.quantity;
+    return acc + (sv.price + addonsUnitCost) * sv.quantity;
   }, 0);
 
   const handleAddToBasket = () => {
@@ -137,7 +132,6 @@ export default function FoodCustomizerModal({
 
     // Call onAddToCart for each selected variant to add them as separate cart item rows
     selectedVariants.forEach((selectedV) => {
-      const addonsCost = selectedV.addons.reduce((sum, a) => sum + a.price * a.quantity, 0);
       const cartItem: CartItem = {
         restaurantId,
         restaurantName,
@@ -145,14 +139,14 @@ export default function FoodCustomizerModal({
         foodName: food.name,
         image: food.image,
         basePrice: parseFloat(String(food.variants?.[0]?.price || 0)),
-        price: selectedV.price + addonsCost, // UNIT price = variant base price + selected addons cost
+        price: selectedV.price + addonsUnitCost, // UNIT price = variant base price + selected addons cost
         quantity: selectedV.quantity,
         variant: {
           id: selectedV.id,
           name: selectedV.name,
           price: selectedV.price
         },
-        addons: selectedV.addons.map((a) => ({
+        addons: selectedAddons.map((a) => ({
           id: a.id,
           name: a.name,
           price: a.price,
@@ -226,7 +220,7 @@ export default function FoodCustomizerModal({
             </div>
           </div>
 
-          {/* 1. Variants Selection (Checkboxes + Steppers + Nested Add-ons) */}
+          {/* 1. Variants Selection (Checkboxes + Steppers) */}
           {variants.length > 0 && (
             <div className="space-y-3.5">
               <div className="flex justify-between items-center">
@@ -237,7 +231,6 @@ export default function FoodCustomizerModal({
                 {variants.map((v: any) => {
                   const isChecked = selectedVariants.some((sv) => sv.id === v.id);
                   const currentQty = selectedVariants.find((sv) => sv.id === v.id)?.quantity || 0;
-                  const selectedV = selectedVariants.find((sv) => sv.id === v.id);
 
                   return (
                     <div 
@@ -250,12 +243,12 @@ export default function FoodCustomizerModal({
                     >
                       {/* Variant Main row */}
                       <div className="flex items-center justify-between">
-                        <label className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
+                        <label className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer select-none">
+                          <Checkbox
                             checked={isChecked}
-                            onChange={() => handleVariantToggle(v)}
-                            className="rounded border-border/40 text-primary focus:ring-primary/20 accent-primary mt-1"
+                            onCheckedChange={() => handleVariantToggle(v)}
+                            size='sm'
+                            className="w-auto shrink-0"
                           />
                           
                           {v.image && (
@@ -312,90 +305,91 @@ export default function FoodCustomizerModal({
                           </span>
                         </div>
                       </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-                      {/* Nested Add-ons list if this variant is checked */}
-                      {isChecked && addons.length > 0 && (
-                        <div className="mt-1 border-t border-dashed border-border/20 pt-3 space-y-2">
-                          <span className="text-[9px] font-extrabold text-foreground/75 tracking-wider uppercase block">
-                            Add-ons for {v.name}:
-                          </span>
-                          <div className="space-y-1.5 pl-1">
-                            {addons.map((addon: any) => {
-                              const isAddonChecked = selectedV?.addons.some((a) => a.id === addon.id) || false;
-                              const addonQty = selectedV?.addons.find((a) => a.id === addon.id)?.quantity || 1;
-                              return (
-                                <div
-                                  key={addon.id}
-                                  className={`flex items-center justify-between p-2 rounded-xl border transition-all text-xs ${
-                                    isAddonChecked
-                                      ? 'border-primary/25 bg-background text-foreground'
-                                      : 'border-border/20 bg-background/35 text-muted-foreground'
-                                  }`}
-                                >
-                                  <label className="flex items-start gap-2.5 flex-1 min-w-0 cursor-pointer select-none">
-                                    <input
-                                      type="checkbox"
-                                      checked={isAddonChecked}
-                                      onChange={() => handleNestedAddonToggle(v.id, addon)}
-                                      className="rounded border-border/30 text-primary focus:ring-primary/15 accent-primary mt-0.5 scale-90"
-                                    />
-                                    {addon.image && (
-                                      <img
-                                        src={getAddonImageUrl(addon.image)}
-                                        alt={addon.name}
-                                        className="h-8 w-8 rounded-md object-cover border border-border/15 shrink-0"
-                                      />
-                                    )}
-                                    <div className="min-w-0 flex-1">
-                                      <span className="text-[11px] font-bold block leading-tight">{addon.name}</span>
-                                      {addon.description && (
-                                        <span className="text-[9px] text-muted-foreground block leading-normal font-medium mt-0.5">
-                                          {addon.description}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </label>
-
-                                  <div className="flex items-center gap-2 shrink-0 ml-2">
-                                    {isAddonChecked && (
-                                      <div className="flex items-center border border-border/30 rounded-md overflow-hidden bg-card scale-90">
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            handleNestedAddonQuantityChange(v.id, addon.id, -1);
-                                          }}
-                                          className="h-5 w-5 bg-muted/20 hover:bg-muted text-foreground/80 flex items-center justify-center cursor-pointer select-none text-[9px] font-bold"
-                                        >
-                                          -
-                                        </button>
-                                        <span className="px-1.5 text-[9px] font-black text-foreground">
-                                          {addonQty}
-                                        </span>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            handleNestedAddonQuantityChange(v.id, addon.id, 1);
-                                          }}
-                                          className="h-5 w-5 bg-muted/20 hover:bg-muted text-foreground/80 flex items-center justify-center cursor-pointer select-none text-[9px] font-bold"
-                                        >
-                                          +
-                                        </button>
-                                      </div>
-                                    )}
-                                    <span className="text-[10px] font-extrabold text-foreground">
-                                      +৳{(Number(addon.price) * addonQty).toFixed(2)}
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+          {/* 2. Add-ons Selection (Flat List) */}
+          {addons.length > 0 && (
+            <div className="space-y-3.5 mt-6 border-t border-border/10 pt-4">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-foreground tracking-wide uppercase">Add-ons</span>
+                <span className="text-[10px] font-bold text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-md uppercase tracking-wider">Optional</span>
+              </div>
+              <div className="space-y-2">
+                {addons.map((addon: any) => {
+                  const isAddonChecked = selectedAddons.some((a) => a.id === addon.id);
+                  const addonQty = selectedAddons.find((a) => a.id === addon.id)?.quantity || 1;
+                  return (
+                    <div
+                      key={addon.id}
+                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all text-xs ${
+                        isAddonChecked
+                          ? 'border-primary/25 bg-primary/5 text-foreground'
+                          : 'border-border/20 bg-background/35 text-muted-foreground'
+                      }`}
+                    >
+                      <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer select-none">
+                        <Checkbox
+                          checked={isAddonChecked}
+                          onCheckedChange={() => handleAddonToggle(addon)}
+                          size="sm"
+                          className="w-auto shrink-0"
+                        />
+                        {addon.image && (
+                          <img
+                            src={getAddonImageUrl(addon.image)}
+                            alt={addon.name}
+                            className="h-10 w-10 rounded-lg object-cover border border-border/15 shrink-0"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[11px] font-bold block leading-tight text-foreground">{addon.name}</span>
+                          {addon.description && (
+                            <span className="text-[9px] text-muted-foreground block leading-normal font-medium mt-0.5">
+                              {addon.description}
+                            </span>
+                          )}
                         </div>
-                      )}
+                      </label>
+
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        {isAddonChecked && (
+                          <div className="flex items-center border border-border/30 rounded-md overflow-hidden bg-card scale-90">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleAddonQuantityChange(addon.id, -1);
+                              }}
+                              className="h-5 w-5 bg-muted/20 hover:bg-muted text-foreground/80 flex items-center justify-center cursor-pointer select-none text-[9px] font-bold"
+                            >
+                              -
+                            </button>
+                            <span className="px-1.5 text-[9px] font-black text-foreground">
+                              {addonQty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleAddonQuantityChange(addon.id, 1);
+                              }}
+                              className="h-5 w-5 bg-muted/20 hover:bg-muted text-foreground/80 flex items-center justify-center cursor-pointer select-none text-[9px] font-bold"
+                            >
+                              +
+                            </button>
+                          </div>
+                        )}
+                        <span className="text-[10px] font-extrabold text-foreground">
+                          +৳{(Number(addon.price) * addonQty).toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}

@@ -210,7 +210,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
             aria-disabled={disabled}
             tabIndex={disabled ? -1 : 0}
             className={cn(
-              'relative flex items-center justify-center shrink-0 rounded-full overflow-hidden transition-colors duration-200',
+              'relative flex items-center justify-center shrink-0 rounded-full overflow-hidden transition-colors duration-200 outline-none',
               disabled ? 'cursor-not-allowed' : 'cursor-pointer'
             )}
             style={{
