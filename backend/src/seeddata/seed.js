@@ -118,10 +118,38 @@ const seed = async () => {
     // 4. Seed Default Delivery Zones
     console.log('Seeding delivery zones...');
     const zonesData = [
-      { name: 'Dhanmondi', slug: slugify('Dhanmondi'), status: ActiveStatus.ACTIVE },
-      { name: 'Gulshan', slug: slugify('Gulshan'), status: ActiveStatus.ACTIVE },
-      { name: 'Banani', slug: slugify('Banani'), status: ActiveStatus.ACTIVE },
-      { name: 'Uttara', slug: slugify('Uttara'), status: ActiveStatus.ACTIVE }
+      { 
+        name: 'Dhanmondi', 
+        slug: slugify('Dhanmondi'), 
+        latitude: 23.7461, 
+        longitude: 90.3742, 
+        radiusKm: 3.0, 
+        status: ActiveStatus.ACTIVE 
+      },
+      { 
+        name: 'Gulshan', 
+        slug: slugify('Gulshan'), 
+        latitude: 23.7925, 
+        longitude: 90.4156, 
+        radiusKm: 3.5, 
+        status: ActiveStatus.ACTIVE 
+      },
+      { 
+        name: 'Banani', 
+        slug: slugify('Banani'), 
+        latitude: 23.7937, 
+        longitude: 90.4042, 
+        radiusKm: 3.0, 
+        status: ActiveStatus.ACTIVE 
+      },
+      { 
+        name: 'Uttara', 
+        slug: slugify('Uttara'), 
+        latitude: 23.8759, 
+        longitude: 90.3795, 
+        radiusKm: 5.0, 
+        status: ActiveStatus.ACTIVE 
+      }
     ];
     const deliveryZones = await DeliveryZone.bulkCreate(zonesData, { returning: true });
     console.log('Delivery zones seeded.');
@@ -1078,16 +1106,25 @@ const seed = async () => {
       // Generate random rating between 4.3 and 4.9
       const randomRating = (4.3 + Math.random() * 0.6).toFixed(1);
 
+      const primaryZoneName = zoneKeys[i % zoneKeys.length];
+      const primaryZoneObj = deliveryZones.find(z => z.name === primaryZoneName);
+      const zoneLat = parseFloat(primaryZoneObj.latitude);
+      const zoneLng = parseFloat(primaryZoneObj.longitude);
+      
+      // Small offset (approx 0.5-1km) from zone center
+      const latOffset = (Math.random() - 0.5) * 0.01;
+      const lngOffset = (Math.random() - 0.5) * 0.01;
+
       // 6b. Create Restaurant record
       const restaurant = await Restaurant.create({
         userId: merchantUser.id,
         name: template.name,
         slug: slugify(`${template.name}-${restIndex}`), // ensure slug uniqueness
         description: template.description,
-        address: `${template.name} Outlet Road, ${zoneKeys[i % zoneKeys.length]}, Dhaka`,
+        address: `${template.name} Outlet Road, ${primaryZoneName}, Dhaka`,
         phone: merchantUser.phone,
-        latitude: 23.7 + (Math.random() * 0.1),
-        longitude: 90.3 + (Math.random() * 0.15),
+        latitude: zoneLat + latOffset,
+        longitude: zoneLng + lngOffset,
         openingTime: '11:00:00',
         closingTime: '23:30:00',
         isOpen: true,
@@ -1098,7 +1135,6 @@ const seed = async () => {
       });
 
       // 6c. Link to Delivery Zone (assign to 1 or 2 zones based on index)
-      const primaryZoneName = zoneKeys[i % zoneKeys.length];
       await RestaurantDeliveryZone.create({
         restaurantId: restaurant.id,
         deliveryZoneId: zoneMap[primaryZoneName]
