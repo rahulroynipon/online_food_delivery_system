@@ -17,6 +17,18 @@ const DeliveryZone = sequelize.define('DeliveryZone', {
     allowNull: false,
     unique: true,
   },
+  latitude: {
+    type: DataTypes.DECIMAL(10, 8),
+    allowNull: true,
+  },
+  longitude: {
+    type: DataTypes.DECIMAL(11, 8),
+    allowNull: true,
+  },
+  radiusKm: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+  },
   status: {
     type: DataTypes.ENUM(...Object.values(ActiveStatus)),
     allowNull: true,

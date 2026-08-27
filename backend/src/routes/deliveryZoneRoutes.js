@@ -5,11 +5,14 @@ import {
   getDeliveryZoneBySlug,
   updateDeliveryZone,
   deleteDeliveryZone,
+  geocodeAddress
 } from '../controllers/deliveryZoneController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 import { UserRole } from '../enums/index.js';
 
 const router = express.Router();
+
+router.get('/geocode', protect, authorize(UserRole.ADMIN), geocodeAddress);
 
 /**
  * @swagger

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, Button, toast, Badge, Modal, DataTable, Avatar, Input, Select, type DataTableColumn } from '../../design-system';
 import { 
   MapPin, 
@@ -8,7 +8,9 @@ import {
   Edit, 
   Trash2, 
   Info,
-  Map
+  Map,
+  Compass,
+  Navigation
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -16,6 +18,7 @@ export default function ZonesPage() {
   const [zones, setZones] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [isLeafletLoaded, setIsLeafletLoaded] = useState(false);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,12 +32,73 @@ export default function ZonesPage() {
   // Form State
   const [form, setForm] = useState({
     name: '',
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    latitude: '',
+    longitude: '',
+    radiusKm: '5.0'
   });
+
+  // Modal Map Search State
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const [isSearchingMapLocation, setIsSearchingMapLocation] = useState(false);
 
   // Delete Modal state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [zoneToDelete, setZoneToDelete] = useState<any>(null);
+
+  const handleModalMapSearch = async () => {
+    if (!modalSearchQuery.trim()) return;
+    setIsSearchingMapLocation(true);
+    try {
+      const response = await api.get('/delivery-zones/geocode', {
+        params: { q: modalSearchQuery }
+      });
+      const data = response.data?.results;
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+
+        setForm(prev => ({
+          ...prev,
+          latitude: String(latitude.toFixed(6)),
+          longitude: String(longitude.toFixed(6))
+        }));
+
+        if (modalMarkerRef.current) {
+          modalMarkerRef.current.setLatLng([latitude, longitude]);
+        }
+        if (modalCircleRef.current) {
+          modalCircleRef.current.setLatLng([latitude, longitude]);
+        }
+        if (modalMapRef.current && modalCircleRef.current) {
+          modalMapRef.current.fitBounds(modalCircleRef.current.getBounds());
+        }
+        toast.success('Location found on map!');
+      } else {
+        toast.error('Location not found. Try a different search query.');
+      }
+    } catch (err) {
+      console.error('Map search error:', err);
+      toast.error('Failed to search location.');
+    } finally {
+      setIsSearchingMapLocation(false);
+    }
+  };
+
+  // Map Refs
+  const mainMapRef = useRef<any>(null);
+  const mainMapContainerRef = useRef<HTMLDivElement>(null);
+  const modalMapRef = useRef<any>(null);
+  const modalMarkerRef = useRef<any>(null);
+  const modalCircleRef = useRef<any>(null);
+
+  // Load Leaflet Asset Libraries
+  useEffect(() => {
+    if ((window as any).L) {
+      setIsLeafletLoaded(true);
+    }
+  }, []);
 
   const fetchZones = async () => {
     setLoading(true);
@@ -54,13 +118,97 @@ export default function ZonesPage() {
     fetchZones();
   }, []);
 
+  // Sync main map display
+  useEffect(() => {
+    if (!isLeafletLoaded || !mainMapContainerRef.current || zones.length === 0) return;
+    const L = (window as any).L;
+    if (!L) return;
+
+    // Destroy existing map instance to re-initialize cleanly
+    if (mainMapRef.current) {
+      mainMapRef.current.remove();
+      mainMapRef.current = null;
+    }
+
+    const defaultLat = 23.8103;
+    const defaultLng = 90.4125;
+    
+    // Find average lat/lng or default to Dhaka center
+    const activeZonesWithCoords = zones.filter(z => z.status === 'ACTIVE' && z.latitude && z.longitude);
+    const startLat = activeZonesWithCoords.length > 0
+      ? activeZonesWithCoords.reduce((acc, curr) => acc + parseFloat(curr.latitude), 0) / activeZonesWithCoords.length
+      : defaultLat;
+    const startLng = activeZonesWithCoords.length > 0
+      ? activeZonesWithCoords.reduce((acc, curr) => acc + parseFloat(curr.longitude), 0) / activeZonesWithCoords.length
+      : defaultLng;
+
+    const bangladeshBounds = L.latLngBounds([20.3, 87.8], [26.8, 92.8]);
+    const mapInstance = L.map(mainMapContainerRef.current, {
+      maxBounds: bangladeshBounds,
+      maxBoundsViscosity: 1.0,
+      minZoom: 8
+    }).setView([startLat, startLng], 12);
+    mainMapRef.current = mapInstance;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(mapInstance);
+
+    // Plot circles for all active zones
+    const circleLayers: any[] = [];
+    zones.forEach(zone => {
+      if (zone.latitude && zone.longitude) {
+        const isActive = zone.status === 'ACTIVE';
+        const color = isActive ? '#d70f64' : '#64748b'; // Brand primary or Slate
+        const circle = L.circle([parseFloat(zone.latitude), parseFloat(zone.longitude)], {
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.15,
+          radius: parseFloat(zone.radiusKm || 5.0) * 1000 // Convert km to meters
+        }).addTo(mapInstance);
+
+        circle.bindPopup(`
+          <div style="font-family: sans-serif; padding: 2px;">
+            <p style="margin: 0; font-weight: bold; font-size: 13px; color: #1e293b;">${zone.name}</p>
+            <p style="margin: 3px 0 0; font-size: 10px; color: #64748b;">
+              Radius: ${zone.radiusKm || 5.0} km &bull; Status: ${zone.status}
+            </p>
+          </div>
+        `);
+        circleLayers.push(circle);
+      }
+    });
+
+    // Fit map bounds to show all plotted circles
+    if (circleLayers.length > 0) {
+      const group = L.featureGroup(circleLayers);
+      mapInstance.fitBounds(group.getBounds(), { padding: [20, 20] });
+    }
+
+    // Force Leaflet recalculation
+    setTimeout(() => {
+      mapInstance.invalidateSize();
+    }, 200);
+
+    return () => {
+      if (mainMapRef.current) {
+        mainMapRef.current.remove();
+        mainMapRef.current = null;
+      }
+    };
+  }, [isLeafletLoaded, zones]);
+
   const handleOpenAdd = () => {
     setModalMode('ADD');
     setSelectedZone(null);
     setForm({
       name: '',
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      latitude: '23.8103',
+      longitude: '90.4125',
+      radiusKm: '5.0'
     });
+    setModalSearchQuery('');
     setIsModalOpen(true);
   };
 
@@ -69,8 +217,12 @@ export default function ZonesPage() {
     setSelectedZone(zone);
     setForm({
       name: zone.name || '',
-      status: zone.status || 'ACTIVE'
+      status: zone.status || 'ACTIVE',
+      latitude: zone.latitude ? String(zone.latitude) : '23.8103',
+      longitude: zone.longitude ? String(zone.longitude) : '90.4125',
+      radiusKm: zone.radiusKm ? String(zone.radiusKm) : '5.0'
     });
+    setModalSearchQuery('');
     setIsModalOpen(true);
   };
 
@@ -79,15 +231,23 @@ export default function ZonesPage() {
     setActionLoading('submit');
 
     try {
+      const payload = {
+        name: form.name,
+        status: form.status,
+        latitude: form.latitude ? parseFloat(form.latitude) : null,
+        longitude: form.longitude ? parseFloat(form.longitude) : null,
+        radiusKm: form.radiusKm ? parseFloat(form.radiusKm) : null,
+      };
+
       if (modalMode === 'ADD') {
-        const response = await api.post('/delivery-zones', form);
+        const response = await api.post('/delivery-zones', payload);
         if (response.data?.success) {
           toast.success('Delivery zone created successfully!');
           setIsModalOpen(false);
           fetchZones();
         }
       } else {
-        const response = await api.put(`/delivery-zones/${selectedZone.slug}`, form);
+        const response = await api.put(`/delivery-zones/${selectedZone.slug}`, payload);
         if (response.data?.success) {
           toast.success('Delivery zone updated successfully!');
           setIsModalOpen(false);
@@ -98,6 +258,118 @@ export default function ZonesPage() {
       toast.error(err.response?.data?.message || 'Failed to save delivery zone.');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  // Modal Map initialization
+  useEffect(() => {
+    if (!isModalOpen || !isLeafletLoaded) return;
+    
+    // Small timeout to allow the modal element to mount completely in the DOM
+    const timer = setTimeout(() => {
+      const L = (window as any).L;
+      const mapEl = document.getElementById('modal-map-container');
+      if (!L || !mapEl) return;
+
+      if (modalMapRef.current) {
+        modalMapRef.current.remove();
+        modalMapRef.current = null;
+      }
+
+      const startLat = parseFloat(form.latitude) || 23.8103;
+      const startLng = parseFloat(form.longitude) || 90.4125;
+      const startRadius = parseFloat(form.radiusKm) || 5.0;
+
+      const bangladeshBounds = L.latLngBounds([20.3, 87.8], [26.8, 92.8]);
+      const mapInstance = L.map(mapEl, {
+        maxBounds: bangladeshBounds,
+        maxBoundsViscosity: 1.0,
+        minZoom: 8
+      }).setView([startLat, startLng], 12);
+      modalMapRef.current = mapInstance;
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(mapInstance);
+
+      // Marker
+      const marker = L.marker([startLat, startLng], { draggable: true }).addTo(mapInstance);
+      modalMarkerRef.current = marker;
+
+      // Circle representing radius
+      const circle = L.circle([startLat, startLng], {
+        color: '#d70f64', // brand primary
+        fillColor: '#d70f64',
+        fillOpacity: 0.15,
+        radius: startRadius * 1000 // Convert km to meters
+      }).addTo(mapInstance);
+      modalCircleRef.current = circle;
+
+      // Update function
+      const updateCoords = (lat: number, lng: number) => {
+        setForm(prev => ({
+          ...prev,
+          latitude: String(lat.toFixed(6)),
+          longitude: String(lng.toFixed(6))
+        }));
+        circle.setLatLng([lat, lng]);
+      };
+
+      marker.on('drag', (e: any) => {
+        const { lat, lng } = e.target.getLatLng();
+        updateCoords(lat, lng);
+      });
+
+      mapInstance.on('click', (e: any) => {
+        const { lat, lng } = e.latlng;
+        marker.setLatLng([lat, lng]);
+        updateCoords(lat, lng);
+      });
+
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      if (modalMapRef.current) {
+        modalMapRef.current.remove();
+        modalMapRef.current = null;
+      }
+      modalMarkerRef.current = null;
+      modalCircleRef.current = null;
+    };
+  }, [isModalOpen, isLeafletLoaded]);
+
+  const handleRadiusChange = (val: string) => {
+    setForm(prev => ({ ...prev, radiusKm: val }));
+    const parsed = parseFloat(val);
+    if (!isNaN(parsed) && modalCircleRef.current) {
+      modalCircleRef.current.setRadius(parsed * 1000);
+    }
+  };
+
+  const handleLatitudeChange = (val: string) => {
+    setForm(prev => ({ ...prev, latitude: val }));
+    const lat = parseFloat(val);
+    const lng = parseFloat(form.longitude);
+    if (!isNaN(lat) && !isNaN(lng) && modalMarkerRef.current && modalCircleRef.current) {
+      modalMarkerRef.current.setLatLng([lat, lng]);
+      modalCircleRef.current.setLatLng([lat, lng]);
+      if (modalMapRef.current) {
+        modalMapRef.current.panTo([lat, lng]);
+      }
+    }
+  };
+
+  const handleLongitudeChange = (val: string) => {
+    setForm(prev => ({ ...prev, longitude: val }));
+    const lat = parseFloat(form.latitude);
+    const lng = parseFloat(val);
+    if (!isNaN(lat) && !isNaN(lng) && modalMarkerRef.current && modalCircleRef.current) {
+      modalMarkerRef.current.setLatLng([lat, lng]);
+      modalCircleRef.current.setLatLng([lat, lng]);
+      if (modalMapRef.current) {
+        modalMapRef.current.panTo([lat, lng]);
+      }
     }
   };
 
@@ -165,6 +437,28 @@ export default function ZonesPage() {
       )
     },
     {
+      id: 'coordinates',
+      label: 'Center Coordinates',
+      cell: ({ row }) => row.latitude && row.longitude ? (
+        <div className="text-xs font-medium font-mono text-muted-foreground">
+          {Number(row.latitude).toFixed(4)}, {Number(row.longitude).toFixed(4)}
+        </div>
+      ) : (
+        <span className="text-xs text-muted-foreground/50 italic">Not set</span>
+      )
+    },
+    {
+      id: 'radius',
+      label: 'Coverage Radius',
+      cell: ({ row }) => row.radiusKm ? (
+        <Badge variant="soft" color="primary" className="font-bold text-[10px] tracking-wide uppercase px-2 py-0.5">
+          {row.radiusKm} km
+        </Badge>
+      ) : (
+        <span className="text-xs text-muted-foreground/50 italic">Not set</span>
+      )
+    },
+    {
       id: 'status',
       label: 'Status',
       cell: ({ row }) => getStatusBadge(row.status)
@@ -224,6 +518,30 @@ export default function ZonesPage() {
           Add Zone
         </Button>
       </div>
+
+      {/* Global Interactive Zones Map */}
+      <Card className="border border-border/40 shadow-xs bg-card overflow-hidden">
+        <CardContent className="p-0">
+          <div 
+            ref={mainMapContainerRef} 
+            className="h-[300px] w-full z-10 bg-muted/20 relative"
+          >
+            {!isLeafletLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-card/85 z-20 gap-3">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="text-xs text-muted-foreground font-semibold">Initializing interactive map...</span>
+              </div>
+            )}
+            {isLeafletLoaded && zones.length === 0 && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/85 z-20 p-4">
+                <Compass className="h-8 w-8 text-muted-foreground/45 mb-2" />
+                <p className="text-xs font-bold text-foreground">No Active Zones Configured</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Created zones with geocoding coords will show up here.</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tabs and Search Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/60 backdrop-blur-md p-4 rounded-2xl border border-border/40 shadow-xs">
@@ -313,16 +631,91 @@ export default function ZonesPage() {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
-              
-              <Select
-                label="Status"
-                value={form.status}
-                onValueChange={(val) => setForm({ ...form, status: val })}
-                options={[
-                  { value: 'ACTIVE', label: 'ACTIVE' },
-                  { value: 'INACTIVE', label: 'INACTIVE' }
-                ]}
-              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Center Latitude"
+                  required
+                  placeholder="e.g. 23.8103"
+                  leftIcon={<Navigation size={14} className="text-muted-foreground" />}
+                  value={form.latitude}
+                  onChange={(e) => handleLatitudeChange(e.target.value)}
+                />
+                <Input
+                  label="Center Longitude"
+                  required
+                  placeholder="e.g. 90.4125"
+                  leftIcon={<Navigation size={14} className="text-muted-foreground" />}
+                  value={form.longitude}
+                  onChange={(e) => handleLongitudeChange(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 items-end">
+                <Input
+                  label="Coverage Radius (KM)"
+                  required
+                  type="number"
+                  step="0.1"
+                  placeholder="e.g. 5.0"
+                  leftIcon={<Compass size={14} className="text-muted-foreground" />}
+                  value={form.radiusKm}
+                  onChange={(e) => handleRadiusChange(e.target.value)}
+                />
+                
+                <Select
+                  label="Status"
+                  value={form.status}
+                  onValueChange={(val) => setForm({ ...form, status: val })}
+                  options={[
+                    { value: 'ACTIVE', label: 'ACTIVE' },
+                    { value: 'INACTIVE', label: 'INACTIVE' }
+                  ]}
+                />
+              </div>
+
+              {/* Modal Geocoding Map Container */}
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Input
+                      label="Search Map Location"
+                      placeholder="e.g. Banani, Dhaka"
+                      leftIcon={<Search size={14} className="text-muted-foreground" />}
+                      value={modalSearchQuery}
+                      onChange={(e) => setModalSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleModalMapSearch}
+                    loading={isSearchingMapLocation}
+                    className="h-9 shrink-0"
+                  >
+                    Locate
+                  </Button>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-foreground">Zone Geofence Map</label>
+                  <div 
+                    id="modal-map-container" 
+                    className="h-[200px] w-full rounded-xl border border-border/40 overflow-hidden z-10"
+                  >
+                    {!isLeafletLoaded && (
+                      <div className="h-full flex items-center justify-center bg-muted/10 gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <span className="text-[10px] text-muted-foreground font-semibold">Loading map assets...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-normal mt-0.5">
+                  Drag the marker or click on the map to define the zone center point. Use the radius input above to adjust coverage size.
+                </p>
+              </div>
             </Modal.Content>
             
             <Modal.Footer>
