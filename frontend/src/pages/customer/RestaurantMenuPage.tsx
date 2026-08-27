@@ -42,6 +42,8 @@ interface Restaurant {
   rating?: number | string;
   openingTime?: string;
   closingTime?: string;
+  logo?: string;
+  banner?: string;
 }
 
 export default function RestaurantMenuPage() {
@@ -173,6 +175,24 @@ export default function RestaurantMenuPage() {
     return `৳${minPrice.toFixed(2)}`;
   };
 
+  const getLogoUrl = (logoPath?: string | null) => {
+    if (!logoPath) return '';
+    if (logoPath.startsWith('http') || logoPath.startsWith('/')) {
+      return logoPath;
+    }
+    const cleanPath = logoPath.startsWith('uploads/') ? logoPath.substring(8) : logoPath;
+    return `${api.defaults.baseURL}/uploads/${cleanPath}`;
+  };
+
+  const getBannerUrl = (bannerPath?: string | null) => {
+    if (!bannerPath) return '';
+    if (bannerPath.startsWith('http') || bannerPath.startsWith('/')) {
+      return bannerPath;
+    }
+    const cleanPath = bannerPath.startsWith('uploads/') ? bannerPath.substring(8) : bannerPath;
+    return `${api.defaults.baseURL}/uploads/${cleanPath}`;
+  };
+
   const getFoodImage = (food: Food) => {
     if (food.image) {
       if (food.image.startsWith('http') || food.image.startsWith('/')) {
@@ -195,7 +215,7 @@ export default function RestaurantMenuPage() {
 
         {loading ? (
           <div className="space-y-6 animate-pulse">
-            <div className="h-40 rounded-3xl bg-card border border-border/20" />
+            <div className="h-52 rounded-3xl bg-card border border-border/20" />
             <div className="h-60 rounded-3xl bg-card border border-border/20" />
           </div>
         ) : !restaurant ? (
@@ -208,49 +228,83 @@ export default function RestaurantMenuPage() {
           </Card>
         ) : (
           <div className="space-y-8">
-            {/* Restaurant Profile Cover Header Card */}
-            <section className="relative rounded-3xl overflow-hidden bg-radial from-card/65 via-card/45 to-background border border-border/40 p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xs">
-              <div className="space-y-3 min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight truncate">
-                    {restaurant.name}
-                  </h1>
-                  <span className={`text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md border shadow-3xs shrink-0 select-none ${
-                    restaurant.isOpen 
-                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
-                      : 'bg-slate-500/10 text-slate-500 border-slate-500/20'
-                  }`}>
-                    {restaurant.isOpen ? 'Open Now' : 'Closed'}
-                  </span>
+            {/* Restaurant Cover Banner Image */}
+            <div className="h-52 md:h-72 w-full relative overflow-hidden rounded-3xl border border-border/10 shadow-2xs select-none">
+              {restaurant.banner ? (
+                <img
+                  src={getBannerUrl(restaurant.banner)}
+                  alt={`${restaurant.name} banner`}
+                  className="h-full w-full object-cover animate-fade-in"
+                />
+              ) : (
+                <div className="h-full w-full bg-gradient-to-r from-primary/15 via-primary/5 to-transparent flex items-center justify-center">
+                  <Utensils className="h-16 w-16 text-primary/10" />
                 </div>
-                
-                <p className="text-xs md:text-sm text-muted-foreground leading-normal max-w-2xl font-medium">
-                  {restaurant.description || 'Tasty cuisines, fast delivery, and premium quality meals prepared with fresh ingredients.'}
-                </p>
+              )}
+            </div>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground font-semibold pt-1 border-t border-border/10">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    <span className="text-foreground font-bold">
-                      {restaurant.rating ? Number(restaurant.rating).toFixed(1) : '4.5'}
+            {/* Restaurant Profile Overlap Header Card */}
+            <section className="relative z-10 -mt-16 mx-4 md:mx-8 rounded-3xl bg-card/95 backdrop-blur-md border border-border/40 p-6 md:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-md">
+              <div className="flex flex-col md:flex-row gap-5 items-start">
+                
+                {/* Restaurant Logo Avatar */}
+                <div className="h-20 w-20 md:h-24 md:w-24 rounded-2xl border border-border/20 bg-background overflow-hidden shrink-0 flex items-center justify-center shadow-xs select-none">
+                  {restaurant.logo ? (
+                    <img
+                      src={getLogoUrl(restaurant.logo)}
+                      alt={restaurant.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-primary/10 flex items-center justify-center text-primary font-black text-2xl">
+                      {restaurant.name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Details text */}
+                <div className="space-y-3 min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight truncate">
+                      {restaurant.name}
+                    </h1>
+                    <span className={`text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md border shadow-3xs shrink-0 select-none ${
+                      restaurant.isOpen 
+                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                        : 'bg-slate-500/10 text-slate-500 border-slate-500/20'
+                    }`}>
+                      {restaurant.isOpen ? 'Open Now' : 'Closed'}
                     </span>
-                    <span>(100+ ratings)</span>
                   </div>
-                  <span>&bull;</span>
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5 text-primary" />
-                    <span className="truncate max-w-[200px]">{restaurant.address}</span>
-                  </div>
-                  <span>&bull;</span>
-                  <div className="flex items-center gap-1">
-                    <Phone className="h-3.5 w-3.5 text-foreground/75" />
-                    <span>{restaurant.phone}</span>
+                  
+                  <p className="text-xs md:text-sm text-muted-foreground leading-normal max-w-2xl font-medium">
+                    {restaurant.description || 'Tasty cuisines, fast delivery, and premium quality meals prepared with fresh ingredients.'}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground font-semibold pt-1 border-t border-border/10">
+                    <div className="flex items-center gap-1">
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      <span className="text-foreground font-bold">
+                        {restaurant.rating ? Number(restaurant.rating).toFixed(1) : '4.5'}
+                      </span>
+                      <span>(100+ ratings)</span>
+                    </div>
+                    <span>&bull;</span>
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5 text-primary" />
+                      <span className="truncate max-w-[200px]">{restaurant.address}</span>
+                    </div>
+                    <span>&bull;</span>
+                    <div className="flex items-center gap-1">
+                      <Phone className="h-3.5 w-3.5 text-foreground/75" />
+                      <span>{restaurant.phone}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Restaurant Hours Card */}
-              <div className="bg-card border border-border/50 rounded-2xl p-4 flex items-center gap-3 shrink-0 shadow-3xs select-none">
+              <div className="bg-card border border-border/50 rounded-2xl p-4 flex items-center gap-3 shrink-0 shadow-3xs select-none self-start lg:self-center">
                 <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                   <Clock className="h-5 w-5" />
                 </div>
@@ -270,7 +324,7 @@ export default function RestaurantMenuPage() {
               
               {/* Category Sticky Sidebar Navigation */}
               {categories.length > 0 && (
-                <aside className="w-full md:w-56 sticky top-[72px] md:top-20 z-10 shrink-0 select-none bg-card/90 backdrop-blur-md p-3 rounded-2xl border border-border/40 md:space-y-1 flex flex-row overflow-x-auto gap-2 md:flex-col md:overflow-x-visible scrollbar-none">
+                <aside className="w-full md:w-56 sticky top-[72px] md:top-20 z-10 shrink-0 select-none bg-card/95 backdrop-blur-md p-3.5 md:p-3 rounded-2xl border border-border/40 md:space-y-1.5 flex flex-row overflow-x-auto gap-2.5 md:flex-col md:overflow-x-visible scrollbar-none">
                   <p className="hidden md:block text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-3 py-1 pb-2 border-b border-border/10">
                     Menu Categories
                   </p>
@@ -280,10 +334,10 @@ export default function RestaurantMenuPage() {
                       <button
                         key={cat.id}
                         onClick={(e) => handleCategoryClick(e, cat.id)}
-                        className={`inline-block md:block shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all truncate border-b-2 md:border-b-0 md:border-l-2 cursor-pointer text-left ${
+                        className={`inline-block shrink-0 px-4 py-1.5 md:py-2.5 md:pl-3 md:pr-4 rounded-full md:rounded-r-xl md:rounded-l-none text-xs font-bold transition-all truncate cursor-pointer text-left md:border-l-4 ${
                           isActive
-                            ? 'bg-primary/10 text-primary border-primary'
-                            : 'text-foreground/75 hover:bg-muted/45 hover:text-foreground border-transparent'
+                            ? 'bg-primary text-primary-foreground md:bg-primary/10 md:text-primary md:border-primary md:font-extrabold shadow-2xs md:shadow-none'
+                            : 'bg-[#F5F6F8] text-foreground/70 border border-neutral-200/20 hover:bg-[#EAECEF] md:bg-transparent md:border-none md:text-foreground/75 md:hover:bg-muted/30 md:hover:text-foreground md:border-transparent'
                         }`}
                       >
                         {cat.name}
@@ -323,39 +377,47 @@ export default function RestaurantMenuPage() {
                           {category.foods.map((food) => (
                             <div 
                               key={food.id} 
-                              className="p-4 flex gap-4 items-center justify-between border border-border/40 hover:border-primary/20 bg-card/65 hover:bg-card transition-all duration-200 rounded-2xl shadow-3xs"
+                              className="p-4 flex gap-4 items-stretch justify-between border border-border/40 hover:border-primary/25 bg-card/65 hover:bg-card hover:shadow-xs rounded-2xl transition-all duration-300 group"
                             >
-                              {/* Left Column: Image, Name, Description, Price */}
-                              <div className="flex gap-3 items-start ">
-                                <img
-                                  src={getFoodImage(food)}
-                                  alt={food.name}
-                                  className="h-16 w-16 rounded-xl object-cover border border-border/10 shrink-0"
-                                />
-                                <div className="min-w-0 flex-1 space-y-1">
-                                  <h4 className="text-xs font-extrabold text-foreground truncate">
+                              {/* Left: Food Text Details */}
+                              <div className="flex-1 flex flex-col justify-between min-w-0 pr-2">
+                                <div className="space-y-1.5">
+                                  <h4 className="text-xs font-extrabold text-foreground group-hover:text-primary transition-colors truncate">
                                     {food.name}
                                   </h4>
                                   <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
-                                    {food.description || 'Delicious freshly made recipe.'}
+                                    {food.description || 'Delicious freshly prepared recipe.'}
                                   </p>
-                                  <p className="text-xs font-black text-foreground">
+                                </div>
+                                <div className="mt-4">
+                                  <span className="text-xs font-black text-foreground">
                                     {getFoodPriceLabel(food)}
-                                  </p>
+                                  </span>
                                 </div>
                               </div>
 
-                              {/* Right Column: Plus Button */}
-                              <div className="w-12 flex justify-end">
-                                <Button
-                                  size="icon-sm"
-                                  variant="primary"
-                                  rounded="full"
-                                  onClick={() => handleOpenCustomizer(food)}
-                                  disabled={!restaurant.isOpen}
-                                >
-                                  <Plus className="h-4.5 w-4.5" />
-                                </Button>
+                              {/* Right: Food Image & Add Button (Overlap Style) */}
+                              <div className="h-20 w-20 md:h-24 md:w-24 shrink-0 relative rounded-xl overflow-hidden shadow-2xs border border-border/10 select-none">
+                                <img
+                                  src={getFoodImage(food)}
+                                  alt={food.name}
+                                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                                
+                                {/* Floating add button on bottom-right of image */}
+                                <div className="absolute bottom-1.5 right-1.5 z-10">
+                                  <Button
+                                    size="icon-xs"
+                                    variant="primary"
+                                    rounded="lg"
+                                    onClick={() => handleOpenCustomizer(food)}
+                                    disabled={!restaurant.isOpen}
+                                    className="h-7 w-7 shadow-md border border-white/10 hover:scale-110 active:scale-95 transition-all animate-fade-in"
+                                    title="Add to Basket"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           ))}

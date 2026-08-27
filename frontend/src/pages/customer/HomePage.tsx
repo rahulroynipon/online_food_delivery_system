@@ -279,23 +279,23 @@ export default function HomePage() {
               {/* Scrollable Row */}
               <div
                 ref={scrollContainerRef}
-                className="flex gap-4 overflow-x-auto scroll-smooth pb-3 px-1 scrollbar-none"
+                className="flex gap-5 overflow-x-auto scroll-smooth pb-3 px-1 scrollbar-none"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {categories.map((cat) => (
                   <Link
                     key={cat.id}
                     to={`/restaurants?category=${cat.id}`}
-                    className="w-[128px] shrink-0 group flex flex-col items-center p-3 rounded-2xl border border-border/30 bg-card/45 hover:bg-card hover:border-primary/30 shadow-2xs hover:shadow-xs transition-all duration-200"
+                    className="w-28 shrink-0 group flex flex-col items-center transition-all duration-200"
                   >
-                    <div className="h-14 w-14 rounded-xl overflow-hidden mb-2.5 relative border border-border/20">
+                    <div className="h-28 w-28 rounded-3xl overflow-hidden mb-2 relative bg-[#F5F6F7] border border-neutral-200/20 shadow-2xs group-hover:shadow-xs group-hover:scale-[1.02] transition-all duration-300 flex items-center justify-center">
                       <img
                         src={getCategoryImage(cat)}
                         alt={cat.name}
-                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     </div>
-                    <span className="text-xs font-bold text-foreground/80 group-hover:text-primary transition-colors text-center truncate w-full">
+                    <span className="text-xs font-bold text-primary text-center truncate w-full mt-1.5 tracking-wide">
                       {cat.name}
                     </span>
                   </Link>
