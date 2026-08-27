@@ -10,7 +10,8 @@ import {
   Clock, 
   Utensils,
   Plus,
-  AlertCircle
+  AlertCircle,
+  ShoppingBag
 } from 'lucide-react';
 import { Button, Card, toast } from '../../design-system';
 import CustomerLayout from '../../components/CustomerLayout';
@@ -48,7 +49,7 @@ interface Restaurant {
 
 export default function RestaurantMenuPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { addToCart } = useCustomerStore();
+  const { addToCart, cart, clearCart } = useCustomerStore();
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<MenuCategory[]>([]);
@@ -60,6 +61,11 @@ export default function RestaurantMenuPage() {
   // Customizer Modal state
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+
+  // "Switch restaurant?" warning state
+  const [pendingFood, setPendingFood] = useState<Food | null>(null);
+  const [isSwitchWarningOpen, setIsSwitchWarningOpen] = useState(false);
+  const cartRestaurantName = cart.length > 0 ? cart[0].restaurantName : null;
 
   // Set default active category when categories load
   useEffect(() => {
@@ -155,8 +161,24 @@ export default function RestaurantMenuPage() {
       toast.error('This restaurant is currently closed. You cannot add items to the cart.');
       return;
     }
+    // Warn if cart has items from a different restaurant
+    if (cart.length > 0 && cart[0].restaurantId !== restaurant?.id) {
+      setPendingFood(food);
+      setIsSwitchWarningOpen(true);
+      return;
+    }
     setSelectedFood(food);
     setIsCustomizerOpen(true);
+  };
+
+  const handleConfirmSwitch = () => {
+    clearCart();
+    setIsSwitchWarningOpen(false);
+    if (pendingFood) {
+      setSelectedFood(pendingFood);
+      setIsCustomizerOpen(true);
+      setPendingFood(null);
+    }
   };
 
   const handleAddToCart = (item: CartItem) => {
@@ -441,8 +463,51 @@ export default function RestaurantMenuPage() {
           food={selectedFood}
           restaurantId={restaurant.id}
           restaurantName={restaurant.name}
+          restaurantSlug={restaurant.slug}
           onAddToCart={handleAddToCart}
         />
+      )}
+
+      {/* Switch Restaurant Warning Dialog */}
+      {isSwitchWarningOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-sm rounded-3xl border border-border/50 bg-card shadow-2xl p-6 space-y-5 animate-scale-in">
+            {/* Icon */}
+            <div className="h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto">
+              <ShoppingBag className="h-7 w-7 text-amber-500" />
+            </div>
+
+            {/* Text */}
+            <div className="text-center space-y-1.5">
+              <h3 className="text-base font-extrabold text-foreground">Start a New Order?</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                Your cart already has items from{' '}
+                <span className="font-bold text-foreground">{cartRestaurantName}</span>.
+                <br />
+                Each delivery requires a separate order per restaurant. Starting a new order from{' '}
+                <span className="font-bold text-foreground">{restaurant?.name}</span> will clear your current cart.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 font-bold text-xs"
+                onClick={() => { setIsSwitchWarningOpen(false); setPendingFood(null); }}
+              >
+                Keep Current
+              </Button>
+              <Button
+                variant="primary"
+                className="flex-1 font-bold text-xs"
+                onClick={handleConfirmSwitch}
+              >
+                Start New Order
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </CustomerLayout>
   );

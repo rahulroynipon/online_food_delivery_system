@@ -4,12 +4,20 @@ import { Button, Checkbox, toast } from '../design-system';
 import { CartItem } from '../store/useCustomerStore';
 import api from '../lib/axios';
 
+type SelectedVariant = { id: number; name: string; price: number; quantity: number };
+type SelectedAddon  = { id: number; name: string; price: number; quantity: number };
+
 interface FoodCustomizerModalProps {
   isOpen: boolean;
   onClose: () => void;
   food: any;
   restaurantId: number;
   restaurantName: string;
+  restaurantSlug?: string;
+  /** Pre-selected variant (for Edit mode) */
+  initialVariants?: SelectedVariant[];
+  /** Pre-selected addons (for Edit mode) */
+  initialAddons?: SelectedAddon[];
   onAddToCart: (item: CartItem) => void;
 }
 
@@ -19,6 +27,9 @@ export default function FoodCustomizerModal({
   food,
   restaurantId,
   restaurantName,
+  restaurantSlug,
+  initialVariants,
+  initialAddons,
   onAddToCart
 }: FoodCustomizerModalProps) {
   if (!isOpen || !food) return null;
@@ -26,41 +37,31 @@ export default function FoodCustomizerModal({
   const variants = food.variants || [];
   const addons = food.addons || [];
 
-  // Set default to first variant selected with quantity 1
-  const [selectedVariants, setSelectedVariants] = useState<{
-    id: number;
-    name: string;
-    price: number;
-    quantity: number;
-  }[]>(
-    variants[0] ? [{
+  // Default starting variant: use initialVariants if provided (edit mode), else first variant at qty 1
+  const buildDefaultVariants = (): SelectedVariant[] => {
+    if (initialVariants && initialVariants.length > 0) return initialVariants;
+    return variants[0] ? [{
       id: variants[0].id,
       name: variants[0].name,
       price: parseFloat(String(variants[0].price || 0)),
       quantity: 1
-    }] : []
-  );
+    }] : [];
+  };
 
-  // Set selected addons globally
-  const [selectedAddons, setSelectedAddons] = useState<{
-    id: number;
-    name: string;
-    price: number;
-    quantity: number;
-  }[]>([]);
+  const buildDefaultAddons = (): SelectedAddon[] => {
+    if (initialAddons && initialAddons.length > 0) return initialAddons;
+    return [];
+  };
 
-  // Reset local state when food changes
+  const [selectedVariants, setSelectedVariants] = useState<SelectedVariant[]>(buildDefaultVariants);
+  const [selectedAddons,   setSelectedAddons]   = useState<SelectedAddon[]>(buildDefaultAddons);
+
+  // Re-initialise whenever the food item or initial values change (new edit target)
   useEffect(() => {
-    setSelectedVariants(
-      variants[0] ? [{
-        id: variants[0].id,
-        name: variants[0].name,
-        price: parseFloat(String(variants[0].price || 0)),
-        quantity: 1
-      }] : []
-    );
-    setSelectedAddons([]);
-  }, [food]);
+    setSelectedVariants(buildDefaultVariants());
+    setSelectedAddons(buildDefaultAddons());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [food, initialVariants, initialAddons]);
 
   const handleVariantToggle = (variant: any) => {
     // Exclusive select: set selection to exactly this variant
@@ -129,6 +130,7 @@ export default function FoodCustomizerModal({
       const cartItem: CartItem = {
         restaurantId,
         restaurantName,
+        restaurantSlug,
         foodId: food.id,
         foodName: food.name,
         image: food.image,
@@ -229,7 +231,8 @@ export default function FoodCustomizerModal({
                   return (
                     <div 
                       key={v.id} 
-                      className={`p-3 rounded-2xl border transition-all flex flex-col gap-3 ${
+                      onClick={() => handleVariantToggle(v)}
+                      className={`p-3 rounded-2xl border transition-all flex flex-col gap-3 cursor-pointer ${
                         isChecked
                           ? 'border-primary/45 bg-primary/5 text-foreground shadow-2xs'
                           : 'border-border/40 hover:border-border/80 bg-card text-muted-foreground hover:text-foreground'
@@ -237,13 +240,15 @@ export default function FoodCustomizerModal({
                     >
                       {/* Variant Main row */}
                       <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer select-none">
-                          <Checkbox
-                            checked={isChecked}
-                            onCheckedChange={() => handleVariantToggle(v)}
-                            size='sm'
-                            className="w-auto shrink-0"
-                          />
+                        <div className="flex items-center gap-3 flex-1 min-w-0 select-none">
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={() => handleVariantToggle(v)}
+                              size='sm'
+                              className="w-auto shrink-0"
+                            />
+                          </div>
                           
                           {v.image && (
                             <img
@@ -261,11 +266,11 @@ export default function FoodCustomizerModal({
                               </span>
                             )}
                           </div>
-                        </label>
+                        </div>
                         
-                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <div className="flex items-center gap-2 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
                           {isChecked && (
-                            <div className="flex items-center border border-border/40 rounded-lg overflow-hidden bg-background">
+                            <div className="flex items-center gap-0.5 border border-border/40 rounded-xl overflow-hidden bg-background">
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -273,11 +278,11 @@ export default function FoodCustomizerModal({
                                   e.stopPropagation();
                                   handleVariantQuantityChange(v.id, -1);
                                 }}
-                                className="h-6 w-6 bg-card hover:bg-muted text-foreground/80 flex items-center justify-center cursor-pointer select-none text-[10px] font-bold"
+                                className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer select-none"
                               >
-                                -
+                                <Minus className="h-3 w-3" />
                               </button>
-                              <span className="px-2 text-[10px] font-black text-foreground">
+                              <span className="px-2 min-w-[24px] text-center text-[11px] font-black text-foreground">
                                 {currentQty}
                               </span>
                               <button
@@ -287,9 +292,9 @@ export default function FoodCustomizerModal({
                                   e.stopPropagation();
                                   handleVariantQuantityChange(v.id, 1);
                                 }}
-                                className="h-6 w-6 bg-card hover:bg-muted text-foreground/80 flex items-center justify-center cursor-pointer select-none text-[10px] font-bold"
+                                className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer select-none"
                               >
-                                +
+                                <Plus className="h-3 w-3" />
                               </button>
                             </div>
                           )}
@@ -320,19 +325,22 @@ export default function FoodCustomizerModal({
                   return (
                     <div
                       key={addon.id}
-                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all text-xs ${
+                      onClick={() => handleAddonToggle(addon)}
+                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all text-xs cursor-pointer ${
                         isAddonChecked
                           ? 'border-primary/25 bg-primary/5 text-foreground'
-                          : 'border-border/20 bg-background/35 text-muted-foreground'
+                          : 'border-border/20 bg-background/35 text-muted-foreground hover:border-border/50'
                       }`}
                     >
-                      <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer select-none">
-                        <Checkbox
-                          checked={isAddonChecked}
-                          onCheckedChange={() => handleAddonToggle(addon)}
-                          size="sm"
-                          className="w-auto shrink-0"
-                        />
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0 select-none">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={isAddonChecked}
+                            onCheckedChange={() => handleAddonToggle(addon)}
+                            size="sm"
+                            className="w-auto shrink-0"
+                          />
+                        </div>
                         {addon.image && (
                           <img
                             src={getAddonImageUrl(addon.image)}
@@ -348,11 +356,11 @@ export default function FoodCustomizerModal({
                             </span>
                           )}
                         </div>
-                      </label>
+                      </div>
 
-                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <div className="flex items-center gap-2 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
                         {isAddonChecked && (
-                          <div className="flex items-center border border-border/30 rounded-md overflow-hidden bg-card scale-90">
+                          <div className="flex items-center gap-0.5 border border-border/40 rounded-xl overflow-hidden bg-background">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -360,11 +368,11 @@ export default function FoodCustomizerModal({
                                 e.stopPropagation();
                                 handleAddonQuantityChange(addon.id, -1);
                               }}
-                              className="h-5 w-5 bg-muted/20 hover:bg-muted text-foreground/80 flex items-center justify-center cursor-pointer select-none text-[9px] font-bold"
+                              className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer select-none"
                             >
-                              -
+                              <Minus className="h-3 w-3" />
                             </button>
-                            <span className="px-1.5 text-[9px] font-black text-foreground">
+                            <span className="px-2 min-w-[24px] text-center text-[11px] font-black text-foreground">
                               {addonQty}
                             </span>
                             <button
@@ -374,9 +382,9 @@ export default function FoodCustomizerModal({
                                 e.stopPropagation();
                                 handleAddonQuantityChange(addon.id, 1);
                               }}
-                              className="h-5 w-5 bg-muted/20 hover:bg-muted text-foreground/80 flex items-center justify-center cursor-pointer select-none text-[9px] font-bold"
+                              className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer select-none"
                             >
-                              +
+                              <Plus className="h-3 w-3" />
                             </button>
                           </div>
                         )}

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 export interface CartItem {
   restaurantId: number;
   restaurantName: string;
+  restaurantSlug?: string;
   foodId: number;
   foodName: string;
   image?: string;
@@ -36,6 +37,7 @@ interface CustomerState {
   setSelectedZone: (zone: Zone | null) => void;
   addToCart: (item: CartItem) => void;
   removeFromCart: (index: number) => void;
+  updateQuantity: (index: number, delta: number) => void;
   clearCart: () => void;
 }
 
@@ -96,6 +98,23 @@ export const useCustomerStore = create<CustomerState>((set) => {
     removeFromCart: (index) => {
       set((state) => {
         const currentCart = state.cart.filter((_, idx) => idx !== index);
+        localStorage.setItem('customer_cart', JSON.stringify(currentCart));
+        return { cart: currentCart };
+      });
+    },
+
+    updateQuantity: (index, delta) => {
+      set((state) => {
+        const currentCart = [...state.cart];
+        const item = currentCart[index];
+        if (!item) return {};
+        const newQty = item.quantity + delta;
+        if (newQty <= 0) {
+          // Remove the item if quantity drops to 0
+          currentCart.splice(index, 1);
+        } else {
+          currentCart[index] = { ...item, quantity: newQty };
+        }
         localStorage.setItem('customer_cart', JSON.stringify(currentCart));
         return { cart: currentCart };
       });

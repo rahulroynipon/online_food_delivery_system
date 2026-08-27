@@ -1,0 +1,296 @@
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useCustomerStore, CartItem } from '../../store/useCustomerStore';
+import CustomerLayout from '../../components/CustomerLayout';
+import FoodCustomizerModal from '../../components/FoodCustomizerModal';
+import { Button, toast } from '../../design-system';
+import {
+  Trash2,
+  Pencil,
+  ArrowLeft,
+  MapPin,
+  Store,
+  ChevronRight,
+  PackageOpen,
+} from 'lucide-react';
+import api from '../../lib/axios';
+
+type SelectedVariant = { id: number; name: string; price: number; quantity: number };
+type SelectedAddon   = { id: number; name: string; price: number; quantity: number };
+
+export default function CartPage() {
+  const navigate = useNavigate();
+  const { cart, removeFromCart, addToCart, clearCart, selectedZone } = useCustomerStore();
+
+  // Fetched full menu foods indexed by foodId
+  const [menuFoods, setMenuFoods] = useState<Record<number, any>>({});
+  const [menuLoading, setMenuLoading] = useState(false);
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen]       = useState(false);
+  const [modalFood, setModalFood]           = useState<any>(null);
+  const [editingIdx, setEditingIdx]         = useState<number | null>(null);
+  const [initVariants, setInitVariants]     = useState<SelectedVariant[] | undefined>(undefined);
+  const [initAddons,   setInitAddons]       = useState<SelectedAddon[]   | undefined>(undefined);
+
+  const restaurantName = cart.length > 0 ? cart[0].restaurantName : null;
+  const restaurantSlug = cart.length > 0 ? cart[0].restaurantSlug : null;
+  const restaurantId   = cart.length > 0 ? cart[0].restaurantId   : null;
+
+  // Fetch restaurant menu so we have full food+variants+addons data
+  useEffect(() => {
+    if (!restaurantSlug) return;
+    setMenuLoading(true);
+    api.get(`/public/restaurants/${restaurantSlug}`)
+      .then((res) => {
+        if (res.data?.success) {
+          const foods: Record<number, any> = {};
+          (res.data.categories || []).forEach((cat: any) => {
+            (cat.foods || []).forEach((food: any) => { foods[food.id] = food; });
+          });
+          setMenuFoods(foods);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setMenuLoading(false));
+  }, [restaurantSlug]);
+
+  const getItemImage = (image?: string) => {
+    if (!image) return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80';
+    if (image.startsWith('http') || image.startsWith('/')) return image;
+    const cleanPath = image.startsWith('uploads/') ? image.substring(8) : image;
+    return `${api.defaults.baseURL}/uploads/${cleanPath}`;
+  };
+
+  /** Open modal pre-filled with the cart item's current selections */
+  const handleEdit = (idx: number) => {
+    const cartItem = cart[idx];
+    const food = menuFoods[cartItem.foodId];
+    if (!food) {
+      toast.error('Food details not loaded yet, please wait a moment.');
+      return;
+    }
+
+    // Build pre-selected state from the existing cart row
+    const preVariants: SelectedVariant[] = cartItem.variant
+      ? [{ id: cartItem.variant.id, name: cartItem.variant.name, price: cartItem.variant.price, quantity: cartItem.quantity }]
+      : [];
+
+    const preAddons: SelectedAddon[] = cartItem.addons.map(a => ({
+      id: a.id, name: a.name, price: a.price, quantity: a.quantity,
+    }));
+
+    setEditingIdx(idx);
+    setModalFood(food);
+    setInitVariants(preVariants);
+    setInitAddons(preAddons);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setModalFood(null);
+    setEditingIdx(null);
+    setInitVariants(undefined);
+    setInitAddons(undefined);
+  };
+
+  /** On "Add to Basket" from the modal — always edit in-place (replace old row) */
+  const handleModalSave = (item: CartItem) => {
+    if (editingIdx !== null) {
+      removeFromCart(editingIdx);
+      addToCart(item);
+      toast.success(`${item.foodName} updated!`);
+    } else {
+      addToCart(item);
+      toast.success(`${item.foodName} added to cart!`);
+    }
+  };
+
+  const subtotal    = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const deliveryFee = cart.length > 0 ? 40 : 0;
+  const total       = subtotal + deliveryFee;
+
+  return (
+    <CustomerLayout>
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Back */}
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-primary transition-colors select-none cursor-pointer"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Continue Shopping
+        </button>
+
+        <h1 className="text-2xl font-black text-foreground tracking-tight">Your Cart</h1>
+
+        {cart.length === 0 ? (
+          /* ── Empty State ── */
+          <div className="flex flex-col items-center justify-center py-24 text-center gap-4 rounded-3xl border border-border/30 bg-card/40">
+            <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+              <PackageOpen className="h-10 w-10 text-primary/60" />
+            </div>
+            <div>
+              <h2 className="text-lg font-extrabold text-foreground">Your cart is empty</h2>
+              <p className="text-sm text-muted-foreground mt-1 font-medium max-w-xs mx-auto">
+                Browse restaurants and add delicious items to your order.
+              </p>
+            </div>
+            <Link to="/restaurants">
+              <Button variant="primary" size="sm" className="mt-2 px-6 font-bold">
+                Browse Restaurants
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+
+            {/* ── Cart Items ── */}
+            <div className="flex-1 space-y-3">
+              {/* Restaurant badge */}
+              <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-card border border-border/40">
+                <div className="flex items-center gap-2.5 text-xs font-bold text-foreground">
+                  <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Store className="h-4 w-4 text-primary" />
+                  </div>
+                  <span>{restaurantName}</span>
+                </div>
+                <Link
+                  to={restaurantSlug ? `/restaurant/${restaurantSlug}` : '/restaurants'}
+                  className="text-[10px] text-primary font-bold hover:underline flex items-center gap-0.5"
+                >
+                  View Menu <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
+
+              {/* Items list */}
+              <div className="rounded-3xl border border-border/40 bg-card/60 overflow-hidden divide-y divide-border/10">
+                {cart.map((item, idx) => (
+                  <div key={idx} className="flex gap-4 p-4 items-center group hover:bg-card transition-colors">
+                    {/* Image */}
+                    <div className="h-16 w-16 rounded-xl overflow-hidden border border-border/10 shrink-0">
+                      <img
+                        src={getItemImage(item.image)}
+                        alt={item.foodName}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+
+                    {/* Details */}
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <p className="text-xs font-extrabold text-foreground truncate">{item.foodName}</p>
+                      {item.variant && (
+                        <p className="text-[10px] text-muted-foreground font-medium">
+                          Size: <span className="text-foreground/80">{item.variant.name}</span>
+                          {item.quantity > 1 && <span className="ml-1.5 font-black text-foreground">×{item.quantity}</span>}
+                        </p>
+                      )}
+                      {item.addons.length > 0 && (
+                        <p className="text-[10px] text-muted-foreground font-medium truncate">
+                          + {item.addons.map(a => `${a.quantity}× ${a.name}`).join(', ')}
+                        </p>
+                      )}
+                      <p className="text-xs font-black text-foreground pt-0.5">
+                        ৳{(item.price * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Edit — opens modal pre-filled */}
+                      <button
+                        onClick={() => handleEdit(idx)}
+                        disabled={menuLoading}
+                        className="h-7 w-7 rounded-lg border border-border/40 bg-muted/30 hover:border-primary/50 hover:bg-primary/5 hover:text-primary text-muted-foreground flex items-center justify-center transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        title="Edit item"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+
+                      {/* Remove */}
+                      <button
+                        onClick={() => removeFromCart(idx)}
+                        className="h-7 w-7 rounded-lg hover:bg-red-500/10 hover:text-red-500 text-muted-foreground/50 flex items-center justify-center transition-colors cursor-pointer"
+                        title="Remove item"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Clear cart */}
+              <div className="flex justify-end">
+                <button
+                  onClick={clearCart}
+                  className="text-[11px] font-bold text-muted-foreground hover:text-red-500 transition-colors flex items-center gap-1 cursor-pointer select-none"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Clear Cart
+                </button>
+              </div>
+            </div>
+
+            {/* ── Order Summary ── */}
+            <div className="w-full lg:w-72 shrink-0 rounded-3xl border border-border/40 bg-card/70 p-5 space-y-4 sticky top-24">
+              <h2 className="text-sm font-extrabold text-foreground border-b border-border/10 pb-3">Order Summary</h2>
+
+              {/* Delivery Zone */}
+              {selectedZone && (
+                <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground bg-muted/30 rounded-xl px-3 py-2">
+                  <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>Delivering to <span className="font-bold text-foreground">{selectedZone.name}</span></span>
+                </div>
+              )}
+
+              {/* Price breakdown */}
+              <div className="space-y-2 text-xs font-medium text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>Subtotal ({cart.reduce((a, c) => a + c.quantity, 0)} items)</span>
+                  <span className="font-bold text-foreground">৳{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Delivery Fee</span>
+                  <span className="font-bold text-foreground">৳{deliveryFee.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between border-t border-border/10 pt-2 text-sm font-black text-foreground">
+                  <span>Total</span>
+                  <span>৳{total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <Button
+                variant="primary"
+                className="w-full font-bold py-3 text-sm"
+                onClick={() => toast.info('Checkout will be fully implemented in Phase 2.')}
+              >
+                Place Order
+              </Button>
+
+              <p className="text-[10px] text-muted-foreground text-center font-medium">
+                You can only order from one restaurant at a time.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Customizer Modal — pre-filled with current cart item state */}
+      {restaurantId && (
+        <FoodCustomizerModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          food={modalFood}
+          restaurantId={restaurantId}
+          restaurantName={restaurantName || ''}
+          restaurantSlug={restaurantSlug || undefined}
+          initialVariants={initVariants}
+          initialAddons={initAddons}
+          onAddToCart={handleModalSave}
+        />
+      )}
+    </CustomerLayout>
+  );
+}

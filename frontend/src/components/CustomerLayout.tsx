@@ -9,13 +9,11 @@ import {
   ShoppingCart, 
   User as UserIcon, 
   LogOut, 
-  ChevronDown, 
-  LogIn, 
-  UserPlus,
-  Trash2,
-  X
+  ChevronDown,
+  LogIn,
+  UserPlus
 } from 'lucide-react';
-import { Button, Card, toast } from '../design-system';
+import { Button, toast } from '../design-system';
 
 interface CustomerLayoutProps {
   children: React.ReactNode;
@@ -24,11 +22,10 @@ interface CustomerLayoutProps {
 export default function CustomerLayout({ children }: CustomerLayoutProps) {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuthStore();
-  const { selectedZone, setSelectedZone, cart, removeFromCart, clearCart } = useCustomerStore();
+  const { selectedZone, setSelectedZone, cart } = useCustomerStore();
   
   const [zones, setZones] = useState<Zone[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isCartPreviewOpen, setIsCartPreviewOpen] = useState(false);
 
   // Fetch available zones for selector dropdown
   useEffect(() => {
@@ -66,7 +63,6 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
   };
 
   const totalCartItems = cart.reduce((acc, curr) => acc + curr.quantity, 0);
-  const totalCartCost = cart.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
@@ -116,106 +112,19 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
 
           {/* Navigation Action Buttons */}
           <div className="flex items-center gap-3">
-            {/* Cart Button */}
-            <div className="relative">
-              <button
-                onClick={() => setIsCartPreviewOpen(!isCartPreviewOpen)}
-                className="h-9 w-9 rounded-full hover:bg-muted flex items-center justify-center transition-colors relative cursor-pointer"
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {totalCartItems > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground font-bold text-[9px] h-4.5 w-4.5 rounded-full flex items-center justify-center shadow-xs animate-scale-in">
-                    {totalCartItems}
-                  </span>
-                )}
-              </button>
-
-              {/* Quick Cart Preview Dropdown */}
-              {isCartPreviewOpen && (
-                <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-border/50 bg-card shadow-xl p-4 z-50 animate-fade-in max-h-[420px] flex flex-col">
-                  <div className="flex items-center justify-between border-b border-border/10 pb-2 mb-3">
-                    <h4 className="text-sm font-bold text-foreground">Shopping Cart</h4>
-                    <button 
-                      onClick={() => setIsCartPreviewOpen(false)}
-                      className="text-muted-foreground hover:text-foreground cursor-pointer"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  {cart.length === 0 ? (
-                    <div className="py-8 text-center flex flex-col items-center justify-center">
-                      <ShoppingCart className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                      <p className="text-xs text-muted-foreground font-medium">Your cart is empty.</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="overflow-y-auto flex-1 space-y-3 pr-1">
-                        {cart.map((item, idx) => (
-                          <div key={idx} className="flex gap-2 justify-between items-start text-xs border-b border-border/5 pb-2">
-                            <div className="min-w-0 flex-1">
-                              <p className="font-bold text-foreground truncate">{item.foodName}</p>
-                              {item.variant && (
-                                <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">
-                                  Size: {item.variant.name}
-                                </p>
-                              )}
-                              {item.addons.length > 0 && (
-                                <p className="text-[10px] text-muted-foreground truncate font-medium">
-                                  + {item.addons.map((a) => `${a.quantity}x ${a.name}`).join(', ')}
-                                </p>
-                              )}
-                              <p className="text-[10px] text-muted-foreground mt-1">
-                                {item.quantity} x ৳{(item.price).toFixed(2)}
-                              </p>
-                            </div>
-                            <div className="flex flex-col items-end gap-2">
-                              <span className="font-bold text-foreground">
-                                ৳{(item.price * item.quantity).toFixed(2)}
-                              </span>
-                              <button
-                                onClick={() => removeFromCart(idx)}
-                                className="text-muted-foreground hover:text-[var(--color-danger)] transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="border-t border-border/10 pt-3 mt-3">
-                        <div className="flex justify-between items-center text-xs font-bold mb-3">
-                          <span className="text-muted-foreground">Total Cost:</span>
-                          <span className="text-base text-foreground">৳{totalCartCost.toFixed(2)}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={clearCart}
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full text-[10px] font-bold"
-                          >
-                            Clear
-                          </Button>
-                          <Button 
-                            variant="primary" 
-                            size="sm" 
-                            className="w-full text-[10px] font-bold"
-                            onClick={() => {
-                              setIsCartPreviewOpen(false);
-                              toast.info('Checkout features will be implemented in Phase 2.');
-                            }}
-                          >
-                            Checkout
-                          </Button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+            {/* Cart Button → navigates to /cart page */}
+            <Link
+              to="/cart"
+              className="relative h-9 w-9 rounded-full hover:bg-muted flex items-center justify-center transition-colors cursor-pointer"
+              title="View Cart"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              {totalCartItems > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground font-bold text-[9px] h-4.5 w-4.5 rounded-full flex items-center justify-center shadow-xs animate-scale-in">
+                  {totalCartItems}
+                </span>
               )}
-            </div>
+            </Link>
 
             {/* Auth Button Controls */}
             {isAuthenticated && user ? (

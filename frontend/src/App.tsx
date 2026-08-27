@@ -23,6 +23,7 @@ import FoodFormPage from './pages/restaurant/FoodFormPage';
 import HomePage from './pages/customer/HomePage';
 import CustomerRestaurants from './pages/customer/RestaurantsPage';
 import CustomerRestaurantMenu from './pages/customer/RestaurantMenuPage';
+import CartPage from './pages/customer/CartPage';
 import api from './lib/axios';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Tabs, toast } from './design-system';
 import { Loader2, LogOut, User as UserIcon, Calendar, Phone, ShieldCheck, Mail, Bell, Store, Bike, Users, CheckCircle, XCircle } from 'lucide-react';
@@ -150,6 +151,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/restaurants" element={<CustomerRestaurants />} />
         <Route path="/restaurant/:slug" element={<CustomerRestaurantMenu />} />
+        <Route path="/cart" element={<CartPage />} />
         <Route path="*" element={<DashboardRedirect />} />
       </Routes>
     </BrowserRouter>
