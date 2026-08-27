@@ -117,7 +117,7 @@ export default function RestaurantsPage() {
     loadSetupData();
   }, []);
 
-  // Fetch filtered restaurant list or dishes list depending on activeTab
+  // Fetch filtered restaurant list and dishes list in parallel
   useEffect(() => {
     const fetchFilteredData = async () => {
       setLoading(true);
@@ -127,40 +127,43 @@ export default function RestaurantsPage() {
         if (searchQuery.trim()) params.search = searchQuery;
         if (selectedCategory) params.category = selectedCategory;
 
-        if (activeTab === 'RESTAURANTS') {
-          const res = await api.get('/public/restaurants', { params });
-          if (res.data?.success) {
-            let list = res.data.restaurants || [];
-            
-            // Client-side Open/Closed filter
-            if (showOpenOnly) {
-              list = list.filter((r: Restaurant) => r.isOpen);
-            }
+        // Fetch both collections in parallel
+        const [restaurantsRes, foodsRes] = await Promise.all([
+          api.get('/public/restaurants', { params }),
+          api.get('/public/restaurants/foods/search', { params })
+        ]);
 
-            // Client-side Sorting by Rating
-            if (sortByRating) {
-              list.sort((a: Restaurant, b: Restaurant) => {
-                const ratA = parseFloat(String(a.rating || '4.5'));
-                const ratB = parseFloat(String(b.rating || '4.5'));
-                return ratB - ratA;
-              });
-            }
-
-            setRestaurants(list);
+        // Process Restaurants response
+        if (restaurantsRes.data?.success) {
+          let list = restaurantsRes.data.restaurants || [];
+          
+          // Client-side Open/Closed filter
+          if (showOpenOnly) {
+            list = list.filter((r: Restaurant) => r.isOpen);
           }
-        } else {
-          // Fetch food dishes matching search or category
-          const res = await api.get('/public/restaurants/foods/search', { params });
-          if (res.data?.success) {
-            let list = res.data.foods || [];
 
-            // Client-side filter for open restaurants
-            if (showOpenOnly) {
-              list = list.filter((f: any) => f.restaurant?.isOpen);
-            }
-
-            setFoods(list);
+          // Client-side Sorting by Rating
+          if (sortByRating) {
+            list.sort((a: Restaurant, b: Restaurant) => {
+              const ratA = parseFloat(String(a.rating || '4.5'));
+              const ratB = parseFloat(String(b.rating || '4.5'));
+              return ratB - ratA;
+            });
           }
+
+          setRestaurants(list);
+        }
+
+        // Process Foods response
+        if (foodsRes.data?.success) {
+          let list = foodsRes.data.foods || [];
+
+          // Client-side filter for open restaurants
+          if (showOpenOnly) {
+            list = list.filter((f: any) => f.restaurant?.isOpen);
+          }
+
+          setFoods(list);
         }
       } catch (err) {
         console.error('Failed to query catalog:', err);
@@ -170,7 +173,7 @@ export default function RestaurantsPage() {
     };
 
     fetchFilteredData();
-  }, [selectedZone, searchQuery, selectedCategory, showOpenOnly, sortByRating, activeTab]);
+  }, [selectedZone, searchQuery, selectedCategory, showOpenOnly, sortByRating]);
 
   const handleOpenCustomizer = (food: any) => {
     if (!food.restaurant?.isOpen) {

@@ -160,6 +160,7 @@ export const createFood = async (req, res, next) => {
           foodId: food.id,
           name: v.name || 'Regular',
           price: parseFloat(v.price || 0),
+          description: v.description || null,
           image: variantImagePath,
           status: v.status || 'ACTIVE',
         });
@@ -334,6 +335,7 @@ export const updateFood = async (req, res, next) => {
           foodId: food.id,
           name: v.name || 'Regular',
           price: parseFloat(v.price || 0),
+          description: v.description || null,
           image: variantImagePath,
           status: v.status || 'ACTIVE',
         });

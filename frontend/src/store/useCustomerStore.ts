@@ -18,6 +18,7 @@ export interface CartItem {
     id: number;
     name: string;
     price: number;
+    quantity: number;
   }[];
 }
 
@@ -71,9 +72,12 @@ export const useCustomerStore = create<CustomerState>((set) => {
 
           // Compare addons
           if (cartItem.addons.length !== item.addons.length) return false;
-          const addonIds1 = cartItem.addons.map((a) => a.id).sort();
-          const addonIds2 = item.addons.map((a) => a.id).sort();
-          return addonIds1.every((id, idx) => id === addonIds2[idx]);
+          const sortedAddons1 = [...cartItem.addons].sort((a, b) => a.id - b.id);
+          const sortedAddons2 = [...item.addons].sort((a, b) => a.id - b.id);
+          return sortedAddons1.every((addon1, idx) => {
+            const addon2 = sortedAddons2[idx];
+            return addon1.id === addon2.id && addon1.quantity === addon2.quantity;
+          });
         });
 
         if (existingItemIndex > -1) {

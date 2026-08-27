@@ -250,17 +250,18 @@ export default function RestaurantMenuPage() {
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {category.foods.map((food) => (
-                            <Card 
+                            <div 
                               key={food.id} 
                               className="p-4 flex gap-4 items-center justify-between border border-border/40 hover:border-primary/20 bg-card/65 hover:bg-card transition-all duration-200 rounded-2xl shadow-3xs"
                             >
-                              <div className="flex gap-3 items-start min-w-0">
+                              {/* Left Column: Image, Name, Description, Price */}
+                              <div className="flex gap-3 items-start ">
                                 <img
                                   src={getFoodImage(food)}
                                   alt={food.name}
                                   className="h-16 w-16 rounded-xl object-cover border border-border/10 shrink-0"
                                 />
-                                <div className="min-w-0 space-y-1">
+                                <div className="min-w-0 flex-1 space-y-1">
                                   <h4 className="text-xs font-extrabold text-foreground truncate">
                                     {food.name}
                                   </h4>
@@ -273,16 +274,19 @@ export default function RestaurantMenuPage() {
                                 </div>
                               </div>
 
-                              <Button
-                                size="xs"
-                                variant="primary"
-                                className="h-7 w-7 rounded-lg p-0 flex items-center justify-center shrink-0 shadow-2xs font-bold"
-                                onClick={() => handleOpenCustomizer(food)}
-                                disabled={!restaurant.isOpen}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </Card>
+                              {/* Right Column: Plus Button */}
+                              <div className="w-12 flex justify-end">
+                                <Button
+                                  size="icon-sm"
+                                  variant="primary"
+                                  rounded="full"
+                                  onClick={() => handleOpenCustomizer(food)}
+                                  disabled={!restaurant.isOpen}
+                                >
+                                  <Plus className="h-4.5 w-4.5" />
+                                </Button>
+                              </div>
+                            </div>
                           ))}
                         </div>
                       )}

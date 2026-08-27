@@ -26,11 +26,12 @@ export default function FoodFormPage() {
   const [variants, setVariants] = useState<{
     name: string;
     price: string;
+    description: string;
     image?: string;
     imageFile?: File | null;
     imagePreview?: string | null;
   }[]>([
-    { name: 'Regular', price: '', image: '', imageFile: null, imagePreview: null }
+    { name: 'Regular', price: '', description: '', image: '', imageFile: null, imagePreview: null }
   ]);
   const [selectedAddonIds, setSelectedAddonIds] = useState<number[]>([]);
   const [originalFoodId, setOriginalFoodId] = useState<number | null>(null);
@@ -81,17 +82,18 @@ export default function FoodFormPage() {
         setStatus(f.status || 'ACTIVE');
         setFoodImagePreview(f.image ? getImageUrl(f.image) : null);
         
-        // Populate variants with image attributes
+        // Populate variants with image & description attributes
         if (f.variants && f.variants.length > 0) {
           setVariants(f.variants.map((v: any) => ({
             name: v.name,
             price: String(v.price),
+            description: v.description || '',
             image: v.image || '',
             imageFile: null,
             imagePreview: v.image ? getImageUrl(v.image) : null
           })));
         } else {
-          setVariants([{ name: 'Regular', price: '', image: '', imageFile: null, imagePreview: null }]);
+          setVariants([{ name: 'Regular', price: '', description: '', image: '', imageFile: null, imagePreview: null }]);
         }
 
         // Populate selected addons
@@ -116,7 +118,7 @@ export default function FoodFormPage() {
   };
 
   const handleAddVariantRow = () => {
-    setVariants([...variants, { name: '', price: '', image: '', imageFile: null, imagePreview: null }]);
+    setVariants([...variants, { name: '', price: '', description: '', image: '', imageFile: null, imagePreview: null }]);
   };
 
   const handleRemoveVariantRow = (index: number) => {
@@ -124,7 +126,7 @@ export default function FoodFormPage() {
     setVariants(variants.filter((_, idx) => idx !== index));
   };
 
-  const handleVariantChange = (index: number, field: 'name' | 'price', value: string) => {
+  const handleVariantChange = (index: number, field: 'name' | 'price' | 'description', value: string) => {
     const updated = [...variants];
     updated[index][field] = value;
     setVariants(updated);
@@ -169,6 +171,7 @@ export default function FoodFormPage() {
         return {
           name: v.name,
           price: v.price,
+          description: v.description || '',
           image: v.image || null,
         };
       });
@@ -365,7 +368,7 @@ export default function FoodFormPage() {
               <div className="space-y-3">
                 {variants.map((variant, index) => (
                   <div key={index} className="flex flex-wrap md:flex-nowrap gap-4 items-end bg-muted/10 p-3.5 rounded-2xl border border-border/30 animate-fade-in">
-                    <div className="flex-1 min-w-[150px]">
+                    <div className="flex-1 min-w-[140px]">
                       <Input
                         label={`Variant #${index + 1} Name`}
                         required
@@ -374,9 +377,17 @@ export default function FoodFormPage() {
                         onChange={(e) => handleVariantChange(index, 'name', e.target.value)}
                       />
                     </div>
-                    <div className="w-[120px]">
+                    <div className="flex-1 min-w-[160px]">
                       <Input
-                        label="Price (৳ Taka)"
+                        label="Description (Optional)"
+                        placeholder="e.g. Traditional thick crust style"
+                        value={variant.description}
+                        onChange={(e) => handleVariantChange(index, 'description', e.target.value)}
+                      />
+                    </div>
+                    <div className="w-[110px]">
+                      <Input
+                        label="Price (৳)"
                         required
                         type="number"
                         step="0.01"

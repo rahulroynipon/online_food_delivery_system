@@ -162,7 +162,7 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
                               )}
                               {item.addons.length > 0 && (
                                 <p className="text-[10px] text-muted-foreground truncate font-medium">
-                                  + {item.addons.map((a) => a.name).join(', ')}
+                                  + {item.addons.map((a) => `${a.quantity}x ${a.name}`).join(', ')}
                                 </p>
                               )}
                               <p className="text-[10px] text-muted-foreground mt-1">
