@@ -20,11 +20,6 @@ export const getPublicRestaurants = async (req, res, next) => {
 
     const where = { status: RestaurantStatus.ACTIVE };
 
-    // Search query on restaurant name (case-insensitive)
-    if (search) {
-      where.name = { [Op.iLike]: `%${search}%` };
-    }
-
     const include = [
       {
         model: DeliveryZone,
@@ -38,14 +33,29 @@ export const getPublicRestaurants = async (req, res, next) => {
       include[0].where = { id: parseInt(zone, 10) };
     }
 
-    // Filter by platform category ID (restaurants offering foods matching platformCategoryId)
+    // Handle food filters (either platform category or search matching food name)
+    const foodWhere = { status: 'ACTIVE' };
+    let foodsRequired = false;
+
     if (category) {
+      foodWhere.platformCategoryId = parseInt(category, 10);
+      foodsRequired = true;
+    }
+
+    if (search) {
+      where[Op.or] = [
+        { name: { [Op.iLike]: `%${search}%` } },
+        { '$foods.name$': { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    if (category || search) {
       include.push({
         model: Food,
         as: 'foods',
-        where: { platformCategoryId: parseInt(category, 10), status: 'ACTIVE' },
-        attributes: [], // Don't return all food records in the restaurant listing response
-        required: true // Inner join to filter restaurants
+        where: foodWhere,
+        attributes: [],
+        required: foodsRequired
       });
     }
 
@@ -124,6 +134,120 @@ export const getPublicRestaurantBySlug = async (req, res, next) => {
       success: true,
       restaurant,
       categories
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get popular active food items
+ * @route   GET /api/v1/public/restaurants/foods/popular
+ * @access  Public
+ */
+export const getPublicPopularFoods = async (req, res, next) => {
+  try {
+    const { zone } = req.query;
+
+    const include = [
+      {
+        model: Restaurant,
+        as: 'restaurant',
+        where: { status: RestaurantStatus.ACTIVE },
+        include: []
+      },
+      {
+        model: FoodVariant,
+        as: 'variants'
+      },
+      {
+        model: RestaurantAddon,
+        as: 'addons',
+        through: { attributes: [] }
+      }
+    ];
+
+    if (zone) {
+      include[0].include.push({
+        model: DeliveryZone,
+        as: 'deliveryZones',
+        where: { id: parseInt(zone, 10) },
+        through: { attributes: [] }
+      });
+    }
+
+    const foods = await Food.findAll({
+      where: { status: 'ACTIVE' },
+      include,
+      limit: 8
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: foods.length,
+      foods
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Search and filter food items across restaurants
+ * @route   GET /api/v1/public/restaurants/foods/search
+ * @access  Public
+ */
+export const getPublicFoods = async (req, res, next) => {
+  try {
+    const { zone, search, category } = req.query;
+
+    const where = { status: 'ACTIVE' };
+
+    if (search) {
+      where.name = { [Op.iLike]: `%${search}%` };
+    }
+
+    if (category) {
+      where.platformCategoryId = parseInt(category, 10);
+    }
+
+    const include = [
+      {
+        model: Restaurant,
+        as: 'restaurant',
+        where: { status: RestaurantStatus.ACTIVE },
+        include: []
+      },
+      {
+        model: FoodVariant,
+        as: 'variants'
+      },
+      {
+        model: RestaurantAddon,
+        as: 'addons',
+        through: { attributes: [] }
+      }
+    ];
+
+    if (zone) {
+      include[0].include.push({
+        model: DeliveryZone,
+        as: 'deliveryZones',
+        where: { id: parseInt(zone, 10) },
+        through: { attributes: [] }
+      });
+    }
+
+    const foods = await Food.findAll({
+      where,
+      include,
+      order: [['name', 'ASC']]
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: foods.length,
+      foods
     });
   } catch (error) {
     next(error);

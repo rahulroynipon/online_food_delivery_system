@@ -10,10 +10,12 @@ import {
   SlidersHorizontal,
   Clock,
   ThumbsUp,
-  Sliders
+  Sliders,
+  Plus
 } from 'lucide-react';
-import { Button, Card, Input } from '../../design-system';
+import { Button, Card, Input, toast } from '../../design-system';
 import CustomerLayout from '../../components/CustomerLayout';
+import FoodCustomizerModal from '../../components/FoodCustomizerModal';
 
 interface PlatformCategory {
   id: number;
@@ -37,11 +39,21 @@ interface Restaurant {
 
 export default function RestaurantsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { selectedZone, setSelectedZone } = useCustomerStore();
+  const { selectedZone, setSelectedZone, addToCart } = useCustomerStore();
 
   const [categories, setCategories] = useState<PlatformCategory[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [foods, setFoods] = useState<any[]>([]);
   const [allZones, setAllZones] = useState<Zone[]>([]);
+  
+  // Set default view to DISHES if URL filters (search or category) are present
+  const [activeTab, setActiveTab] = useState<'RESTAURANTS' | 'DISHES'>(
+    searchParams.get('category') || searchParams.get('search') ? 'DISHES' : 'RESTAURANTS'
+  );
+
+  // Customizer modal state
+  const [selectedFood, setSelectedFood] = useState<any>(null);
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
   
   // Local Filter States
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
@@ -105,9 +117,9 @@ export default function RestaurantsPage() {
     loadSetupData();
   }, []);
 
-  // Fetch filtered restaurant list
+  // Fetch filtered restaurant list or dishes list depending on activeTab
   useEffect(() => {
-    const fetchFilteredRestaurants = async () => {
+    const fetchFilteredData = async () => {
       setLoading(true);
       try {
         const params: any = {};
@@ -115,35 +127,85 @@ export default function RestaurantsPage() {
         if (searchQuery.trim()) params.search = searchQuery;
         if (selectedCategory) params.category = selectedCategory;
 
-        const res = await api.get('/public/restaurants', { params });
-        if (res.data?.success) {
-          let list = res.data.restaurants || [];
-          
-          // Client-side Open/Closed filter
-          if (showOpenOnly) {
-            list = list.filter((r: Restaurant) => r.isOpen);
-          }
+        if (activeTab === 'RESTAURANTS') {
+          const res = await api.get('/public/restaurants', { params });
+          if (res.data?.success) {
+            let list = res.data.restaurants || [];
+            
+            // Client-side Open/Closed filter
+            if (showOpenOnly) {
+              list = list.filter((r: Restaurant) => r.isOpen);
+            }
 
-          // Client-side Sorting by Rating
-          if (sortByRating) {
-            list.sort((a: Restaurant, b: Restaurant) => {
-              const ratA = parseFloat(String(a.rating || '4.5'));
-              const ratB = parseFloat(String(b.rating || '4.5'));
-              return ratB - ratA;
-            });
-          }
+            // Client-side Sorting by Rating
+            if (sortByRating) {
+              list.sort((a: Restaurant, b: Restaurant) => {
+                const ratA = parseFloat(String(a.rating || '4.5'));
+                const ratB = parseFloat(String(b.rating || '4.5'));
+                return ratB - ratA;
+              });
+            }
 
-          setRestaurants(list);
+            setRestaurants(list);
+          }
+        } else {
+          // Fetch food dishes matching search or category
+          const res = await api.get('/public/restaurants/foods/search', { params });
+          if (res.data?.success) {
+            let list = res.data.foods || [];
+
+            // Client-side filter for open restaurants
+            if (showOpenOnly) {
+              list = list.filter((f: any) => f.restaurant?.isOpen);
+            }
+
+            setFoods(list);
+          }
         }
       } catch (err) {
-        console.error('Failed to query restaurants:', err);
+        console.error('Failed to query catalog:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFilteredRestaurants();
-  }, [selectedZone, searchQuery, selectedCategory, showOpenOnly, sortByRating]);
+    fetchFilteredData();
+  }, [selectedZone, searchQuery, selectedCategory, showOpenOnly, sortByRating, activeTab]);
+
+  const handleOpenCustomizer = (food: any) => {
+    if (!food.restaurant?.isOpen) {
+      toast.error('This restaurant is currently closed. You cannot add items to the cart.');
+      return;
+    }
+    setSelectedFood(food);
+    setIsCustomizerOpen(true);
+  };
+
+  const handleAddToCart = (item: any) => {
+    addToCart(item);
+    toast.success(`Added ${item.foodName} (${item.quantity}x) to cart!`);
+  };
+
+  const getFoodPriceLabel = (food: any) => {
+    if (!food.variants || food.variants.length === 0) return '৳0.00';
+    const prices = food.variants.map((v: any) => parseFloat(String(v.price || 0)));
+    const minPrice = Math.min(...prices);
+    if (food.variants.length > 1) {
+      return `From ৳${minPrice.toFixed(2)}`;
+    }
+    return `৳${minPrice.toFixed(2)}`;
+  };
+
+  const getFoodImage = (food: any) => {
+    if (food.image) {
+      if (food.image.startsWith('http') || food.image.startsWith('/')) {
+        return food.image;
+      }
+      const cleanPath = food.image.startsWith('uploads/') ? food.image.substring(8) : food.image;
+      return `${api.defaults.baseURL}/uploads/${cleanPath}`;
+    }
+    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80';
+  };
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId);
@@ -270,117 +332,224 @@ export default function RestaurantsPage() {
           </button>
         </div>
 
-        {/* Grid List view */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div key={n} className="h-48 rounded-2xl bg-card/45 border border-border/20 animate-pulse" />
-            ))}
-          </div>
-        ) : restaurants.length === 0 ? (
-          <Card className="p-12 text-center bg-card/30 border border-border/30 max-w-md mx-auto">
-            <div className="h-12 w-12 rounded-full bg-muted/40 flex items-center justify-center mx-auto mb-4">
-              <Utensils className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-sm font-bold text-foreground">No matching restaurants found</h3>
-            <p className="text-xs text-muted-foreground mt-1 leading-relaxed font-medium">
-              We couldn't find any approved kitchens matching your active query in this delivery zone. Try clearing your search filters.
-            </p>
-            {(searchQuery || selectedCategory || showOpenOnly) && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-4 font-bold"
-                onClick={() => {
-                  setSearchParams({});
-                  setShowOpenOnly(false);
-                  setSortByRating(false);
-                }}
-              >
-                Reset Filters
-              </Button>
+        {/* Tab Selector */}
+        <div className="flex gap-2 border-b border-border/10 pb-2.5">
+          <button
+            onClick={() => setActiveTab('RESTAURANTS')}
+            className={`px-4 py-2 text-xs font-bold transition-all relative cursor-pointer ${
+              activeTab === 'RESTAURANTS' 
+                ? 'text-primary font-extrabold' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Restaurants ({restaurants.length})
+            {activeTab === 'RESTAURANTS' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full animate-fade-in" />
             )}
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {restaurants.map((res) => (
-              <Link key={res.id} to={`/restaurant/${res.slug}`} className="group">
-                <Card className="overflow-hidden border border-border/40 hover:border-primary/30 bg-card/65 group-hover:bg-card transition-all duration-300 shadow-2xs group-hover:shadow-xs rounded-2xl relative h-full flex flex-col justify-between">
-                  
-                  {/* Banner */}
-                  <div className="h-32 bg-card relative border-b border-border/10 flex items-center justify-center overflow-hidden">
-                    {res.banner ? (
-                      <img
-                        src={getBannerUrl(res.banner)}
-                        alt={`${res.name} banner`}
-                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="h-full w-full bg-gradient-to-tr from-primary/10 via-primary/5 to-transparent flex items-center justify-center">
-                        <Utensils className="h-8 w-8 text-primary/10 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300" />
-                      </div>
-                    )}
+          </button>
+          <button
+            onClick={() => setActiveTab('DISHES')}
+            className={`px-4 py-2 text-xs font-bold transition-all relative cursor-pointer ${
+              activeTab === 'DISHES' 
+                ? 'text-primary font-extrabold' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Dishes ({foods.length})
+            {activeTab === 'DISHES' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full animate-fade-in" />
+            )}
+          </button>
+        </div>
+
+        {/* Grid List view */}
+        {activeTab === 'RESTAURANTS' ? (
+          loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className="h-48 rounded-2xl bg-card/45 border border-border/20 animate-pulse" />
+              ))}
+            </div>
+          ) : restaurants.length === 0 ? (
+            <Card className="p-12 text-center bg-card/30 border border-border/30 max-w-md mx-auto">
+              <div className="h-12 w-12 rounded-full bg-muted/40 flex items-center justify-center mx-auto mb-4">
+                <Utensils className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <h3 className="text-sm font-bold text-foreground">No matching restaurants found</h3>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed font-medium">
+                We couldn't find any approved kitchens matching your active query in this delivery zone. Try clearing your search filters.
+              </p>
+              {(searchQuery || selectedCategory || showOpenOnly) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-4 font-bold"
+                  onClick={() => {
+                    setSearchParams({});
+                    setShowOpenOnly(false);
+                    setSortByRating(false);
+                  }}
+                >
+                  Reset Filters
+                </Button>
+              )}
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {restaurants.map((res) => (
+                <Link key={res.id} to={`/restaurant/${res.slug}`} className="group">
+                  <Card className="overflow-hidden border border-border/40 hover:border-primary/30 bg-card/65 group-hover:bg-card transition-all duration-300 shadow-2xs group-hover:shadow-xs rounded-2xl relative h-full flex flex-col justify-between">
                     
-                    {/* Status badge */}
-                    <span className={`absolute top-2 right-2 text-[8px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded-md shadow-2xs border z-10 ${
-                      res.isOpen 
-                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
-                        : 'bg-slate-500/10 text-slate-500 border-slate-500/20'
-                    }`}>
-                      {res.isOpen ? 'Open' : 'Closed'}
+                    {/* Banner */}
+                    <div className="h-32 bg-card relative border-b border-border/10 flex items-center justify-center overflow-hidden">
+                      {res.banner ? (
+                        <img
+                          src={getBannerUrl(res.banner)}
+                          alt={`${res.name} banner`}
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-gradient-to-tr from-primary/10 via-primary/5 to-transparent flex items-center justify-center">
+                          <Utensils className="h-8 w-8 text-primary/10 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300" />
+                        </div>
+                      )}
+                      
+                      {/* Status badge */}
+                      <span className={`absolute top-2 right-2 text-[8px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded-md shadow-2xs border z-10 ${
+                        res.isOpen 
+                          ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                          : 'bg-slate-500/10 text-slate-500 border-slate-500/20'
+                      }`}>
+                        {res.isOpen ? 'Open' : 'Closed'}
+                      </span>
+                    </div>
+
+                    {/* Logo Avatar Overlap Container */}
+                    <div className="relative px-4 select-none h-6">
+                      <div className="absolute -top-6 left-4 h-12 w-12 rounded-xl border-2 border-card bg-card overflow-hidden shadow-sm flex items-center justify-center shrink-0">
+                        {res.logo ? (
+                          <img
+                            src={getLogoUrl(res.logo)}
+                            alt={res.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                            {res.name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-4 pt-2 flex-1 flex flex-col justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <h3 className="text-sm font-extrabold text-foreground group-hover:text-primary transition-colors truncate">
+                            {res.name}
+                          </h3>
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                            <span className="text-[11px] font-bold text-foreground">
+                              {res.rating ? Number(res.rating).toFixed(1) : '4.5'}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2 leading-normal">
+                          {res.description || 'Tasty cuisines, fast delivery, and premium quality meals.'}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-border/10 text-[10px] text-muted-foreground font-semibold">
+                        <Clock className="h-3.5 w-3.5 text-primary" />
+                        <span>
+                          {res.openingTime && res.closingTime 
+                            ? `Hours: ${formatTime(res.openingTime)} - ${formatTime(res.closingTime)}`
+                            : 'Open 24 Hours'}
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )
+        ) : (
+          loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className="h-44 rounded-2xl bg-card/45 border border-border/20 animate-pulse" />
+              ))}
+            </div>
+          ) : foods.length === 0 ? (
+            <Card className="p-12 text-center bg-card/30 border border-border/30 max-w-md mx-auto">
+              <div className="h-12 w-12 rounded-full bg-muted/40 flex items-center justify-center mx-auto mb-4">
+                <Utensils className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <h3 className="text-sm font-bold text-foreground">No matching dishes found</h3>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed font-medium">
+                We couldn't find any food items matching your active query in this delivery zone.
+              </p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {foods.map((food) => (
+                <Card 
+                  key={food.id}
+                  className="overflow-hidden border border-border/40 hover:border-primary/35 bg-card/65 hover:bg-card transition-all duration-300 shadow-2xs hover:shadow-xs rounded-2xl flex flex-col justify-between"
+                >
+                  <div className="h-32 overflow-hidden border-b border-border/10 relative select-none">
+                    <img
+                      src={getFoodImage(food)}
+                      alt={food.name}
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <span className="absolute bottom-2 left-2 text-[9px] font-extrabold text-foreground bg-card/90 px-2 py-0.5 rounded-md border border-border/20">
+                      {food.restaurant?.name}
                     </span>
                   </div>
 
-                  {/* Logo Avatar Overlap Container */}
-                  <div className="relative px-4 select-none h-6">
-                    <div className="absolute -top-6 left-4 h-12 w-12 rounded-xl border-2 border-card bg-card overflow-hidden shadow-sm flex items-center justify-center shrink-0">
-                      {res.logo ? (
-                        <img
-                          src={getLogoUrl(res.logo)}
-                          alt={res.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-full w-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                          {res.name.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="p-4 pt-2 flex-1 flex flex-col justify-between">
+                  <div className="p-4 flex-1 flex flex-col justify-between">
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-1.5">
-                        <h3 className="text-sm font-extrabold text-foreground group-hover:text-primary transition-colors truncate">
-                          {res.name}
-                        </h3>
-                        <div className="flex items-center gap-0.5 shrink-0">
-                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                          <span className="text-[11px] font-bold text-foreground">
-                            {res.rating ? Number(res.rating).toFixed(1) : '4.5'}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-normal">
-                        {res.description || 'Tasty cuisines, fast delivery, and premium quality meals.'}
+                      <h4 className="text-xs font-black text-foreground truncate">
+                        {food.name}
+                      </h4>
+                      <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+                        {food.description || 'Delicious freshly made authentic recipe.'}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-border/10 text-[10px] text-muted-foreground font-semibold">
-                      <Clock className="h-3.5 w-3.5 text-primary" />
-                      <span>
-                        {res.openingTime && res.closingTime 
-                          ? `Hours: ${formatTime(res.openingTime)} - ${formatTime(res.closingTime)}`
-                          : 'Open 24 Hours'}
+                    <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border/10">
+                      <span className="text-xs font-black text-foreground">
+                        {getFoodPriceLabel(food)}
                       </span>
+                      
+                      <Button
+                        size="xs"
+                        variant="primary"
+                        className="h-7 w-7 rounded-lg p-0 flex items-center justify-center font-bold"
+                        onClick={() => handleOpenCustomizer(food)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </Card>
-              </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         )}
       </div>
+
+      {selectedFood && (
+        <FoodCustomizerModal
+          isOpen={isCustomizerOpen}
+          onClose={() => setIsCustomizerOpen(false)}
+          food={selectedFood}
+          restaurantId={selectedFood.restaurant?.id || 0}
+          restaurantName={selectedFood.restaurant?.name || ''}
+          onAddToCart={handleAddToCart}
+        />
+      )}
     </CustomerLayout>
   );
 }

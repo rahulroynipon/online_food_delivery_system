@@ -11,10 +11,12 @@ import {
   Clock,
   Sparkles,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Plus
 } from 'lucide-react';
-import { Button, Card, Input } from '../../design-system';
+import { Button, Card, Input, toast } from '../../design-system';
 import CustomerLayout from '../../components/CustomerLayout';
+import FoodCustomizerModal from '../../components/FoodCustomizerModal';
 
 interface PlatformCategory {
   id: number;
@@ -40,12 +42,18 @@ interface Restaurant {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { selectedZone } = useCustomerStore();
+  const { selectedZone, addToCart } = useCustomerStore();
 
   const [categories, setCategories] = useState<PlatformCategory[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [popularFoods, setPopularFoods] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [foodsLoading, setFoodsLoading] = useState(true);
+
+  // Customizer modal state
+  const [selectedFood, setSelectedFood] = useState<any>(null);
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
 
   // Carousel ref and scroll handlers
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -122,6 +130,62 @@ export default function HomePage() {
     };
     fetchRestaurants();
   }, [selectedZone]);
+
+  // Fetch popular foods matching selected zone
+  useEffect(() => {
+    const fetchPopularFoods = async () => {
+      if (!selectedZone) return;
+      setFoodsLoading(true);
+      try {
+        const res = await api.get('/public/restaurants/foods/popular', {
+          params: { zone: selectedZone.id }
+        });
+        if (res.data?.success) {
+          setPopularFoods(res.data.foods || []);
+        }
+      } catch (err) {
+        console.error('Failed to load popular foods:', err);
+      } finally {
+        setFoodsLoading(false);
+      }
+    };
+    fetchPopularFoods();
+  }, [selectedZone]);
+
+  const handleOpenCustomizer = (food: any) => {
+    if (!food.restaurant?.isOpen) {
+      toast.error('This restaurant is currently closed. You cannot add items to the cart.');
+      return;
+    }
+    setSelectedFood(food);
+    setIsCustomizerOpen(true);
+  };
+
+  const handleAddToCart = (item: any) => {
+    addToCart(item);
+    toast.success(`Added ${item.foodName} (${item.quantity}x) to cart!`);
+  };
+
+  const getFoodPriceLabel = (food: any) => {
+    if (!food.variants || food.variants.length === 0) return '৳0.00';
+    const prices = food.variants.map((v: any) => parseFloat(String(v.price || 0)));
+    const minPrice = Math.min(...prices);
+    if (food.variants.length > 1) {
+      return `From ৳${minPrice.toFixed(2)}`;
+    }
+    return `৳${minPrice.toFixed(2)}`;
+  };
+
+  const getFoodImage = (food: any) => {
+    if (food.image) {
+      if (food.image.startsWith('http') || food.image.startsWith('/')) {
+        return food.image;
+      }
+      const cleanPath = food.image.startsWith('uploads/') ? food.image.substring(8) : food.image;
+      return `${api.defaults.baseURL}/uploads/${cleanPath}`;
+    }
+    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80';
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,6 +302,81 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
+          </section>
+        )}
+
+        {/* Popular Foods Section */}
+        {popularFoods.length > 0 && (
+          <section className="space-y-6 animate-fade-in">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-border/10 pb-4">
+              <div>
+                <h2 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-1.5">
+                  Popular Foods
+                  {selectedZone && (
+                    <span className="text-xs font-medium text-muted-foreground">
+                      in {selectedZone.name}
+                    </span>
+                  )}
+                </h2>
+                <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                  Dishes that local food lovers are ordering right now.
+                </p>
+              </div>
+            </div>
+
+            {foodsLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n} className="h-44 rounded-2xl bg-card/45 border border-border/20 animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                {popularFoods.map((food) => (
+                  <Card 
+                    key={food.id}
+                    className="overflow-hidden border border-border/40 hover:border-primary/35 bg-card/65 hover:bg-card transition-all duration-300 shadow-2xs hover:shadow-xs rounded-2xl flex flex-col justify-between"
+                  >
+                    <div className="h-32 overflow-hidden border-b border-border/10 relative select-none">
+                      <img
+                        src={getFoodImage(food)}
+                        alt={food.name}
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <span className="absolute bottom-2 left-2 text-[9px] font-extrabold text-foreground bg-card/90 px-2 py-0.5 rounded-md border border-border/20">
+                        {food.restaurant?.name}
+                      </span>
+                    </div>
+
+                    <div className="p-4 flex-1 flex flex-col justify-between">
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-black text-foreground truncate">
+                          {food.name}
+                        </h4>
+                        <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+                          {food.description || 'Delicious freshly made authentic recipe.'}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border/10">
+                        <span className="text-xs font-black text-foreground">
+                          {getFoodPriceLabel(food)}
+                        </span>
+                        
+                        <Button
+                          size="xs"
+                          variant="primary"
+                          className="h-7 w-7 rounded-lg p-0 flex items-center justify-center font-bold"
+                          onClick={() => handleOpenCustomizer(food)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -362,6 +501,17 @@ export default function HomePage() {
           )}
         </section>
       </div>
+
+      {selectedFood && (
+        <FoodCustomizerModal
+          isOpen={isCustomizerOpen}
+          onClose={() => setIsCustomizerOpen(false)}
+          food={selectedFood}
+          restaurantId={selectedFood.restaurant?.id || 0}
+          restaurantName={selectedFood.restaurant?.name || ''}
+          onAddToCart={handleAddToCart}
+        />
+      )}
     </CustomerLayout>
   );
 }

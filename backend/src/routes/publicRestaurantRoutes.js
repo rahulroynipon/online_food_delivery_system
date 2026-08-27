@@ -1,7 +1,9 @@
 import express from 'express';
 import { 
   getPublicRestaurants, 
-  getPublicRestaurantBySlug 
+  getPublicRestaurantBySlug,
+  getPublicPopularFoods,
+  getPublicFoods
 } from '../controllers/publicRestaurantController.js';
 
 const router = express.Router();
@@ -33,6 +35,52 @@ const router = express.Router();
  *         description: Success
  */
 router.get('/', getPublicRestaurants);
+
+/**
+ * @swagger
+ * /api/v1/public/restaurants/foods/popular:
+ *   get:
+ *     summary: Fetch popular active foods
+ *     tags: [Public Restaurants]
+ *     parameters:
+ *       - in: query
+ *         name: zone
+ *         schema:
+ *           type: integer
+ *         description: Filter by delivery zone ID
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.get('/foods/popular', getPublicPopularFoods);
+
+/**
+ * @swagger
+ * /api/v1/public/restaurants/foods/search:
+ *   get:
+ *     summary: Search and filter foods across restaurants
+ *     tags: [Public Restaurants]
+ *     parameters:
+ *       - in: query
+ *         name: zone
+ *         schema:
+ *           type: integer
+ *         description: Filter by delivery zone ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search food name
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: integer
+ *         description: Filter by platform category ID
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.get('/foods/search', getPublicFoods);
 
 /**
  * @swagger
