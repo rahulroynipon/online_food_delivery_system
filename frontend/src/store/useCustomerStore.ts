@@ -33,8 +33,13 @@ export interface Zone {
 
 interface CustomerState {
   selectedZone: Zone | null;
+  selectedAddress: any | null;
+  activeScopeKey: string; // e.g. "guest" or "address_12" or "zone_2"
   cart: CartItem[];
+  cartsByScope: Record<string, CartItem[]>;
   setSelectedZone: (zone: Zone | null) => void;
+  setSelectedAddress: (address: any | null) => void;
+  setCartScope: (scopeKey: string) => void;
   addToCart: (item: CartItem) => void;
   removeFromCart: (index: number) => void;
   updateQuantity: (index: number, delta: number) => void;
@@ -44,11 +49,20 @@ interface CustomerState {
 export const useCustomerStore = create<CustomerState>((set) => {
   // Load initial values from localStorage
   const savedZone = localStorage.getItem('selected_delivery_zone');
-  const savedCart = localStorage.getItem('customer_cart');
+  const savedAddress = localStorage.getItem('selected_delivery_address');
+  const savedCartsByScope = localStorage.getItem('customer_carts_by_scope');
+  const savedScopeKey = localStorage.getItem('customer_cart_scope_key') || 'guest';
+
+  const cartsByScope = savedCartsByScope ? JSON.parse(savedCartsByScope) : {};
+  const activeScopeKey = savedScopeKey;
+  const cart = cartsByScope[activeScopeKey] || [];
 
   return {
     selectedZone: savedZone ? JSON.parse(savedZone) : null,
-    cart: savedCart ? JSON.parse(savedCart) : [],
+    selectedAddress: savedAddress ? JSON.parse(savedAddress) : null,
+    activeScopeKey,
+    cart,
+    cartsByScope,
 
     setSelectedZone: (zone) => {
       if (zone) {
@@ -57,6 +71,26 @@ export const useCustomerStore = create<CustomerState>((set) => {
         localStorage.removeItem('selected_delivery_zone');
       }
       set({ selectedZone: zone });
+    },
+
+    setSelectedAddress: (address) => {
+      if (address) {
+        localStorage.setItem('selected_delivery_address', JSON.stringify(address));
+      } else {
+        localStorage.removeItem('selected_delivery_address');
+      }
+      set({ selectedAddress: address });
+    },
+
+    setCartScope: (scopeKey) => {
+      localStorage.setItem('customer_cart_scope_key', scopeKey);
+      set((state) => {
+        const targetCart = state.cartsByScope[scopeKey] || [];
+        return {
+          activeScopeKey: scopeKey,
+          cart: targetCart,
+        };
+      });
     },
 
     addToCart: (item) => {
@@ -90,16 +124,30 @@ export const useCustomerStore = create<CustomerState>((set) => {
           currentCart.push(item);
         }
 
-        localStorage.setItem('customer_cart', JSON.stringify(currentCart));
-        return { cart: currentCart };
+        const updatedCarts = {
+          ...state.cartsByScope,
+          [state.activeScopeKey]: currentCart
+        };
+        localStorage.setItem('customer_carts_by_scope', JSON.stringify(updatedCarts));
+        return { 
+          cart: currentCart,
+          cartsByScope: updatedCarts
+        };
       });
     },
 
     removeFromCart: (index) => {
       set((state) => {
         const currentCart = state.cart.filter((_, idx) => idx !== index);
-        localStorage.setItem('customer_cart', JSON.stringify(currentCart));
-        return { cart: currentCart };
+        const updatedCarts = {
+          ...state.cartsByScope,
+          [state.activeScopeKey]: currentCart
+        };
+        localStorage.setItem('customer_carts_by_scope', JSON.stringify(updatedCarts));
+        return { 
+          cart: currentCart,
+          cartsByScope: updatedCarts
+        };
       });
     },
 
@@ -115,14 +163,31 @@ export const useCustomerStore = create<CustomerState>((set) => {
         } else {
           currentCart[index] = { ...item, quantity: newQty };
         }
-        localStorage.setItem('customer_cart', JSON.stringify(currentCart));
-        return { cart: currentCart };
+        
+        const updatedCarts = {
+          ...state.cartsByScope,
+          [state.activeScopeKey]: currentCart
+        };
+        localStorage.setItem('customer_carts_by_scope', JSON.stringify(updatedCarts));
+        return { 
+          cart: currentCart,
+          cartsByScope: updatedCarts
+        };
       });
     },
 
     clearCart: () => {
-      localStorage.removeItem('customer_cart');
-      set({ cart: [] });
+      set((state) => {
+        const updatedCarts = {
+          ...state.cartsByScope,
+          [state.activeScopeKey]: []
+        };
+        localStorage.setItem('customer_carts_by_scope', JSON.stringify(updatedCarts));
+        return {
+          cart: [],
+          cartsByScope: updatedCarts
+        };
+      });
     },
   };
 });

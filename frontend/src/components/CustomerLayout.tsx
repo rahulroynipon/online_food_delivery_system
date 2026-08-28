@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCustomerStore, Zone } from '../store/useCustomerStore';
 import api from '../lib/axios';
@@ -26,7 +26,7 @@ interface CustomerLayoutProps {
 export default function CustomerLayout({ children }: CustomerLayoutProps) {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuthStore();
-  const { selectedZone, setSelectedZone, cart } = useCustomerStore();
+  const { selectedZone, setSelectedZone, selectedAddress, setSelectedAddress, cart, setCartScope } = useCustomerStore();
   
   const [zones, setZones] = useState<Zone[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -84,7 +84,6 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
 
   // Saved Addresses State array
   const [userAddresses, setUserAddresses] = useState<any[]>([]);
-  const [selectedAddress, setSelectedAddress] = useState<any>(null);
   const [isAddressManagerOpen, setIsAddressManagerOpen] = useState(false);
   const [addressToEdit, setAddressToEdit] = useState<any>(null);
 
@@ -172,10 +171,15 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
             const hasAddr = list.length > 0;
             setShowAddressPrompt(!hasAddr);
             
-            // Set active address (default one first)
+            // Set active address (keep manually selected address if it still exists in the fetched list)
             if (hasAddr) {
-              const defAddr = list.find((a: any) => a.isDefault) || list[0];
-              setSelectedAddress(defAddr);
+              const stillExists = list.find((a: any) => selectedAddress && a.id === selectedAddress.id);
+              if (stillExists) {
+                setSelectedAddress(stillExists);
+              } else {
+                const defAddr = list.find((a: any) => a.isDefault) || list[0];
+                setSelectedAddress(defAddr);
+              }
             } else {
               setSelectedAddress(null);
             }
@@ -192,6 +196,25 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
   useEffect(() => {
     fetchUserAddresses();
   }, [isAuthenticated, user]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Listen for query params to force opening address configure modal
+  useEffect(() => {
+    if (searchParams.get('add-address') === 'true') {
+      // Clear param
+      setSearchParams({}, { replace: true });
+      // Open modal
+      setAddressToEdit(null);
+      setAddressForm({
+        label: '',
+        address: '',
+        latitude: '23.7516',
+        longitude: '90.3786',
+      });
+      setShowAddressPrompt(true);
+    }
+  }, [searchParams, setSearchParams]);
 
   // Auto-determine active zone from the chosen address
   useEffect(() => {
@@ -218,6 +241,17 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
       }
     }
   }, [selectedAddress, zones]);
+
+  // Sync cart scope with active address/zone
+  useEffect(() => {
+    if (isAuthenticated && user && user.role === 'CUSTOMER' && selectedAddress) {
+      setCartScope(`address_${selectedAddress.id}`);
+    } else if (selectedZone) {
+      setCartScope(`zone_${selectedZone.id}`);
+    } else {
+      setCartScope('guest');
+    }
+  }, [selectedAddress, selectedZone, isAuthenticated, user]);
 
   // Initialize and teardown the Leaflet Map
   useEffect(() => {

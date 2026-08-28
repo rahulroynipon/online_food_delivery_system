@@ -4,6 +4,7 @@ import { useCustomerStore, CartItem } from '../../store/useCustomerStore';
 import CustomerLayout from '../../components/CustomerLayout';
 import FoodCustomizerModal from '../../components/FoodCustomizerModal';
 import { Button, toast } from '../../design-system';
+import { useAuthStore } from '../../store/useAuthStore';
 import {
   Trash2,
   Pencil,
@@ -12,6 +13,8 @@ import {
   Store,
   ChevronRight,
   PackageOpen,
+  ChevronDown,
+  Compass,
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -20,7 +23,25 @@ type SelectedAddon   = { id: number; name: string; price: number; quantity: numb
 
 export default function CartPage() {
   const navigate = useNavigate();
-  const { cart, removeFromCart, addToCart, clearCart, selectedZone } = useCustomerStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const { cart, removeFromCart, addToCart, clearCart, selectedZone, setCartScope, selectedAddress, setSelectedAddress } = useCustomerStore();
+
+  const [userAddresses, setUserAddresses] = useState<any[]>([]);
+  const [isAddrDropdownOpen, setIsAddrDropdownOpen] = useState(false);
+  const [restaurantZones, setRestaurantZones] = useState<any[]>([]);
+
+  // Distance calculator (Haversine formula in KM)
+  const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Earth radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
 
   // Fetched full menu foods indexed by foodId
   const [menuFoods, setMenuFoods] = useState<Record<number, any>>({});
@@ -49,11 +70,68 @@ export default function CartPage() {
             (cat.foods || []).forEach((food: any) => { foods[food.id] = food; });
           });
           setMenuFoods(foods);
+          setRestaurantZones(res.data.restaurant?.deliveryZones || []);
         }
       })
       .catch(() => {})
       .finally(() => setMenuLoading(false));
   }, [restaurantSlug]);
+
+  // Fetch customer saved addresses
+  useEffect(() => {
+    if (isAuthenticated && user && user.role === 'CUSTOMER') {
+      api.get('/user-addresses')
+        .then((res) => {
+          if (res.data?.success) {
+            const list = res.data.addresses || [];
+            setUserAddresses(list);
+            
+            // Set active address (keep manually selected address if it still exists in the fetched list)
+            if (list.length > 0) {
+              const stillExists = list.find((a: any) => selectedAddress && a.id === selectedAddress.id);
+              if (!stillExists) {
+                const defAddr = list.find((a: any) => a.isDefault) || list[0];
+                setSelectedAddress(defAddr || null);
+              }
+            } else {
+              setSelectedAddress(null);
+            }
+          }
+        });
+    }
+  }, [isAuthenticated, user]);
+
+  // Sync cart scope in CartPage if address is changed
+  useEffect(() => {
+    if (selectedAddress) {
+      setCartScope(`address_${selectedAddress.id}`);
+    }
+  }, [selectedAddress]);
+
+  const handleAddressChange = (addr: any) => {
+    setSelectedAddress(addr);
+    setIsAddrDropdownOpen(false);
+    toast.success(`Active delivery address set to "${addr.label}"`);
+  };
+
+  // Verify coordinates coverage
+  const isAddressCovered = React.useMemo(() => {
+    if (!selectedAddress || restaurantZones.length === 0) return true; // fallback to true during loading
+    const lat = Number(selectedAddress.latitude);
+    const lng = Number(selectedAddress.longitude);
+    
+    for (const zone of restaurantZones) {
+      const zoneLat = Number(zone.latitude || 0);
+      const zoneLng = Number(zone.longitude || 0);
+      const zoneRadius = Number(zone.radiusKm || 0);
+      
+      const dist = getDistanceKm(lat, lng, zoneLat, zoneLng);
+      if (dist <= zoneRadius) {
+        return true;
+      }
+    }
+    return false;
+  }, [selectedAddress, restaurantZones]);
 
   const getItemImage = (image?: string) => {
     if (!image) return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80';
@@ -237,12 +315,93 @@ export default function CartPage() {
             <div className="w-full lg:w-72 shrink-0 rounded-3xl border border-border/40 bg-card/70 p-5 space-y-4 sticky top-24">
               <h2 className="text-sm font-extrabold text-foreground border-b border-border/10 pb-3">Order Summary</h2>
 
-              {/* Delivery Zone */}
-              {selectedZone && (
-                <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground bg-muted/30 rounded-xl px-3 py-2">
-                  <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                  <span>Delivering to <span className="font-bold text-foreground">{selectedZone.name}</span></span>
+              {/* Delivery Address Scoped Selector */}
+              {isAuthenticated && user && user.role === 'CUSTOMER' ? (
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Select Delivery Location</span>
+                  {userAddresses.length === 0 ? (
+                    <div className="text-center p-3 rounded-2xl border border-dashed border-border/80 bg-background/50 space-y-2">
+                      <p className="text-[10px] text-muted-foreground">No saved delivery addresses found.</p>
+                      <Link to="/?add-address=true" className="inline-block text-[10px] text-primary font-bold hover:underline">
+                        + Configure Address
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddrDropdownOpen(!isAddrDropdownOpen)}
+                        className="w-full flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl border border-border/60 bg-background hover:bg-muted/40 text-xs font-bold text-foreground transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center gap-1.5 truncate">
+                          <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span className="truncate">{selectedAddress ? selectedAddress.label : 'Choose Address'}</span>
+                        </div>
+                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      </button>
+                      
+                      {isAddrDropdownOpen && (
+                        <div className="absolute bottom-full left-0 right-0 mb-1.5 max-h-48 overflow-y-auto rounded-2xl border border-border bg-card shadow-lg p-1.5 z-50 animate-fade-in">
+                          {userAddresses.map((addr) => (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => handleAddressChange(addr)}
+                              className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-muted/50 transition-colors flex items-center justify-between gap-1.5 ${
+                                selectedAddress?.id === addr.id ? 'text-primary bg-primary/5' : 'text-foreground/80'
+                              }`}
+                            >
+                              <div className="truncate pr-1.5">
+                                <p className="font-extrabold text-[10px]">{addr.label}</p>
+                                <p className="text-[9px] text-muted-foreground truncate">{addr.address}</p>
+                              </div>
+                              {selectedAddress?.id === addr.id && <span className="h-1 w-1 rounded-full bg-primary shrink-0" />}
+                            </button>
+                          ))}
+                          <div className="border-t border-border/40 my-1" />
+                          <Link
+                            to="/?add-address=true"
+                            className="block text-center py-1.5 text-[9px] font-bold text-primary hover:bg-primary/5 transition-colors rounded-lg"
+                          >
+                            + Add Address
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedAddress && (
+                    <div className="text-[10px] text-muted-foreground bg-muted/40 rounded-xl px-3 py-2 leading-relaxed">
+                      <p className="font-bold text-foreground/90">{selectedAddress.label}</p>
+                      <p className="truncate mt-0.5">{selectedAddress.address}</p>
+                    </div>
+                  )}
+
+                  {/* Coverage Status badge */}
+                  {selectedAddress && (
+                    <div className="pt-0.5">
+                      {isAddressCovered ? (
+                        <div className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                          <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>Served by this restaurant.</span>
+                        </div>
+                      ) : (
+                        <div className="text-[9px] text-rose-600 dark:text-rose-400 font-bold bg-rose-500/10 border border-rose-500/20 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                          <span className="h-1 w-1 rounded-full bg-rose-500 animate-pulse" />
+                          <span>Outside restaurant service range.</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
+              ) : (
+                /* Guest zone fallback display */
+                selectedZone && (
+                  <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground bg-muted/30 rounded-xl px-3 py-2">
+                    <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span>Delivering to <span className="font-bold text-foreground">{selectedZone.name}</span></span>
+                  </div>
+                )
               )}
 
               {/* Price breakdown */}
@@ -264,6 +423,9 @@ export default function CartPage() {
               <Button
                 variant="primary"
                 className="w-full font-bold py-3 text-sm"
+                disabled={
+                  (isAuthenticated && user?.role === 'CUSTOMER' && (userAddresses.length === 0 || !isAddressCovered))
+                }
                 onClick={() => toast.info('Checkout will be fully implemented in Phase 2.')}
               >
                 Place Order
