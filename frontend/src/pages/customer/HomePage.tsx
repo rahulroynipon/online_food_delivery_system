@@ -228,17 +228,17 @@ export default function HomePage() {
           </div>
 
           {/* Search Form Box */}
-          <form onSubmit={handleSearchSubmit} className="w-full max-w-lg mt-8 flex flex-col sm:flex-row gap-2">
+          <form onSubmit={handleSearchSubmit} className="w-full max-w-lg mt-8 flex flex-col sm:flex-row gap-2 items-stretch">
             <div className="relative flex-1">
               <Input
                 placeholder="Search food or restaurant names..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 leftIcon={<Search className="h-4 w-4 text-muted-foreground" />}
-                className="w-full h-11"
+                className="w-full h-12"
               />
             </div>
-            <Button type="submit" variant="primary" className="h-11 px-6 text-sm font-bold shadow-md">
+            <Button type="submit" variant="primary" className="px-6 text-sm font-bold shadow-md shrink-0">
               Find Food
             </Button>
           </form>

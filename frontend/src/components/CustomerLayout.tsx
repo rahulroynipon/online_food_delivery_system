@@ -29,11 +29,10 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
 
   // Fetch available zones for selector dropdown
   useEffect(() => {
-    const fetchZones = async () => {
-      try {
-        const response = await api.get('/delivery-zones');
-        if (response.data?.success) {
-          const activeZones = (response.data.deliveryZones || []).filter(
+    api.get('/delivery-zones')
+      .then((res) => {
+        if (res.data?.success) {
+          const activeZones = (res.data.deliveryZones || []).filter(
             (z: any) => z.status === 'ACTIVE'
           );
           setZones(activeZones);
@@ -43,12 +42,17 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
             setSelectedZone(activeZones[0]);
           }
         }
-      } catch (err) {
-        console.error('Failed to load delivery zones:', err);
-      }
-    };
-    fetchZones();
+      })
+      .catch((err) => {
+        console.error('Failed to fetch zones:', err);
+      });
   }, [selectedZone, setSelectedZone]);
+
+  const handleLogout = () => {
+    logout();
+    toast.success('Logged out successfully');
+    navigate('/');
+  };
 
   const handleZoneSelect = (zone: Zone) => {
     setSelectedZone(zone);
@@ -56,44 +60,41 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
     toast.success(`Delivery zone switched to ${zone.name}`);
   };
 
-  const handleLogout = async () => {
-    await logout();
-    toast.success('Logged out successfully.');
-    navigate('/login');
-  };
-
   const totalCartItems = cart.reduce((acc, curr) => acc + curr.quantity, 0);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      {/* Translucent Glassmorphism Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 transition-all duration-300">
+      {/* Premium Header */}
+      <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md select-none">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           
-          {/* Brand Logo */}
-          <Link to="/" className="flex items-center gap-2 text-primary font-black text-xl tracking-tight select-none">
-            <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
-              <UtensilsCrossed className="h-5 w-5" />
+          {/* Logo Brand */}
+          <Link to="/" className="flex items-center gap-2 font-black text-xl tracking-tight shrink-0">
+            <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <UtensilsCrossed className="h-5 w-5 text-primary" />
             </div>
-            <span>Bite<span className="text-foreground">Speed</span></span>
+            <span className="bg-gradient-to-r from-primary to-rose-500 bg-clip-text text-transparent">
+              BiteSpeed
+            </span>
           </Link>
 
-          {/* Location / Zone Selector Dropdown */}
-          <div className="relative">
+          {/* Delivery Zone Selector Dropdown */}
+          <div className="relative mx-4 flex-1 max-w-[240px]">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/60 hover:border-primary/50 bg-card/45 hover:bg-card/90 transition-all text-xs font-semibold text-foreground/80 shadow-2xs cursor-pointer select-none"
+              className="w-full flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl border border-border/50 bg-card hover:bg-muted/40 text-xs font-bold text-foreground transition-all cursor-pointer"
             >
-              <MapPin className="h-3.5 w-3.5 text-primary" />
-              <span>{selectedZone ? selectedZone.name : 'Select Zone'}</span>
-              <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <div className="flex items-center gap-1.5 truncate">
+                <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="truncate">
+                  {selectedZone ? `Deliver to: ${selectedZone.name}` : 'Select Delivery Zone'}
+                </span>
+              </div>
+              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 rounded-xl border border-border/50 bg-card shadow-lg py-1 z-50 animate-fade-in">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-3 py-1.5 border-b border-border/10 select-none">
-                  Select Delivery Area
-                </p>
+              <div className="absolute top-full left-0 right-0 mt-1.5 max-h-56 overflow-y-auto rounded-2xl border border-border/50 bg-card shadow-lg p-1.5 z-50 animate-fade-in">
                 {zones.map((zone) => (
                   <button
                     key={zone.id}
@@ -112,7 +113,6 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
 
           {/* Navigation Action Buttons */}
           <div className="flex items-center gap-3">
-            {/* Cart Button → navigates to /cart page */}
             <Link
               to="/cart"
               className="relative h-9 w-9 rounded-full hover:bg-muted flex items-center justify-center transition-colors cursor-pointer"
@@ -155,7 +155,6 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
               </div>
             )}
           </div>
-
         </div>
       </header>
 
@@ -164,9 +163,105 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
         {children}
       </main>
 
-      {/* Simple Premium Footer */}
-      <footer className="border-t border-border/20 bg-card/25 py-6 text-center text-xs text-muted-foreground font-medium select-none">
-        <p>&copy; {new Date().getFullYear()} BiteSpeed Inc. University Food Delivery System Demonstration.</p>
+      {/* Rich Premium Footer */}
+      <footer className="border-t border-slate-900 bg-slate-950 text-slate-400 pt-16 pb-12 w-full mt-auto select-none">
+        <div className="max-w-7xl mx-auto px-4 space-y-12">
+          
+          {/* Top Row: Logo brand & Social media */}
+          <div className="flex flex-col sm:flex-row justify-between items-center pb-8 border-b border-slate-900 gap-6">
+            <div className="flex items-center gap-2.5 tracking-tight">
+              <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                <UtensilsCrossed className="h-5 w-5 text-primary" />
+              </div>
+              <span className="text-xl font-black text-white">
+                BiteSpeed <span className="bg-gradient-to-r from-primary to-rose-400 bg-clip-text text-transparent text-sm font-semibold tracking-normal ml-1">Campus Delivery</span>
+              </span>
+            </div>
+            
+            {/* Social Links / Developer Portfolios */}
+            <div className="flex items-center gap-3">
+              <a 
+                href="https://github.com/rahulroynipon/online_food_delivery_system" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="h-9 w-9 rounded-xl border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-700 hover:bg-slate-900/50 transition-all"
+                title="GitHub Repository"
+              >
+                <svg className="h-4.5 w-4.5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+              </a>
+              <a 
+                href="#" 
+                className="h-9 w-9 rounded-xl border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-700 hover:bg-slate-900/50 transition-all"
+                title="Developer Portfolio"
+              >
+                <svg className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3z"/><path d="M6 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3z"/><path d="M9 6h6"/><path d="M9 12h6"/><path d="M9 18h6"/></svg>
+              </a>
+            </div>
+          </div>
+
+          {/* Bottom Grid: Info, Navigation, System Architecture, & Contributor detail */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 text-xs leading-relaxed">
+            
+            {/* Column 1: System Purpose & Core Concepts */}
+            <div className="space-y-4">
+              <span className="font-bold text-white tracking-wider uppercase text-[10px]">Project Scope</span>
+              <p className="text-slate-400/80 font-normal leading-relaxed">
+                A multi-role campus logistics platform providing coordinate-bounded food delivery for university campuses.
+              </p>
+              <div className="text-[10px] text-slate-500 font-normal space-y-1">
+                <p>• Haversine formula zone validation</p>
+                <p>• Role-based authentication controls</p>
+              </div>
+            </div>
+
+            {/* Column 2: Architecture Stack */}
+            <div className="space-y-3.5">
+              <span className="font-bold text-white tracking-wider uppercase text-[10px]">Platform Stack</span>
+              <div className="flex flex-col gap-2 font-normal text-slate-400/85">
+                <div>
+                  <p className="font-semibold text-slate-300">Frontend</p>
+                  <p className="text-[11px] text-slate-500">React, TypeScript, TailwindCSS, Zustand</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-300">Backend</p>
+                  <p className="text-[11px] text-slate-500">Node.js, Express, Sequelize ORM</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-300">Database</p>
+                  <p className="text-[11px] text-slate-500">PostgreSQL Relational Storage</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 3: Site Modules Navigation */}
+            <div className="space-y-3.5 flex flex-col">
+              <span className="font-bold text-white tracking-wider uppercase text-[10px]">System Portals</span>
+              <Link to="/admin" className="hover:text-primary transition-colors">Administrator Console</Link>
+              <Link to="/restaurant" className="hover:text-primary transition-colors">Restaurant Merchant Panel</Link>
+              <Link to="/partner" className="hover:text-primary transition-colors">Become a Delivery Partner</Link>
+              <Link to="/restaurants" className="hover:text-primary transition-colors">Customer Browse Hub</Link>
+              <Link to="/cart" className="hover:text-primary transition-colors">Active Orders Cart</Link>
+            </div>
+
+            {/* Column 4: Credits and Developer details */}
+            <div className="space-y-3.5">
+              <span className="font-bold text-white tracking-wider uppercase text-[10px]">Development Team</span>
+              <div className="space-y-2.5 font-normal">
+                <p className="text-slate-300 select-all font-semibold">
+                  Developer: <span className="text-white font-bold">Rahul Roy</span>
+                </p>
+                <p className="text-[11px] text-slate-500 leading-normal">
+                  Developed as a comprehensive project demonstrating secure web application architectures.
+                </p>
+                <div className="pt-2 border-t border-slate-900 mt-2 text-[10px] text-slate-600">
+                  <p>&copy; {new Date().getFullYear()} BiteSpeed Campus.</p>
+                  <p>All system architectures implemented.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </footer>
     </div>
   );
