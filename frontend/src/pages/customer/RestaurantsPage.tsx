@@ -289,26 +289,6 @@ export default function RestaurantsPage() {
         {/* Filter Widget Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl border border-border/40 bg-card/65 shadow-2xs select-none">
           <div className="flex flex-wrap items-center gap-3">
-            {/* Delivery Zone dropdown filter */}
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
-              <MapPin className="h-4 w-4 text-primary" />
-              <span>Deliver To:</span>
-              <select
-                value={selectedZone?.id || ''}
-                onChange={(e) => {
-                  const zone = allZones.find(z => String(z.id) === e.target.value);
-                  setSelectedZone(zone || null);
-                }}
-                className="bg-background border border-border/40 rounded-lg px-2 py-1 outline-none text-foreground font-bold cursor-pointer"
-              >
-                {allZones.map((z) => (
-                  <option key={z.id} value={z.id}>{z.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="h-4 w-[1px] bg-border/20" />
-
             {/* Toggle open only */}
             <label className="flex items-center gap-2 text-xs font-semibold text-foreground/80 cursor-pointer select-none">
               <input
