@@ -43,6 +43,7 @@ const UserAddress = sequelize.define(
   {
     tableName: 'user_addresses',
     timestamps: true,
+    paranoid: true, // Enables soft delete (deleted_at timestamp column)
   }
 );
 
