@@ -10,6 +10,7 @@ import RestaurantDeliveryZone from './RestaurantDeliveryZone.js';
 import Notification from './Notification.js';
 import RestaurantAddon from './RestaurantAddon.js';
 import FoodAddon from './FoodAddon.js';
+import UserAddress from './UserAddress.js';
 
 // Associations Configuration
 // User <-> Restaurant (One-to-One)
@@ -23,6 +24,10 @@ Rider.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 // User <-> Notification (One-to-Many)
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
 Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// User <-> UserAddress (One-to-Many)
+User.hasMany(UserAddress, { foreignKey: 'userId', as: 'addresses', onDelete: 'CASCADE' });
+UserAddress.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 // Restaurant <-> RestaurantCategory (One-to-Many)
 Restaurant.hasMany(RestaurantCategory, {
@@ -112,4 +117,5 @@ export {
   Notification,
   RestaurantAddon,
   FoodAddon,
+  UserAddress,
 };

@@ -10,6 +10,7 @@ import {
   DeliveryZone,
   RestaurantDeliveryZone,
   Notification,
+  UserAddress,
 } from '../models/index.js';
 import { NotificationEvent } from '../enums/index.js';
 import { ensureDatabaseExists } from './ensureDb.js';
