@@ -4,6 +4,8 @@ import { useAuthStore } from './store/useAuthStore';
 import Login from './pages/Login';
 import Partner from './pages/Partner';
 import Signup from './pages/Signup';
+import OTPVerify from './pages/OTPVerify';
+import ForgotPassword from './pages/ForgotPassword';
 import AdminDashboard from './pages/AdminDashboard';
 import DashboardPage from './pages/admin/DashboardPage';
 import RestaurantsPage from './pages/admin/RestaurantsPage';
@@ -111,6 +113,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/partner" element={<Partner />} />
+        <Route path="/otp-verify" element={<OTPVerify />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Admin layout — AdminDashboard renders <Outlet /> */}
         <Route

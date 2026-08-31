@@ -11,6 +11,7 @@ import Notification from './Notification.js';
 import RestaurantAddon from './RestaurantAddon.js';
 import FoodAddon from './FoodAddon.js';
 import UserAddress from './UserAddress.js';
+import OTPVerification from './OTPVerification.js';
 
 // Associations Configuration
 // User <-> Restaurant (One-to-One)
@@ -118,4 +119,5 @@ export {
   RestaurantAddon,
   FoodAddon,
   UserAddress,
+  OTPVerification,
 };

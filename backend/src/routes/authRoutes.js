@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, logoutUser, getMe, registerUser } from '../controllers/authController.js';
+import { loginUser, logoutUser, getMe, registerUser, verifyOTP, resendOTP, forgotPassword, resetPassword } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -99,5 +99,111 @@ router.get('/me', protect, getMe);
  *         description: Validation error or email already in use
  */
 router.post('/register', registerUser);
+
+/**
+ * @swagger
+ * /api/v1/auth/verify-otp:
+ *   post:
+ *     summary: Verify registration OTP for a Customer
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Verified successfully
+ *       400:
+ *         description: Invalid or expired code
+ */
+router.post('/verify-otp', verifyOTP);
+
+/**
+ * @swagger
+ * /api/v1/auth/resend-otp:
+ *   post:
+ *     summary: Resend OTP code (REGISTRATION or PASSWORD_RESET)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *               purpose:
+ *                 type: string
+ *                 enum: [REGISTRATION, PASSWORD_RESET]
+ *     responses:
+ *       200:
+ *         description: OTP code resent successfully
+ */
+router.post('/resend-otp', resendOTP);
+
+/**
+ * @swagger
+ * /api/v1/auth/forgot-password:
+ *   post:
+ *     summary: Request a password reset OTP code
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reset code sent successfully
+ */
+router.post('/forgot-password', forgotPassword);
+
+/**
+ * @swagger
+ * /api/v1/auth/reset-password:
+ *   post:
+ *     summary: Reset password using verification code
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ */
+router.post('/reset-password', resetPassword);
 
 export default router;

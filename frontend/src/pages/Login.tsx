@@ -11,7 +11,8 @@ import {
   CardTitle, 
   CardDescription, 
   CardContent, 
-  Alert 
+  Alert,
+  toast
 } from '../design-system';
 import { Mail, Lock, UtensilsCrossed, ArrowRight, Shield } from 'lucide-react';
 
@@ -62,8 +63,8 @@ export default function Login() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setSubmissionError(null);
-    const success = await login(data.email, data.password, data.rememberMe);
-    if (success) {
+    const result = await login(data.email, data.password, data.rememberMe);
+    if (result.success) {
       if (data.rememberMe) {
         localStorage.setItem('remembered_email', data.email);
       } else {
@@ -71,6 +72,9 @@ export default function Login() {
       }
       const currentUser = useAuthStore.getState().user;
       redirectBasedOnRole(currentUser);
+    } else if (result.isUnverified) {
+      toast.warning('Please verify your email address first.');
+      navigate(`/otp-verify?email=${encodeURIComponent(result.email || data.email)}`);
     }
   };
 
@@ -164,9 +168,9 @@ export default function Login() {
                   disabled={isLoading}
                   {...register('rememberMe')}
                 />
-                <a href="#forgot" className="text-primary hover:underline font-medium">
+                <Link to="/forgot-password" className="text-primary hover:underline font-medium">
                   Forgot Password?
-                </a>
+                </Link>
               </div>
 
               <Button

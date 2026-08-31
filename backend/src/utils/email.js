@@ -105,3 +105,68 @@ export const sendOnboardingConfirmationEmail = async (to, name, type) => {
     text: `Hello ${name},\n\nThank you for applying to join BiteSpeed as a ${isRestaurant ? 'Restaurant Partner' : 'Delivery Rider'}. Our onboarding team will review your application within 2-3 business days.`,
   });
 };
+
+/**
+ * Sends a registration OTP email to the customer.
+ */
+export const sendRegistrationOTPEmail = async (to, name, otp) => {
+  const subject = 'Verify Your Email Address - BiteSpeed';
+  const html = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h2 style="color: #ea580c; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.025em;">BiteSpeed</h2>
+        <p style="font-size: 14px; color: #6b7280; margin: 4px 0 0 0;">Verify your customer registration</p>
+      </div>
+      <p style="margin: 0 0 16px 0;">Hello <strong>${name}</strong>,</p>
+      <p style="margin: 0 0 24px 0;">Thank you for signing up for BiteSpeed! To complete your registration and activate your account, please enter the following verification code:</p>
+      <div style="text-align: center; margin: 24px 0; padding: 16px; background-color: #fff7ed; border: 1px dashed #fdba74; border-radius: 8px;">
+        <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #ea580c; display: inline-block; padding-left: 6px;">${otp}</span>
+      </div>
+      <p style="font-size: 14px; color: #4b5563; margin: 0 0 24px 0;">This code is valid for <strong>10 minutes</strong>. If you did not request this verification, please ignore this email or contact support.</p>
+      <hr style="border: 0; border-top: 1px solid #f3f4f6; margin: 24px 0;" />
+      <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">This is an automated email. Please do not reply directly to this message.</p>
+    </div>
+  `;
+
+  console.log(`\n==================================================\n[DEV/TEST] Registration OTP for ${to} (${name}): ${otp}\n==================================================\n`);
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text: `Hello ${name},\n\nYour registration verification code is: ${otp}\n\nThis code is valid for 10 minutes.`,
+  });
+};
+
+/**
+ * Sends a password reset OTP email to any user.
+ */
+export const sendPasswordResetOTPEmail = async (to, name, otp) => {
+  const subject = 'Reset Your Password - BiteSpeed';
+  const html = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h2 style="color: #ea580c; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.025em;">BiteSpeed</h2>
+        <p style="font-size: 14px; color: #6b7280; margin: 4px 0 0 0;">Password Reset Request</p>
+      </div>
+      <p style="margin: 0 0 16px 0;">Hello <strong>${name}</strong>,</p>
+      <p style="margin: 0 0 24px 0;">We received a request to reset the password for your BiteSpeed account. Please use the verification code below to reset your password:</p>
+      <div style="text-align: center; margin: 24px 0; padding: 16px; background-color: #fff7ed; border: 1px dashed #fdba74; border-radius: 8px;">
+        <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #ea580c; display: inline-block; padding-left: 6px;">${otp}</span>
+      </div>
+      <p style="font-size: 14px; color: #4b5563; margin: 0 0 24px 0;">This code is valid for <strong>10 minutes</strong>. If you did not request a password reset, please secure your account or ignore this message.</p>
+      <hr style="border: 0; border-top: 1px solid #f3f4f6; margin: 24px 0;" />
+      <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">This is an automated email. Please do not reply directly to this message.</p>
+    </div>
+  `;
+
+  console.log(`\n==================================================\n[DEV/TEST] Password Reset OTP for ${to} (${name}): ${otp}\n==================================================\n`);
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text: `Hello ${name},\n\nYour password reset verification code is: ${otp}\n\nThis code is valid for 10 minutes.`,
+  });
+};
+

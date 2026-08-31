@@ -19,7 +19,7 @@ interface AuthState {
   isLoading: boolean;
   isInitialized: boolean;
   error: string | null;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; isUnverified?: boolean; email?: string }>;
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
 }
@@ -47,16 +47,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
         error: null,
       });
-      return true;
+      return { success: true };
     } catch (err: any) {
       const message = err.response?.data?.message || 'Login failed. Please try again.';
+      const isUnverified = !!err.response?.data?.isUnverifiedCustomer;
       set({
         isLoading: false,
         error: message,
         isAuthenticated: false,
         user: null,
       });
-      return false;
+      return { success: false, isUnverified, email: err.response?.data?.email || email };
     }
   },
 

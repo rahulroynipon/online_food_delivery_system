@@ -54,8 +54,8 @@ export default function Signup() {
 
       const response = await api.post('/auth/register', payload);
       if (response.data?.success) {
-        toast.success('Registration successful! Please sign in.');
-        navigate('/login');
+        toast.success('Registration successful! A verification code has been sent to your email.');
+        navigate(`/otp-verify?email=${encodeURIComponent(data.email)}`);
       }
     } catch (err: any) {
       const message = err.response?.data?.message || 'Registration failed. Please check your inputs.';
