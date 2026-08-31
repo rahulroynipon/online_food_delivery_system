@@ -60,10 +60,30 @@ export default function CartPage() {
 
   // Fetch restaurant menu so we have full food+variants+addons data
   useEffect(() => {
-    if (!restaurantSlug) return;
-    setMenuLoading(true);
-    api.get(`/public/restaurants/${restaurantSlug}`)
-      .then((res) => {
+    const fetchMenu = async () => {
+      let slug = restaurantSlug;
+      
+      // Fallback: if slug is missing but we have restaurantId, fetch all restaurants to find the slug
+      if (!slug && restaurantId) {
+        try {
+          const res = await api.get('/public/restaurants');
+          if (res.data?.success) {
+            const list = res.data.restaurants || [];
+            const matched = list.find((r: any) => r.id === restaurantId);
+            if (matched) {
+              slug = matched.slug;
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch restaurant list for slug fallback:', err);
+        }
+      }
+
+      if (!slug) return;
+
+      setMenuLoading(true);
+      try {
+        const res = await api.get(`/public/restaurants/${slug}`);
         if (res.data?.success) {
           const foods: Record<number, any> = {};
           (res.data.categories || []).forEach((cat: any) => {
@@ -72,10 +92,15 @@ export default function CartPage() {
           setMenuFoods(foods);
           setRestaurantZones(res.data.restaurant?.deliveryZones || []);
         }
-      })
-      .catch(() => {})
-      .finally(() => setMenuLoading(false));
-  }, [restaurantSlug]);
+      } catch (err) {
+        console.error('Failed to fetch restaurant menu:', err);
+      } finally {
+        setMenuLoading(false);
+      }
+    };
+
+    fetchMenu();
+  }, [restaurantSlug, restaurantId]);
 
   // Fetch customer saved addresses
   useEffect(() => {
