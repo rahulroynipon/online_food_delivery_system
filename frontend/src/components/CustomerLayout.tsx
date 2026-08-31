@@ -629,7 +629,7 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
                 <UtensilsCrossed className="h-5 w-5 text-primary" />
               </div>
               <span className="text-xl font-black text-white">
-                BiteSpeed <span className="bg-gradient-to-r from-primary to-rose-400 bg-clip-text text-transparent text-sm font-semibold tracking-normal ml-1">Campus Delivery</span>
+                BiteSpeed <span className="bg-gradient-to-r from-primary to-rose-400 bg-clip-text text-transparent text-sm font-semibold tracking-normal ml-1">Online Food Delivery</span>
               </span>
             </div>
             
@@ -661,7 +661,7 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
             <div className="space-y-4">
               <span className="font-bold text-white tracking-wider uppercase text-[10px]">Project Scope</span>
               <p className="text-slate-400/80 font-normal leading-relaxed">
-                A multi-role campus logistics platform providing coordinate-bounded food delivery for university campuses.
+                A multi-role online logistics platform providing coordinate-bounded food delivery.
               </p>
               <div className="text-[10px] text-slate-500 font-normal space-y-1">
                 <p>• Haversine formula zone validation</p>
@@ -709,7 +709,7 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
                   Developed as a comprehensive project demonstrating secure web application architectures.
                 </p>
                 <div className="pt-2 border-t border-slate-900 mt-2 text-[10px] text-slate-600">
-                  <p>&copy; {new Date().getFullYear()} BiteSpeed Campus.</p>
+                  <p>&copy; {new Date().getFullYear()} BiteSpeed. All rights reserved.</p>
                   <p>All system architectures implemented.</p>
                 </div>
               </div>
@@ -746,7 +746,7 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
             <form onSubmit={handleMapSearchSubmit} className="absolute top-3 left-12 right-3 z-[1000] flex gap-1.5 bg-card/95 backdrop-blur-md p-1.5 rounded-xl border border-border shadow-md">
               <input
                 type="text"
-                placeholder="Search campus buildings, locations..."
+                placeholder="Search addresses, locations..."
                 value={mapSearchQuery}
                 onChange={(e) => setMapSearchQuery(e.target.value)}
                 className="flex-1 bg-background border border-border rounded-lg px-2.5 py-1 text-[11px] text-foreground focus:outline-none placeholder:text-muted-foreground/60"
@@ -791,7 +791,7 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
                   <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Address Label</label>
                   <input
                     type="text"
-                    placeholder="e.g. Home, Dorm Room 304, Campus Library"
+                    placeholder="e.g. Home, Office, Apartment 4B"
                     value={addressForm.label}
                     onChange={(e) => setAddressForm(p => ({ ...p, label: e.target.value }))}
                     className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none transition-all"

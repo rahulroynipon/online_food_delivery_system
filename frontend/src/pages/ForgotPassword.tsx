@@ -203,6 +203,16 @@ export default function ForgotPassword() {
               </form>
             ) : (
               <form onSubmit={handleSubmitReset(onResetPassword)} className="space-y-4">
+                {/* Hidden input to capture browser credentials autofill */}
+                <input
+                  type="text"
+                  name="email"
+                  value={email}
+                  autoComplete="username"
+                  style={{ display: 'none' }}
+                  readOnly
+                />
+
                 <Input
                   label="Reset Code"
                   type="text"
