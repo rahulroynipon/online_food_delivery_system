@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../store/useAuthStore';
 import { 
   Button, 
@@ -14,7 +15,7 @@ import {
   Alert,
   toast
 } from '../design-system';
-import { Mail, Lock, UtensilsCrossed, ArrowRight, Shield } from 'lucide-react';
+import { Mail, Lock, UtensilsCrossed, ArrowRight } from 'lucide-react';
 
 interface LoginFormValues {
   email: string;
@@ -24,8 +25,17 @@ interface LoginFormValues {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, isAuthenticated, isLoading, error, user } = useAuthStore();
+  const { login, loginWithGoogle, isAuthenticated, isLoading, error, user } = useAuthStore();
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+
+  const handleGoogleLoginSuccess = async (credential: string) => {
+    setSubmissionError(null);
+    const success = await loginWithGoogle(credential);
+    if (success) {
+      const currentUser = useAuthStore.getState().user;
+      redirectBasedOnRole(currentUser);
+    }
+  };
 
   // Load remembered email on startup
   const rememberedEmail = localStorage.getItem('remembered_email') || '';
@@ -78,11 +88,6 @@ export default function Login() {
     }
   };
 
-  const handleQuickFill = () => {
-    setValue('email', 'admin@fooddelivery.com');
-    setValue('password', 'admin123');
-    setSubmissionError(null);
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-radial from-primary-hover/10 via-background to-background px-4 relative overflow-hidden select-none">
@@ -185,30 +190,31 @@ export default function Login() {
               </Button>
             </form>
 
-            {/* Quick Demo Credentials Info Banner */}
-            <div 
-              onClick={handleQuickFill}
-              className="group/demo p-4 rounded-xl border border-dashed border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors flex items-start gap-3"
-            >
-              <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover/demo:scale-105 transition-transform duration-200 shrink-0">
-                <Shield className="h-4 w-4" />
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs font-semibold text-foreground">
-                    System Administrator Login
-                  </p>
-                  <span className="text-[10px] text-primary font-semibold group-hover/demo:underline">
-                    Autofill
-                  </span>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-normal">
-                  Email: <span className="font-mono text-foreground select-all">admin@fooddelivery.com</span>
-                  <br />
-                  Password: <span className="font-mono text-foreground select-all">admin123</span>
-                </p>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
               </div>
             </div>
+
+            <div className="flex justify-center w-full">
+              <GoogleLogin
+                onSuccess={(credentialResponse) => {
+                  if (credentialResponse.credential) {
+                    handleGoogleLoginSuccess(credentialResponse.credential);
+                  }
+                }}
+                onError={() => {
+                  toast.error('Google Sign In failed.');
+                }}
+                theme="outline"
+                shape="rectangular"
+                width="380"
+              />
+            </div>
+
           </CardContent>
         </Card>
 

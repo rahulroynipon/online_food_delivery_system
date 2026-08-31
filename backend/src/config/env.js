@@ -24,6 +24,9 @@ const env = {
     pass: process.env.EMAIL_PASS || '',
     from: process.env.EMAIL_FROM || 'no-reply@fooddelivery.com',
   },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+  },
 };
 
 // Check for missing secret in production

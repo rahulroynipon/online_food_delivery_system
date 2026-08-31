@@ -55,11 +55,14 @@ const seed = async () => {
     console.log('Database cleanup completed.');
 
     // 2. Ensure Admin User exists
-    const adminEmail = 'admin@fooddelivery.com';
+    const adminEmail = 'bitespeed@gmail.com';
+    // Remove the old admin user if they exist
+    await User.destroy({ where: { email: 'admin@fooddelivery.com' } });
+    
     let admin = await User.findOne({ where: { email: adminEmail } });
     if (!admin) {
       console.log('Seeding system admin user...');
-      const hashedPassword = await hashPassword('admin123');
+      const hashedPassword = await hashPassword('123456');
       admin = await User.create({
         name: 'System Admin',
         email: adminEmail,
@@ -1213,7 +1216,7 @@ const seed = async () => {
     console.log('\n======================================================');
     console.log('Database seeding successfully finished!');
     console.log(`Seeded exactly 30 Restaurants with unique menus, variants, and addons.`);
-    console.log(`Admin Credentials: admin@fooddelivery.com / admin123`);
+    console.log(`Admin Credentials: bitespeed@gmail.com / 123456`);
     console.log(`Merchant Credentials range: merchant1@demo.com to merchant30@demo.com (Password: password123)`);
     console.log('======================================================\n');
     

@@ -1,0 +1,10 @@
+- [x] Add `googleId` column to `User.js` model
+- [x] Add Google Client ID environment variables to `env.js` and `.env`
+- [x] Install `google-auth-library` dependency on the backend
+- [x] Implement `googleLogin` controller in `authController.js`
+- [x] Mount `/auth/google-login` route in `authRoutes.js`
+- [x] Install `@react-oauth/google` dependency on the frontend
+- [x] Wrap React root with `<GoogleOAuthProvider>` in `main.tsx`
+- [x] Add `loginWithGoogle` action to `useAuthStore.ts`
+- [x] Add Google sign-in buttons to `Login.tsx` and `Signup.tsx`
+- [x] Verify Google Login and Sign Up functionality

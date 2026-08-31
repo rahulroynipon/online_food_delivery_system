@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { GoogleLogin } from '@react-oauth/google';
 import api from '../lib/axios';
+import { useAuthStore } from '../store/useAuthStore';
 import { 
   Button, 
   Input, 
@@ -26,6 +28,19 @@ export default function Signup() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const { loginWithGoogle } = useAuthStore();
+
+  const handleGoogleLoginSuccess = async (credential: string) => {
+    setSubmissionError(null);
+    setIsLoading(true);
+    const success = await loginWithGoogle(credential);
+    if (success) {
+      toast.success('Registration and Sign In successful!');
+      navigate('/');
+    } else {
+      setIsLoading(false);
+    }
+  };
 
   const { 
     register, 
@@ -185,6 +200,31 @@ export default function Signup() {
                 Sign Up
               </Button>
             </form>
+
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            <div className="flex justify-center w-full">
+              <GoogleLogin
+                onSuccess={(credentialResponse) => {
+                  if (credentialResponse.credential) {
+                    handleGoogleLoginSuccess(credentialResponse.credential);
+                  }
+                }}
+                onError={() => {
+                  toast.error('Google Authentication failed.');
+                }}
+                theme="outline"
+                shape="rectangular"
+                width="380"
+              />
+            </div>
           </CardContent>
         </Card>
 

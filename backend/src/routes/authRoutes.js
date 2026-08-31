@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, logoutUser, getMe, registerUser, verifyOTP, resendOTP, forgotPassword, resetPassword } from '../controllers/authController.js';
+import { loginUser, logoutUser, getMe, registerUser, verifyOTP, resendOTP, forgotPassword, resetPassword, googleLogin } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -205,5 +205,28 @@ router.post('/forgot-password', forgotPassword);
  *         description: Password reset successfully
  */
 router.post('/reset-password', resetPassword);
+
+/**
+ * @swagger
+ * /api/v1/auth/google-login:
+ *   post:
+ *     summary: Login or Register using Google ID token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Authenticated successfully
+ */
+router.post('/google-login', googleLogin);
 
 export default router;

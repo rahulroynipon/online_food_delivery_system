@@ -1,9 +1,12 @@
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
+import { OAuth2Client } from 'google-auth-library';
 import env from '../config/env.js';
 import { User, OTPVerification } from '../models/index.js';
 import { comparePassword, hashPassword } from '../utils/hash.js';
 import { sendVerificationEmail, sendRegistrationOTPEmail, sendPasswordResetOTPEmail } from '../utils/email.js';
+
+const oauthClient = new OAuth2Client(env.google.clientId);
 
 // Helper to generate a 6-digit OTP
 const generateOTP = () => {
@@ -475,5 +478,88 @@ export const resetPassword = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+/**
+ * @desc    Login/Register using Google OAuth2 Token
+ * @route   POST /api/v1/auth/google-login
+ * @access  Public
+ */
+export const googleLogin = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide Google ID token.',
+      });
+    }
+
+    // Verify Google ID token
+    const ticket = await oauthClient.verifyIdToken({
+      idToken: token,
+      audience: env.google.clientId || process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Google authentication token.',
+      });
+    }
+
+    const { email, name, sub: googleId, picture: avatar } = payload;
+
+    // Check if user already exists with this email
+    let user = await User.findOne({ where: { email } });
+
+    if (user) {
+      // Link Google Account if not linked
+      if (!user.googleId) {
+        await user.update({ googleId, avatar: user.avatar || avatar });
+      }
+      // If customer account was pending verification, activate it immediately
+      if (user.status === 'PENDING') {
+        await user.update({ status: 'ACTIVE' });
+      }
+    } else {
+      // Create new customer account with random password fallback
+      const randomPassword = Math.random().toString(36).slice(-10);
+      const hashedPassword = await hashPassword(randomPassword);
+
+      user = await User.create({
+        name,
+        email,
+        phone: null,
+        password: hashedPassword,
+        role: 'CUSTOMER',
+        status: 'ACTIVE',
+        googleId,
+        avatar,
+      });
+    }
+
+    // Exclude password from return
+    const userObj = user.toJSON();
+    delete userObj.password;
+
+    // Generate JWT Login token
+    const loginToken = generateToken(user.id, user.email, user.role, true);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Google authentication successful.',
+      token: loginToken,
+      user: userObj,
+    });
+  } catch (error) {
+    console.error('[Google OAuth] Verification error:', error);
+    return res.status(401).json({
+      success: false,
+      message: 'Google login failed. Token is invalid or expired.',
+    });
   }
 };

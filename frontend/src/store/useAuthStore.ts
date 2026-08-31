@@ -20,6 +20,7 @@ interface AuthState {
   isInitialized: boolean;
   error: string | null;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; isUnverified?: boolean; email?: string }>;
+  loginWithGoogle: (googleToken: string) => Promise<boolean>;
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
 }
@@ -58,6 +59,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: null,
       });
       return { success: false, isUnverified, email: err.response?.data?.email || email };
+    }
+  },
+
+  loginWithGoogle: async (googleToken) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.post('/auth/google-login', { token: googleToken });
+      
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      
+      set({
+        token,
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
+      return true;
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Google login failed. Please try again.';
+      set({
+        isLoading: false,
+        error: message,
+        isAuthenticated: false,
+        user: null,
+      });
+      return false;
     }
   },
 
