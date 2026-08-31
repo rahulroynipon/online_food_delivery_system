@@ -142,6 +142,44 @@ export const registerUser = async (req, res, next) => {
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
+      if (existingUser.role === 'CUSTOMER' && existingUser.status === 'PENDING') {
+        // Allow re-registration by updating details and sending a new OTP
+        const hashedPassword = await hashPassword(password);
+        await existingUser.update({
+          name,
+          phone,
+          password: hashedPassword,
+        });
+
+        // Generate and save new registration OTP
+        const otp = generateOTP();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        // Delete any stale OTPs for this email
+        await OTPVerification.destroy({ where: { email, purpose: 'REGISTRATION' } });
+
+        await OTPVerification.create({
+          email,
+          otp,
+          purpose: 'REGISTRATION',
+          expiresAt,
+        });
+
+        // Send registration verification OTP email asynchronously
+        sendRegistrationOTPEmail(existingUser.email, existingUser.name, otp).catch((err) => {
+          console.error('[Auth] Error sending registration OTP email on re-register:', err);
+        });
+
+        const userObj = existingUser.toJSON();
+        delete userObj.password;
+
+        return res.status(201).json({
+          success: true,
+          message: 'User registered successfully. A new verification code has been sent to your email.',
+          user: userObj,
+        });
+      }
+
       return res.status(400).json({
         success: false,
         message: 'A user account with this email address already exists.',
