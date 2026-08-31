@@ -1,15 +1,30 @@
 import nodemailer from 'nodemailer';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import env from '../config/env.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const faviconPath = path.join(__dirname, '../../../frontend/public/favicon.svg');
+
 // Configure SMTP Transporter
-const transporter = nodemailer.createTransport({
-  host: env.email.host,
-  port: env.email.port,
-  auth: {
-    user: env.email.user,
-    pass: env.email.pass,
-  },
-});
+const transportConfig = (env.email.host && env.email.host.includes('gmail'))
+  ? {
+      service: 'gmail',
+      auth: {
+        user: env.email.user,
+        pass: env.email.pass,
+      },
+    }
+  : {
+      host: env.email.host,
+      port: env.email.port,
+      auth: {
+        user: env.email.user,
+        pass: env.email.pass,
+      },
+    };
+
+const transporter = nodemailer.createTransport(transportConfig);
 
 /**
  * Sends a generic email notification.
@@ -20,13 +35,14 @@ const transporter = nodemailer.createTransport({
  * @param {string} [options.html] - HTML formatted email body
  * @returns {Promise<Object>} Sent message details
  */
-export const sendEmail = async ({ to, subject, text, html }) => {
+export const sendEmail = async ({ to, subject, text, html, attachments }) => {
   const mailOptions = {
     from: env.email.from,
     to,
     subject,
     text,
     html,
+    attachments,
   };
 
   try {
@@ -111,20 +127,33 @@ export const sendOnboardingConfirmationEmail = async (to, name, type) => {
  */
 export const sendRegistrationOTPEmail = async (to, name, otp) => {
   const subject = 'Verify Your Email Address - BiteSpeed';
+  const currentYear = new Date().getFullYear();
   const html = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
-      <div style="text-align: center; margin-bottom: 24px;">
-        <h2 style="color: #ea580c; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.025em;">BiteSpeed</h2>
-        <p style="font-size: 14px; color: #6b7280; margin: 4px 0 0 0;">Verify your customer registration</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 32px 24px; border: 1px solid #f3f4f6; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <div style="text-align: center; margin-bottom: 12px;">
+          <img src="cid:logo" width="50" height="50" style="display: inline-block; border-radius: 14px; box-shadow: 0 4px 10px rgba(215, 15, 100, 0.2);" alt="BiteSpeed Logo" />
+        </div>
+        <h2 style="color: #d70f64; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.03em;">BiteSpeed</h2>
+        <p style="font-size: 13px; color: #6b7280; margin: 4px 0 0 0; font-weight: 500;">Verify your customer registration</p>
       </div>
-      <p style="margin: 0 0 16px 0;">Hello <strong>${name}</strong>,</p>
-      <p style="margin: 0 0 24px 0;">Thank you for signing up for BiteSpeed! To complete your registration and activate your account, please enter the following verification code:</p>
-      <div style="text-align: center; margin: 24px 0; padding: 16px; background-color: #fff7ed; border: 1px dashed #fdba74; border-radius: 8px;">
-        <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #ea580c; display: inline-block; padding-left: 6px;">${otp}</span>
+      
+      <p style="margin: 0 0 16px 0; font-size: 15px;">Hello <strong>${name}</strong>,</p>
+      <p style="margin: 0 0 24px 0; font-size: 15px; color: #374151;">Thank you for signing up for BiteSpeed! To complete your registration and activate your account, please enter the following verification code:</p>
+      
+      <div style="text-align: center; margin: 28px 0; padding: 20px; background-color: #fff1f2; border: 1px dashed #fecdd3; border-radius: 12px;">
+        <span style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #d70f64; display: inline-block; padding-left: 8px;">${otp}</span>
       </div>
-      <p style="font-size: 14px; color: #4b5563; margin: 0 0 24px 0;">This code is valid for <strong>10 minutes</strong>. If you did not request this verification, please ignore this email or contact support.</p>
-      <hr style="border: 0; border-top: 1px solid #f3f4f6; margin: 24px 0;" />
-      <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">This is an automated email. Please do not reply directly to this message.</p>
+      
+      <p style="font-size: 13px; color: #6b7280; margin: 0 0 28px 0;">This code is valid for <strong>10 minutes</strong>. If you did not request this verification, you can safely ignore this email.</p>
+      
+      <hr style="border: 0; border-top: 1px solid #f3f4f6; margin: 28px 0;" />
+      
+      <div style="font-size: 11px; color: #9ca3af; text-align: center; line-height: 1.6;">
+        <p style="margin: 0 0 4px 0; font-weight: 600; color: #6b7280;">BiteSpeed Online Food Delivery</p>
+        <p style="margin: 0 0 12px 0;">© ${currentYear} BiteSpeed Inc. All rights reserved.</p>
+        <p style="margin: 0; font-size: 10px;">This is a transactional security notification. To unsubscribe from technical alerts, contact our helpdesk.</p>
+      </div>
     </div>
   `;
 
@@ -135,6 +164,14 @@ export const sendRegistrationOTPEmail = async (to, name, otp) => {
     subject,
     html,
     text: `Hello ${name},\n\nYour registration verification code is: ${otp}\n\nThis code is valid for 10 minutes.`,
+    attachments: [
+      {
+        filename: 'logo.svg',
+        path: faviconPath,
+        cid: 'logo',
+        disposition: 'inline',
+      },
+    ],
   });
 };
 
@@ -143,20 +180,33 @@ export const sendRegistrationOTPEmail = async (to, name, otp) => {
  */
 export const sendPasswordResetOTPEmail = async (to, name, otp) => {
   const subject = 'Reset Your Password - BiteSpeed';
+  const currentYear = new Date().getFullYear();
   const html = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
-      <div style="text-align: center; margin-bottom: 24px;">
-        <h2 style="color: #ea580c; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.025em;">BiteSpeed</h2>
-        <p style="font-size: 14px; color: #6b7280; margin: 4px 0 0 0;">Password Reset Request</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 32px 24px; border: 1px solid #f3f4f6; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <div style="text-align: center; margin-bottom: 12px;">
+          <img src="cid:logo" width="50" height="50" style="display: inline-block; border-radius: 14px; box-shadow: 0 4px 10px rgba(215, 15, 100, 0.2);" alt="BiteSpeed Logo" />
+        </div>
+        <h2 style="color: #d70f64; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.03em;">BiteSpeed</h2>
+        <p style="font-size: 13px; color: #6b7280; margin: 4px 0 0 0; font-weight: 500;">Password Reset Request</p>
       </div>
-      <p style="margin: 0 0 16px 0;">Hello <strong>${name}</strong>,</p>
-      <p style="margin: 0 0 24px 0;">We received a request to reset the password for your BiteSpeed account. Please use the verification code below to reset your password:</p>
-      <div style="text-align: center; margin: 24px 0; padding: 16px; background-color: #fff7ed; border: 1px dashed #fdba74; border-radius: 8px;">
-        <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #ea580c; display: inline-block; padding-left: 6px;">${otp}</span>
+      
+      <p style="margin: 0 0 16px 0; font-size: 15px;">Hello <strong>${name}</strong>,</p>
+      <p style="margin: 0 0 24px 0; font-size: 15px; color: #374151;">We received a request to reset the password for your BiteSpeed account. Please enter the following reset code to establish a new password:</p>
+      
+      <div style="text-align: center; margin: 28px 0; padding: 20px; background-color: #fff1f2; border: 1px dashed #fecdd3; border-radius: 12px;">
+        <span style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #d70f64; display: inline-block; padding-left: 8px;">${otp}</span>
       </div>
-      <p style="font-size: 14px; color: #4b5563; margin: 0 0 24px 0;">This code is valid for <strong>10 minutes</strong>. If you did not request a password reset, please secure your account or ignore this message.</p>
-      <hr style="border: 0; border-top: 1px solid #f3f4f6; margin: 24px 0;" />
-      <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">This is an automated email. Please do not reply directly to this message.</p>
+      
+      <p style="font-size: 13px; color: #6b7280; margin: 0 0 28px 0;">This code is valid for <strong>10 minutes</strong>. If you did not make this request, you can ignore this message. Your password will remain unchanged.</p>
+      
+      <hr style="border: 0; border-top: 1px solid #f3f4f6; margin: 28px 0;" />
+      
+      <div style="font-size: 11px; color: #9ca3af; text-align: center; line-height: 1.6;">
+        <p style="margin: 0 0 4px 0; font-weight: 600; color: #6b7280;">BiteSpeed Security Team</p>
+        <p style="margin: 0 0 12px 0;">© ${currentYear} BiteSpeed Inc. All rights reserved.</p>
+        <p style="margin: 0; font-size: 10px;">This is a transactional security notification. To unsubscribe from technical alerts, contact our helpdesk.</p>
+      </div>
     </div>
   `;
 
@@ -167,6 +217,14 @@ export const sendPasswordResetOTPEmail = async (to, name, otp) => {
     subject,
     html,
     text: `Hello ${name},\n\nYour password reset verification code is: ${otp}\n\nThis code is valid for 10 minutes.`,
+    attachments: [
+      {
+        filename: 'logo.svg',
+        path: faviconPath,
+        cid: 'logo',
+        disposition: 'inline',
+      },
+    ],
   });
 };
 
