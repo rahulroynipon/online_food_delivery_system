@@ -16,9 +16,22 @@ import {
   Loader2,
   Search,
   X,
-  ClipboardList
+  ClipboardList,
+  Layers,
+  Navigation,
+  Building2,
+  Map as MapIcon,
+  Check
 } from 'lucide-react';
 import { Button, Input, Modal, toast } from '../design-system';
+import {
+  BANGLADESH_BOUNDS,
+  DEFAULT_BD_CENTER,
+  MAP_LAYERS,
+  searchBangladeshLocations,
+  reverseGeocodeBangladesh,
+  GeoSearchResult
+} from '../lib/geo';
 
 interface CustomerLayoutProps {
   children: React.ReactNode;
@@ -67,9 +80,14 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
 
   const totalCartItems = cart.reduce((acc, curr) => acc + curr.quantity, 0);
 
-  // Map search state
+  // Map search & autocomplete state
   const [mapSearchQuery, setMapSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<GeoSearchResult[]>([]);
   const [isSearchingMap, setIsSearchingMap] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeLayer, setActiveLayer] = useState<'googleStreets' | 'googleHybrid' | 'osm'>('googleStreets');
+  const searchTimeoutRef = useRef<any>(null);
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Mandatory address focus modal state
   const [showAddressPrompt, setShowAddressPrompt] = useState(false);
@@ -92,6 +110,7 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const tileLayerRef = useRef<any>(null);
 
   // Distance calculator (Haversine formula in KM)
   const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -136,15 +155,14 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
     setMatchingZoneName(zoneName);
   };
 
-  // Reverse geocoding (coordinates -> address text using Nominatim)
+  // Reverse geocoding (coordinates -> structured Bangladesh address)
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-      const data = await response.json();
-      if (data && data.display_name) {
+      const result = await reverseGeocodeBangladesh(lat, lng);
+      if (result && result.shortAddress) {
         setAddressForm((prev) => ({
           ...prev,
-          address: data.display_name,
+          address: result.shortAddress,
         }));
       }
     } catch (err) {
@@ -158,6 +176,87 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
       checkCoordinatesCoverage(addressForm.latitude, addressForm.longitude);
     }
   }, [addressForm.latitude, addressForm.longitude, zones]);
+
+  // Handle autocomplete input changes
+  const handleMapSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setMapSearchQuery(val);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (val.trim().length >= 2) {
+      setIsSearchingMap(true);
+      searchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const results = await searchBangladeshLocations(val);
+          setSearchResults(results);
+          setShowSuggestions(true);
+        } catch (err) {
+          console.error('Location autocomplete search error:', err);
+        } finally {
+          setIsSearchingMap(false);
+        }
+      }, 300);
+    } else {
+      setSearchResults([]);
+      setShowSuggestions(false);
+      setIsSearchingMap(false);
+    }
+  };
+
+  // Select location from autocomplete suggestions
+  const handleSelectLocation = (item: GeoSearchResult) => {
+    const newLat = item.lat.toFixed(6);
+    const newLng = item.lng.toFixed(6);
+
+    setAddressForm((prev) => ({
+      ...prev,
+      latitude: newLat,
+      longitude: newLng,
+      address: item.displayName || `${item.title}, ${item.subtitle}`,
+    }));
+
+    if (markerRef.current && mapRef.current) {
+      markerRef.current.setLatLng([item.lat, item.lng]);
+      const zoom = item.category === 'street' || item.category === 'building' ? 17 : 15;
+      mapRef.current.setView([item.lat, item.lng], zoom, { animate: true });
+    }
+
+    setMapSearchQuery(item.title);
+    setShowSuggestions(false);
+    checkCoordinatesCoverage(newLat, newLng);
+    toast.success(`Pinned: ${item.title}`);
+  };
+
+  // Dismiss suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Switch map layer (Google Streets / Google Satellite / OSM)
+  const switchMapLayer = (layerKey: 'googleStreets' | 'googleHybrid' | 'osm') => {
+    setActiveLayer(layerKey);
+    if (mapRef.current && tileLayerRef.current) {
+      const L = (window as any).L;
+      if (!L) return;
+      mapRef.current.removeLayer(tileLayerRef.current);
+      const cfg = MAP_LAYERS[layerKey];
+      const newTile = L.tileLayer(cfg.url, {
+        attribution: cfg.attribution,
+        maxZoom: cfg.maxZoom,
+        subdomains: (cfg as any).subdomains || ['mt0', 'mt1', 'mt2', 'mt3']
+      }).addTo(mapRef.current);
+      tileLayerRef.current = newTile;
+    }
+  };
 
   // Check if authenticated customer has any addresses on mount or when logging in
   const fetchUserAddresses = () => {
@@ -203,8 +302,9 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
   // Listen for query params to force opening address configure modal
   useEffect(() => {
     if (searchParams.get('add-address') === 'true') {
-      // Clear param
-      setSearchParams({}, { replace: true });
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('add-address');
+      setSearchParams(newParams, { replace: true });
       // Open modal
       setAddressToEdit(null);
       setAddressForm({
@@ -254,13 +354,14 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
     }
   }, [selectedAddress, selectedZone, isAuthenticated, user]);
 
-  // Initialize and teardown the Leaflet Map
+  // Initialize and teardown the Leaflet Map with Bangladesh Bounds & Google Maps Layer
   useEffect(() => {
     if (!showAddressPrompt) {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
         markerRef.current = null;
+        tileLayerRef.current = null;
       }
       return;
     }
@@ -277,16 +378,29 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
         return;
       }
 
-      const initialLat = parseFloat(addressForm.latitude) || 23.7516;
-      const initialLng = parseFloat(addressForm.longitude) || 90.3786;
+      const bangladeshBounds = L.latLngBounds(BANGLADESH_BOUNDS[0], BANGLADESH_BOUNDS[1]);
+      const initialLat = parseFloat(addressForm.latitude) || DEFAULT_BD_CENTER[0];
+      const initialLng = parseFloat(addressForm.longitude) || DEFAULT_BD_CENTER[1];
 
       const map = L.map(mapContainerRef.current, {
-        zoomControl: true,
-      }).setView([initialLat, initialLng], 13);
+        zoomControl: false,
+        maxBounds: bangladeshBounds,
+        maxBoundsViscosity: 1.0,
+        minZoom: 7,
+        maxZoom: 20,
+      }).setView([initialLat, initialLng], 14);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+      // Place zoom controls at bottom-right
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      // Google Maps Streets layer default
+      const layerCfg = MAP_LAYERS[activeLayer] || MAP_LAYERS.googleStreets;
+      const tileLayer = L.tileLayer(layerCfg.url, {
+        attribution: layerCfg.attribution,
+        maxZoom: layerCfg.maxZoom,
+        subdomains: (layerCfg as any).subdomains || ['mt0', 'mt1', 'mt2', 'mt3']
       }).addTo(map);
+      tileLayerRef.current = tileLayer;
 
       zones.forEach((zone) => {
         const zoneLat = Number(zone.latitude || 0);
@@ -447,33 +561,20 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
   const handleMapSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mapSearchQuery.trim()) return;
-    setIsSearchingMap(false);
+    setIsSearchingMap(true);
+    setShowSuggestions(false);
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(mapSearchQuery)}&limit=1`);
-      const data = await response.json();
-      if (data && data.length > 0) {
-        const { lat, lon, display_name } = data[0];
-        const newLat = parseFloat(lat).toFixed(6);
-        const newLng = parseFloat(lon).toFixed(6);
-        
-        setAddressForm(prev => ({
-          ...prev,
-          latitude: newLat,
-          longitude: newLng,
-          address: prev.address || display_name, // fill display name if empty
-        }));
-        
-        if (markerRef.current && mapRef.current) {
-          markerRef.current.setLatLng([newLat, newLng]);
-          mapRef.current.setView([newLat, newLng], 15);
-        }
-        toast.success('Location updated on map!');
+      const results = await searchBangladeshLocations(mapSearchQuery);
+      if (results && results.length > 0) {
+        handleSelectLocation(results[0]);
       } else {
-        toast.error('Location not found. Try adding city context (e.g. "Dhanmondi, Dhaka").');
+        toast.error('Location not found in Bangladesh. Try adding street name (e.g. "Road 11, Banani").');
       }
     } catch (err) {
       console.error(err);
       toast.error('Failed to resolve search query.');
+    } finally {
+      setIsSearchingMap(false);
     }
   };
 
@@ -747,30 +848,131 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
           )}
           
           {/* Left Column: Leaflet Map Container */}
-          <div className="w-full md:w-1/2 h-[200px] md:h-full relative bg-muted/40 border-r border-border/80 shrink-0">
-            <div ref={mapContainerRef} className="w-full h-full" style={{ minHeight: '100%' }} />
+          <div className="w-full md:w-1/2 h-[260px] md:h-full relative bg-muted/40 border-r border-border/80 shrink-0 overflow-hidden">
+            <div ref={mapContainerRef} className="w-full h-full z-0" style={{ minHeight: '100%' }} />
             
-            {/* Absolute positioning Map Search Bar */}
-            <form onSubmit={handleMapSearchSubmit} className="absolute top-3 left-12 right-3 z-[1000] flex gap-1.5 bg-card/95 backdrop-blur-md p-1.5 rounded-xl border border-border shadow-md">
-              <input
-                type="text"
-                placeholder="Search addresses, locations..."
-                value={mapSearchQuery}
-                onChange={(e) => setMapSearchQuery(e.target.value)}
-                className="flex-1 bg-background border border-border rounded-lg px-2.5 py-1 text-[11px] text-foreground focus:outline-none placeholder:text-muted-foreground/60"
-              />
-              <button
-                type="submit"
-                className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary-hover text-white text-[10px] font-bold transition-colors cursor-pointer select-none flex items-center gap-1 shrink-0"
-              >
-                <Search className="h-3 w-3" />
-                Find
-              </button>
-            </form>
+            {/* Top Bar: Search Bar with Autocomplete & Layer Switcher */}
+            <div ref={searchContainerRef} className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5 bg-card/95 backdrop-blur-md p-1.5 rounded-xl border border-border shadow-md">
+                <form onSubmit={handleMapSearchSubmit} className="flex-1 flex items-center gap-1.5 relative">
+                  <div className="relative flex-1 flex items-center">
+                    <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Search street, road, area in Bangladesh..."
+                      value={mapSearchQuery}
+                      onChange={handleMapSearchInputChange}
+                      onFocus={() => {
+                        if (searchResults.length > 0) setShowSuggestions(true);
+                      }}
+                      className="w-full bg-background border border-border rounded-lg pl-8 pr-7 py-1.5 text-[11px] font-medium text-foreground focus:outline-none focus:border-primary placeholder:text-muted-foreground/60 transition-all"
+                    />
+                    {isSearchingMap ? (
+                      <Loader2 className="absolute right-2.5 h-3.5 w-3.5 text-primary animate-spin pointer-events-none" />
+                    ) : mapSearchQuery ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMapSearchQuery('');
+                          setSearchResults([]);
+                          setShowSuggestions(false);
+                        }}
+                        className="absolute right-2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    ) : null}
+                  </div>
 
-            <div className="absolute bottom-3 left-3 z-[1000] bg-card/95 border border-border/80 rounded-xl px-2.5 py-1.5 text-[10px] text-foreground/80 font-semibold select-none flex items-center gap-1.5 backdrop-blur-xs">
+                  <button
+                    type="submit"
+                    className="px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-[10px] font-bold transition-colors cursor-pointer select-none flex items-center gap-1 shrink-0"
+                  >
+                    Find
+                  </button>
+                </form>
+
+                {/* Layer Switcher Button */}
+                <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border border-border/50 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => switchMapLayer('googleStreets')}
+                    title="Google Streets Map"
+                    className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      activeLayer === 'googleStreets'
+                        ? 'bg-card text-primary shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <MapIcon className="h-3 w-3" />
+                    Map
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchMapLayer('googleHybrid')}
+                    title="Google Satellite Hybrid"
+                    className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      activeLayer === 'googleHybrid'
+                        ? 'bg-card text-primary shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Layers className="h-3 w-3" />
+                    Satellite
+                  </button>
+                </div>
+              </div>
+
+              {/* Autocomplete Suggestions Dropdown */}
+              {showSuggestions && (
+                <div className="w-full max-h-56 overflow-y-auto bg-card/95 backdrop-blur-md rounded-xl border border-border shadow-xl p-1 animate-fade-in divide-y divide-border/40">
+                  {searchResults.length > 0 ? (
+                    searchResults.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleSelectLocation(item)}
+                        className="w-full text-left p-2 hover:bg-primary/10 rounded-lg transition-colors flex items-start gap-2.5 cursor-pointer group"
+                      >
+                        <div className="mt-0.5 p-1 rounded-md bg-muted group-hover:bg-primary/20 shrink-0">
+                          {item.category === 'street' ? (
+                            <Navigation className="h-3.5 w-3.5 text-rose-500" />
+                          ) : item.category === 'building' ? (
+                            <Building2 className="h-3.5 w-3.5 text-amber-500" />
+                          ) : item.category === 'neighborhood' ? (
+                            <MapPin className="h-3.5 w-3.5 text-emerald-500" />
+                          ) : (
+                            <MapIcon className="h-3.5 w-3.5 text-primary" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                              {item.title}
+                            </p>
+                            <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-muted/80 text-muted-foreground font-semibold shrink-0">
+                              {item.category}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                            {item.subtitle}
+                          </p>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-3 text-center text-[10px] text-muted-foreground">
+                      No locations found in Bangladesh. Try searching road number or area.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Status Pill */}
+            <div className="absolute bottom-3 left-3 z-[1000] bg-card/95 border border-border/80 rounded-xl px-2.5 py-1.5 text-[10px] text-foreground/80 font-semibold select-none flex items-center gap-1.5 backdrop-blur-xs shadow-sm">
               <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-              Drag pin or click map to select delivery location
+              🇧🇩 Drag pin or click map to select delivery coordinates
             </div>
           </div>
 

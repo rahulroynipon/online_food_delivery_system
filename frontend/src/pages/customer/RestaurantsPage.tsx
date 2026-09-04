@@ -57,6 +57,7 @@ export default function RestaurantsPage() {
   
   // Local Filter States
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get('category') || '');
   const [showOpenOnly, setShowOpenOnly] = useState(false);
   const [sortByRating, setSortByRating] = useState(false);
@@ -90,11 +91,32 @@ export default function RestaurantsPage() {
     return `${api.defaults.baseURL}/uploads/${cleanPath}`;
   };
 
-  // Sync URL search queries to state
+  // Sync URL category queries to state if changed externally
   useEffect(() => {
-    setSearchQuery(searchParams.get('search') || '');
-    setSelectedCategory(searchParams.get('category') || '');
+    const urlCat = searchParams.get('category') || '';
+    if (urlCat !== selectedCategory) {
+      setSelectedCategory(urlCat);
+    }
   }, [searchParams]);
+
+  // Debounced sync from local searchQuery to debouncedSearch and URL search params
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+
+      const currentParam = searchParams.get('search') || '';
+      if (currentParam !== searchQuery) {
+        const newParams = new URLSearchParams(searchParams);
+        if (searchQuery.trim()) {
+          newParams.set('search', searchQuery);
+        } else {
+          newParams.delete('search');
+        }
+        setSearchParams(newParams, { replace: true });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Fetch initial setup data (categories & zones)
   useEffect(() => {
@@ -124,7 +146,7 @@ export default function RestaurantsPage() {
       try {
         const params: any = {};
         if (selectedZone) params.zone = selectedZone.id;
-        if (searchQuery.trim()) params.search = searchQuery;
+        if (debouncedSearch.trim()) params.search = debouncedSearch;
         if (selectedCategory) params.category = selectedCategory;
 
         // Fetch both collections in parallel
@@ -173,7 +195,7 @@ export default function RestaurantsPage() {
     };
 
     fetchFilteredData();
-  }, [selectedZone, searchQuery, selectedCategory, showOpenOnly, sortByRating]);
+  }, [selectedZone, debouncedSearch, selectedCategory, showOpenOnly, sortByRating]);
 
   const handleOpenCustomizer = (food: any) => {
     if (!food.restaurant?.isOpen) {
@@ -222,15 +244,7 @@ export default function RestaurantsPage() {
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    const newParams = new URLSearchParams(searchParams);
-    if (query.trim()) {
-      newParams.set('search', query);
-    } else {
-      newParams.delete('search');
-    }
-    setSearchParams(newParams);
+    setSearchQuery(e.target.value);
   };
 
   return (

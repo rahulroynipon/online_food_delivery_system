@@ -135,7 +135,7 @@ export const deleteDeliveryZone = async (req, res, next) => {
 };
 
 /**
- * @desc    Geocode search query proxy to OpenStreetMap Nominatim
+ * @desc    Geocode search query proxy to OpenStreetMap Nominatim for Bangladesh
  * @route   GET /api/v1/delivery-zones/geocode
  * @access  Private (Admin)
  */
@@ -146,19 +146,27 @@ export const geocodeAddress = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Query parameter q is required.' });
     }
 
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=bd&limit=1`,
-      {
-        headers: {
-          'User-Agent': 'BiteSpeed-Food-Delivery-System/1.0'
-        }
+    const headers = { 'User-Agent': 'BiteSpeed-Food-Delivery-System/1.0' };
+    const searchUrl = (query) =>
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
+        query
+      )}&countrycodes=bd&addressdetails=1&limit=8&viewbox=87.8,20.3,92.8,26.8`;
+
+    let response = await fetch(searchUrl(q), { headers });
+    let data = await response.json();
+
+    // Fallback if no results and query starts with house/flat prefix
+    if ((!data || data.length === 0) && /^(House|Flat|Apartment|Holding|Plot|Building|Apt)\b/i.test(q)) {
+      const fallbackQuery = q.replace(/^(House|Flat|Apartment|Holding|Plot|Building|Apt)\s*[^,]+,\s*/i, '');
+      if (fallbackQuery && fallbackQuery !== q) {
+        response = await fetch(searchUrl(fallbackQuery), { headers });
+        data = await response.json();
       }
-    );
-    const data = await response.json();
+    }
 
     return res.status(200).json({
       success: true,
-      results: data
+      results: Array.isArray(data) ? data : []
     });
   } catch (error) {
     next(error);

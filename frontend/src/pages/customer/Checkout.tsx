@@ -104,10 +104,11 @@ export default function CheckoutPage() {
     );
   }
 
-  // Compute delivery fee dynamically
+  // Compute delivery fee dynamically (max of base fee or calculated distance fee)
   const activeAddress = addresses.find(a => a.id === selectedAddrId);
   let distance = 0;
-  let deliveryFee = Number(settings?.riderBaseFee || 30.00);
+  const baseFee = Number(settings?.riderBaseFee || 30.00);
+  let deliveryFee = baseFee;
 
   if (activeAddress && restaurant) {
     distance = getDistanceKm(
@@ -117,7 +118,8 @@ export default function CheckoutPage() {
       Number(restaurant.longitude || 0)
     );
     const costPerKm = Number(settings?.riderFeePerKm || 15.00);
-    deliveryFee += costPerKm * distance;
+    const calculatedDistanceFee = costPerKm * distance;
+    deliveryFee = Math.max(baseFee, calculatedDistanceFee);
   }
 
   const taxRate = Number(settings?.taxRate || 5.00);

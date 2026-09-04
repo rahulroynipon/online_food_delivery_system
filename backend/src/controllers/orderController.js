@@ -176,8 +176,9 @@ export const createOrder = async (req, res, next) => {
       });
     }
 
-    // 4. Compute Financial splits
-    const deliveryFee = riderBaseFee + (riderFeePerKm * calculatedDistance);
+    // 4. Compute Financial splits (Delivery Fee uses max(baseFee, distanceFee))
+    const calculatedDistanceFee = riderFeePerKm * calculatedDistance;
+    const deliveryFee = Math.max(riderBaseFee, calculatedDistanceFee);
     const tax = subtotal * (taxRate / 100);
     const total = subtotal + deliveryFee + tax;
 

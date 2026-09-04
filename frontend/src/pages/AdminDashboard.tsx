@@ -30,7 +30,7 @@ import {
   ArrowDownToLine, 
   CheckSquare, 
   Layers, 
-  Map, 
+  Map as MapIcon, 
   BarChart3, 
   Settings, 
   Bell, 
@@ -228,7 +228,7 @@ export default function AdminDashboard() {
     { id: 'withdrawals', label: 'Withdrawals',  icon: <ArrowDownToLine size={18} />,  path: '/admin/withdrawals' },
     { id: 'settlements', label: 'Settlements',  icon: <CheckSquare size={18} />,      path: '/admin/settlements' },
     { id: 'categories',  label: 'Categories',   icon: <Layers size={18} />,           path: '/admin/categories' },
-    { id: 'zones',       label: 'Zones',        icon: <Map size={18} />,              path: '/admin/zones' },
+    { id: 'zones',       label: 'Zones',        icon: <MapIcon size={18} />,          path: '/admin/zones' },
     { id: 'reports',     label: 'Reports',      icon: <BarChart3 size={18} />,        path: '/admin/reports' },
     { id: 'settings',    label: 'Settings',     icon: <Settings size={18} />,         path: '/admin/settings' },
   ];

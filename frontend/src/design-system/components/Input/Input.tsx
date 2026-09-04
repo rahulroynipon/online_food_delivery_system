@@ -65,26 +65,26 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const [isFocused, setIsFocused] = React.useState(false);
     const [showPassword, setShowPassword] = React.useState(false);
     const [copied, setCopied] = React.useState(false);
-    const [localValue, setLocalValue] = React.useState((value ?? defaultValue ?? '') as string);
+    const isControlled = value !== undefined;
+    const [localValue, setLocalValue] = React.useState((defaultValue ?? '') as string);
+    const resolvedValue = isControlled ? (value as string) : localValue;
     const inputRef = React.useRef<HTMLInputElement>(null);
-
-    React.useEffect(() => {
-      if (value !== undefined) {
-        setLocalValue(value as string);
-      }
-    }, [value]);
 
     React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement);
 
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setLocalValue(e.target.value);
+      if (!isControlled) {
+        setLocalValue(e.target.value);
+      }
       if (onChange) onChange(e);
     };
 
     const handleClear = () => {
-      setLocalValue('');
+      if (!isControlled) {
+        setLocalValue('');
+      }
       if (inputRef.current) {
         inputRef.current.value = '';
         const event = {
@@ -98,7 +98,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
     const handleCopy = async () => {
       try {
-        await navigator.clipboard.writeText(localValue);
+        await navigator.clipboard.writeText(String(resolvedValue));
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
@@ -149,7 +149,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             )}
             {showCount && maxLength && (
               <span className="text-xs font-mono text-[var(--color-muted-foreground)]">
-                {localValue.length}/{maxLength}
+                {String(resolvedValue).length}/{maxLength}
               </span>
             )}
           </div>
@@ -186,17 +186,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               ref={inputRef}
               type={resolvedType}
               id={inputId}
-              disabled={disabled || loading}
+              disabled={disabled}
               readOnly={readOnly}
               maxLength={maxLength}
               {...props}
-              {...(value !== undefined ? { value: localValue } : {})}
+              {...(isControlled ? { value: resolvedValue } : { defaultValue })}
               onChange={handleInputChange}
               onFocus={(e) => {
                 setIsFocused(true);
-                if (inputRef.current) {
-                  setLocalValue(inputRef.current.value);
-                }
                 if (onFocus) onFocus(e);
               }}
               onBlur={(e) => {

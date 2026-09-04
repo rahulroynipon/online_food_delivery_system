@@ -54,17 +54,19 @@ export default function RidersPage() {
     {
       id: 'rider',
       label: 'Rider Partner',
+      width: '240px',
       cell: ({ row }) => (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-[180px] max-w-[240px]">
           <Avatar 
-            src="" // Riders don't have profile pictures in the schema, initials will be fallback
+            src="" 
             alt={row.user?.name} 
             fallback={<User size={14} />} 
             size="md"
+            className="shrink-0"
           />
-          <div>
-            <p className="font-extrabold text-sm text-foreground">{row.user?.name || 'N/A'}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 capitalize">
+          <div className="min-w-0">
+            <p className="font-extrabold text-sm text-foreground truncate">{row.user?.name || 'N/A'}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 capitalize truncate">
               {row.vehicleType?.toLowerCase() || 'N/A'} Rider
             </p>
           </div>
@@ -74,18 +76,20 @@ export default function RidersPage() {
     {
       id: 'contact',
       label: 'Contact Info',
+      width: '190px',
       cell: ({ row }) => (
-        <div>
-          <p className="font-semibold text-foreground">{row.user?.email || 'N/A'}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">{row.user?.phone || 'N/A'}</p>
+        <div className="min-w-[140px] max-w-[190px]">
+          <p className="font-semibold text-foreground text-xs truncate" title={row.user?.email}>{row.user?.email || 'N/A'}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{row.user?.phone || 'N/A'}</p>
         </div>
       )
     },
     {
       id: 'vehicle',
       label: 'License / Plate No.',
+      width: '160px',
       cell: ({ row }) => (
-        <span className="font-mono text-muted-foreground bg-muted/40 px-2 py-0.5 rounded border border-border/20">
+        <span className="font-mono text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded border border-border/20">
           {row.vehicleNumber || 'N/A'}
         </span>
       )
@@ -93,16 +97,22 @@ export default function RidersPage() {
     {
       id: 'status',
       label: 'Status',
+      width: '100px',
       cell: ({ row }) => getStatusBadge(row.status)
     },
     {
       id: 'date',
       label: 'Applied Date',
-      cell: ({ row }) => new Date(row.createdAt).toLocaleDateString(undefined, { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      })
+      width: '130px',
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+          {new Date(row.createdAt).toLocaleDateString(undefined, { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          })}
+        </span>
+      )
     },
     {
       id: 'actions',

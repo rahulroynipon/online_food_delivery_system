@@ -7,12 +7,21 @@ import {
   Plus, 
   Edit, 
   Trash2, 
-  Info,
-  Map,
-  Compass,
-  Navigation
+  Info, 
+  Map as MapIcon, 
+  Compass, 
+  Navigation,
+  Building2,
+  X
 } from 'lucide-react';
 import api from '../../lib/axios';
+import {
+  BANGLADESH_BOUNDS,
+  DEFAULT_BD_CENTER,
+  MAP_LAYERS,
+  searchBangladeshLocations,
+  GeoSearchResult
+} from '../../lib/geo';
 
 export default function ZonesPage() {
   const [zones, setZones] = useState<any[]>([]);
@@ -38,45 +47,82 @@ export default function ZonesPage() {
     radiusKm: '5.0'
   });
 
-  // Modal Map Search State
+  // Modal Map Search State & Autocomplete
   const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const [modalSearchResults, setModalSearchResults] = useState<GeoSearchResult[]>([]);
+  const [showModalSuggestions, setShowModalSuggestions] = useState(false);
   const [isSearchingMapLocation, setIsSearchingMapLocation] = useState(false);
+  const modalSearchTimeoutRef = useRef<any>(null);
+  const modalSearchBoxRef = useRef<HTMLDivElement | null>(null);
 
   // Delete Modal state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [zoneToDelete, setZoneToDelete] = useState<any>(null);
 
+  const handleModalSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setModalSearchQuery(val);
+
+    if (modalSearchTimeoutRef.current) {
+      clearTimeout(modalSearchTimeoutRef.current);
+    }
+
+    if (val.trim().length >= 2) {
+      setIsSearchingMapLocation(true);
+      modalSearchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const results = await searchBangladeshLocations(val);
+          setModalSearchResults(results);
+          setShowModalSuggestions(true);
+        } catch (err) {
+          console.error('Zone search error:', err);
+        } finally {
+          setIsSearchingMapLocation(false);
+        }
+      }, 300);
+    } else {
+      setModalSearchResults([]);
+      setShowModalSuggestions(false);
+      setIsSearchingMapLocation(false);
+    }
+  };
+
+  const handleSelectModalLocation = (item: GeoSearchResult) => {
+    const lat = item.lat;
+    const lng = item.lng;
+
+    setForm(prev => ({
+      ...prev,
+      latitude: String(lat.toFixed(6)),
+      longitude: String(lng.toFixed(6)),
+      name: prev.name || item.title
+    }));
+
+    if (modalMarkerRef.current) {
+      modalMarkerRef.current.setLatLng([lat, lng]);
+    }
+    if (modalCircleRef.current) {
+      modalCircleRef.current.setLatLng([lat, lng]);
+    }
+    if (modalMapRef.current && modalCircleRef.current) {
+      modalMapRef.current.fitBounds(modalCircleRef.current.getBounds(), { maxZoom: 15 });
+    }
+
+    setModalSearchQuery(item.title);
+    setShowModalSuggestions(false);
+    toast.success(`Location set: ${item.title}`);
+  };
+
   const handleModalMapSearch = async () => {
     if (!modalSearchQuery.trim()) return;
     setIsSearchingMapLocation(true);
+    setShowModalSuggestions(false);
     try {
-      const response = await api.get('/delivery-zones/geocode', {
-        params: { q: modalSearchQuery }
-      });
-      const data = response.data?.results;
-      if (data && data.length > 0) {
-        const { lat, lon } = data[0];
-        const latitude = parseFloat(lat);
-        const longitude = parseFloat(lon);
-
-        setForm(prev => ({
-          ...prev,
-          latitude: String(latitude.toFixed(6)),
-          longitude: String(longitude.toFixed(6))
-        }));
-
-        if (modalMarkerRef.current) {
-          modalMarkerRef.current.setLatLng([latitude, longitude]);
-        }
-        if (modalCircleRef.current) {
-          modalCircleRef.current.setLatLng([latitude, longitude]);
-        }
-        if (modalMapRef.current && modalCircleRef.current) {
-          modalMapRef.current.fitBounds(modalCircleRef.current.getBounds());
-        }
-        toast.success('Location found on map!');
+      const results = await searchBangladeshLocations(modalSearchQuery);
+      if (results && results.length > 0) {
+        handleSelectModalLocation(results[0]);
       } else {
-        toast.error('Location not found. Try a different search query.');
+        toast.error('Location not found in Bangladesh. Try a specific street or area.');
       }
     } catch (err) {
       console.error('Map search error:', err);
@@ -85,6 +131,17 @@ export default function ZonesPage() {
       setIsSearchingMapLocation(false);
     }
   };
+
+  // Dismiss suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalSearchBoxRef.current && !modalSearchBoxRef.current.contains(event.target as Node)) {
+        setShowModalSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Map Refs
   const mainMapRef = useRef<any>(null);
@@ -146,12 +203,15 @@ export default function ZonesPage() {
     const mapInstance = L.map(mainMapContainerRef.current, {
       maxBounds: bangladeshBounds,
       maxBoundsViscosity: 1.0,
-      minZoom: 8
+      minZoom: 7,
+      maxZoom: 20
     }).setView([startLat, startLng], 12);
     mainMapRef.current = mapInstance;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+    L.tileLayer(MAP_LAYERS.googleStreets.url, {
+      attribution: MAP_LAYERS.googleStreets.attribution,
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
     }).addTo(mapInstance);
 
     // Plot circles for all active zones
@@ -284,12 +344,15 @@ export default function ZonesPage() {
       const mapInstance = L.map(mapEl, {
         maxBounds: bangladeshBounds,
         maxBoundsViscosity: 1.0,
-        minZoom: 8
+        minZoom: 7,
+        maxZoom: 20
       }).setView([startLat, startLng], 12);
       modalMapRef.current = mapInstance;
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
+      L.tileLayer(MAP_LAYERS.googleStreets.url, {
+        attribution: MAP_LAYERS.googleStreets.attribution,
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
       }).addTo(mapInstance);
 
       // Marker
@@ -424,7 +487,7 @@ export default function ZonesPage() {
           <Avatar 
             src="" 
             alt={row.name} 
-            fallback={<Map size={14} />} 
+            fallback={<MapIcon size={14} />} 
             size="md"
           />
           <div>
@@ -598,7 +661,7 @@ export default function ZonesPage() {
             </div>
           ) : filteredZones.length === 0 ? (
             <div className="text-center py-20">
-              <Map className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+              <MapIcon className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
               <h4 className="text-sm font-bold text-foreground">No zones found</h4>
               <p className="text-xs text-muted-foreground mt-1">There are no coverage zones matching the filters.</p>
             </div>
@@ -676,26 +739,89 @@ export default function ZonesPage() {
 
               {/* Modal Geocoding Map Container */}
               <div className="flex flex-col gap-2">
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <Input
-                      label="Search Map Location"
-                      placeholder="e.g. Banani, Dhaka"
-                      leftIcon={<Search size={14} className="text-muted-foreground" />}
-                      value={modalSearchQuery}
-                      onChange={(e) => setModalSearchQuery(e.target.value)}
-                    />
+                <div ref={modalSearchBoxRef} className="relative flex flex-col gap-1.5">
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1 relative">
+                      <Input
+                        label="Search Map Location / Street in BD"
+                        placeholder="e.g. Road 11, Banani or Dhanmondi 27"
+                        leftIcon={<Search size={14} className="text-muted-foreground" />}
+                        value={modalSearchQuery}
+                        onChange={handleModalSearchChange}
+                        onFocus={() => {
+                          if (modalSearchResults.length > 0) setShowModalSuggestions(true);
+                        }}
+                      />
+                      {modalSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalSearchQuery('');
+                            setModalSearchResults([]);
+                            setShowModalSuggestions(false);
+                          }}
+                          className="absolute right-3 top-7 text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleModalMapSearch}
+                      loading={isSearchingMapLocation}
+                      className="h-9 shrink-0"
+                    >
+                      Locate
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleModalMapSearch}
-                    loading={isSearchingMapLocation}
-                    className="h-9 shrink-0"
-                  >
-                    Locate
-                  </Button>
+
+                  {/* Autocomplete Suggestions Dropdown */}
+                  {showModalSuggestions && (
+                    <div className="absolute top-[58px] left-0 right-0 z-50 max-h-48 overflow-y-auto bg-card border border-border shadow-xl rounded-xl p-1 divide-y divide-border/40 animate-fade-in">
+                      {modalSearchResults.length > 0 ? (
+                        modalSearchResults.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => handleSelectModalLocation(item)}
+                            className="w-full text-left p-2 hover:bg-primary/10 rounded-lg transition-colors flex items-start gap-2 cursor-pointer group"
+                          >
+                            <div className="mt-0.5 p-1 rounded-md bg-muted group-hover:bg-primary/20 shrink-0">
+                              {item.category === 'street' ? (
+                                <Navigation className="h-3 w-3 text-rose-500" />
+                              ) : item.category === 'building' ? (
+                                <Building2 className="h-3 w-3 text-amber-500" />
+                              ) : item.category === 'neighborhood' ? (
+                                <MapPin className="h-3 w-3 text-emerald-500" />
+                              ) : (
+                                <MapIcon className="h-3 w-3 text-primary" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-xs font-bold text-foreground truncate group-hover:text-primary">
+                                  {item.title}
+                                </p>
+                                <span className="text-[8px] uppercase px-1 py-0.2 rounded bg-muted text-muted-foreground font-semibold">
+                                  {item.category}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                                {item.subtitle}
+                              </p>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="p-2 text-center text-[10px] text-muted-foreground">
+                          No locations found in Bangladesh.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -760,7 +886,7 @@ export default function ZonesPage() {
               <Avatar 
                 src="" 
                 alt={zoneToDelete.name} 
-                fallback={<Map size={14} />} 
+                fallback={<MapIcon size={14} />} 
                 size="md"
               />
               <div>

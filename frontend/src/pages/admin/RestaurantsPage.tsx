@@ -31,17 +31,19 @@ export default function RestaurantsPage() {
     {
       id: 'restaurant',
       label: 'Restaurant',
+      width: '240px',
       cell: ({ row }) => (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-[180px] max-w-[240px]">
           <Avatar 
             src={row.logo} 
             alt={row.name} 
             fallback={<Store size={14} />} 
             size="md"
+            className="shrink-0"
           />
-          <div>
-            <p className="font-extrabold text-sm text-foreground text-nowrap">{row.name}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 italic max-w-xs truncate">
+          <div className="min-w-0">
+            <p className="font-extrabold text-sm text-foreground truncate">{row.name}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 italic truncate" title={row.description}>
               {row.description || 'No description provided'}
             </p>
           </div>
@@ -51,35 +53,53 @@ export default function RestaurantsPage() {
     {
       id: 'owner',
       label: 'Owner / Contact',
+      width: '180px',
       cell: ({ row }) => (
-        <div>
-          <p className="font-semibold text-foreground">{row.user?.name || 'N/A'}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">{row.user?.email || 'N/A'}</p>
+        <div className="min-w-[130px] max-w-[180px]">
+          <p className="font-semibold text-foreground text-xs truncate">{row.user?.name || 'N/A'}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title={row.user?.email}>{row.user?.email || 'N/A'}</p>
         </div>
       )
     },
     {
       id: 'address',
       label: 'Address',
-      cell: ({ row }) => <span className="text-muted-foreground font-medium">{row.address}</span>
+      width: '240px',
+      cell: ({ row }) => (
+        <div className="max-w-[240px] group cursor-default" title={row.address}>
+          <div className="flex items-start gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-primary/70 shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground font-medium line-clamp-2 leading-relaxed break-words">
+              {row.address || 'No address provided'}
+            </p>
+          </div>
+        </div>
+      )
     },
     {
       id: 'status',
       label: 'Status',
+      width: '100px',
       cell: ({ row }) => getStatusBadge(row.status)
     },
     {
       id: 'date',
       label: 'Submitted Date',
-      cell: ({ row }) => new Date(row.createdAt).toLocaleDateString(undefined, { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      })
+      width: '130px',
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+          {new Date(row.createdAt).toLocaleDateString(undefined, { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          })}
+        </span>
+      )
     },
     {
       id: 'open',
       label: 'Open?',
+      width: '90px',
       cell: ({ row }) => row.isOpen
         ? <Badge variant="soft" color="success" className="font-bold text-[10px] tracking-wide uppercase px-2.5 py-0.5">Open</Badge>
         : <Badge variant="soft" color="neutral" className="font-bold text-[10px] tracking-wide uppercase px-2.5 py-0.5">Closed</Badge>

@@ -104,7 +104,7 @@
 }
 
 .datatable-row td {
-  padding: 0 var(--spacing-4);
+  padding: 10px var(--spacing-4);
   font-size: 0.875rem;
   color: var(--color-foreground);
   vertical-align: middle;

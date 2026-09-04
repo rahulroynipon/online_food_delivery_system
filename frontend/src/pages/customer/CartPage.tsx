@@ -28,7 +28,9 @@ export default function CartPage() {
 
   const [userAddresses, setUserAddresses] = useState<any[]>([]);
   const [isAddrDropdownOpen, setIsAddrDropdownOpen] = useState(false);
+  const [restaurant, setRestaurant] = useState<any>(null);
   const [restaurantZones, setRestaurantZones] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
 
   // Distance calculator (Haversine formula in KM)
   const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -46,6 +48,19 @@ export default function CartPage() {
   // Fetched full menu foods indexed by foodId
   const [menuFoods, setMenuFoods] = useState<Record<number, any>>({});
   const [menuLoading, setMenuLoading] = useState(false);
+
+  // Fetch platform fee settings (tax, base fee, per km fee)
+  useEffect(() => {
+    api.get('/settings/platform')
+      .then((res) => {
+        if (res.data?.success && res.data.settings) {
+          setSettings(res.data.settings);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch platform settings on cart:', err);
+      });
+  }, []);
 
   // Modal state
   const [isModalOpen, setIsModalOpen]       = useState(false);
@@ -72,6 +87,7 @@ export default function CartPage() {
             const matched = list.find((r: any) => r.id === restaurantId);
             if (matched) {
               slug = matched.slug;
+              setRestaurant(matched);
             }
           }
         } catch (err) {
@@ -90,7 +106,10 @@ export default function CartPage() {
             (cat.foods || []).forEach((food: any) => { foods[food.id] = food; });
           });
           setMenuFoods(foods);
-          setRestaurantZones(res.data.restaurant?.deliveryZones || []);
+          if (res.data.restaurant) {
+            setRestaurant(res.data.restaurant);
+            setRestaurantZones(res.data.restaurant.deliveryZones || []);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch restaurant menu:', err);
@@ -210,9 +229,27 @@ export default function CartPage() {
     }
   };
 
-  const subtotal    = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const deliveryFee = cart.length > 0 ? 40 : 0;
-  const total       = subtotal + deliveryFee;
+  const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  
+  let distance = 0;
+  const baseFee = Number(settings?.riderBaseFee || 30.00);
+  let deliveryFee = cart.length > 0 ? baseFee : 0;
+
+  if (cart.length > 0 && selectedAddress && restaurant) {
+    distance = getDistanceKm(
+      Number(selectedAddress.latitude),
+      Number(selectedAddress.longitude),
+      Number(restaurant.latitude || 0),
+      Number(restaurant.longitude || 0)
+    );
+    const costPerKm = Number(settings?.riderFeePerKm || 15.00);
+    const calculatedDistanceFee = costPerKm * distance;
+    deliveryFee = Math.max(baseFee, calculatedDistanceFee);
+  }
+
+  const taxRate = Number(settings?.taxRate ?? 5.00);
+  const tax = cart.length > 0 ? subtotal * (taxRate / 100) : 0;
+  const total = subtotal + deliveryFee + tax;
 
   return (
     <CustomerLayout>
@@ -430,18 +467,29 @@ export default function CartPage() {
               )}
 
               {/* Price breakdown */}
-              <div className="space-y-2 text-xs font-medium text-muted-foreground">
+              <div className="space-y-2 text-xs font-medium text-muted-foreground select-none">
                 <div className="flex justify-between">
                   <span>Subtotal ({cart.reduce((a, c) => a + c.quantity, 0)} items)</span>
                   <span className="font-bold text-foreground">৳{subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Delivery Fee</span>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span>Delivery Fee</span>
+                    {distance > 0 && (
+                      <span className="text-[9px] text-muted-foreground block">
+                        Dist: {distance.toFixed(1)} km
+                      </span>
+                    )}
+                  </div>
                   <span className="font-bold text-foreground">৳{deliveryFee.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>VAT / Tax ({taxRate}%)</span>
+                  <span className="font-bold text-foreground">৳{tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between border-t border-border/10 pt-2 text-sm font-black text-foreground">
                   <span>Total</span>
-                  <span>৳{total.toFixed(2)}</span>
+                  <span className="text-primary font-black">৳{total.toFixed(2)}</span>
                 </div>
               </div>
 

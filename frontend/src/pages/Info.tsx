@@ -27,10 +27,20 @@ import {
   MapPin,
   FileText,
   Navigation,
-  Map,
+  Map as MapIcon,
   Loader2,
-  Search
+  Search,
+  Building2,
+  X
 } from 'lucide-react';
+import {
+  BANGLADESH_BOUNDS,
+  DEFAULT_BD_CENTER,
+  MAP_LAYERS,
+  searchBangladeshLocations,
+  reverseGeocodeBangladesh,
+  GeoSearchResult
+} from '../lib/geo';
 
 interface RestaurantFormValues {
   restaurantName: string;
@@ -122,9 +132,55 @@ export default function Info() {
   const [selectedLatLng, setSelectedLatLng] = useState<{ lat: number; lng: number } | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<GeoSearchResult[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const searchTimeoutRef = React.useRef<any>(null);
+  const searchBoxRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<any>(null);
   const markerRef = React.useRef<any>(null);
+  const zoneCircleRef = React.useRef<any>(null);
+
+  const selectedZoneId = watchRestaurant('deliveryZoneId');
+  const selectedZone = zones.find(z => String(z.id) === String(selectedZoneId));
+
+  const handleMoveMapToZone = () => {
+    const currentZoneId = watchRestaurant('deliveryZoneId');
+    const currentZone = zones.find(z => String(z.id) === String(currentZoneId));
+
+    if (!currentZone || !currentZone.latitude || !currentZone.longitude) {
+      toast.error('Please select a Primary Delivery Zone first.');
+      return;
+    }
+
+    const zoneLat = parseFloat(String(currentZone.latitude));
+    const zoneLng = parseFloat(String(currentZone.longitude));
+
+    if (mapRef.current) {
+      if (zoneCircleRef.current) {
+        mapRef.current.fitBounds(zoneCircleRef.current.getBounds(), { padding: [30, 30], animate: true });
+      } else {
+        mapRef.current.flyTo([zoneLat, zoneLng], 15, { animate: true });
+      }
+    }
+
+    if (markerRef.current) {
+      markerRef.current.setLatLng([zoneLat, zoneLng]);
+    }
+
+    setSelectedLatLng({ lat: zoneLat, lng: zoneLng });
+    setIsGeocoding(true);
+    reverseGeocodeBangladesh(zoneLat, zoneLng)
+      .then(res => {
+        if (res && res.shortAddress) {
+          setTempAddress(res.shortAddress);
+        }
+      })
+      .catch((err) => console.error('Reverse geocode error:', err))
+      .finally(() => setIsGeocoding(false));
+
+    toast.success(`Map centered to ${currentZone.name} delivery zone`);
+  };
 
   const initMap = async () => {
     setIsMapLoading(true);
@@ -144,12 +200,18 @@ export default function Info() {
         });
       }
 
-      let startLat = 23.8103;
-      let startLng = 90.4125;
+      let startLat = DEFAULT_BD_CENTER[0];
+      let startLng = DEFAULT_BD_CENTER[1];
+
+      const currentZoneId = watchRestaurant('deliveryZoneId');
+      const currentZone = zones.find(z => String(z.id) === String(currentZoneId));
 
       if (selectedLatLng) {
         startLat = selectedLatLng.lat;
         startLng = selectedLatLng.lng;
+      } else if (currentZone && currentZone.latitude && currentZone.longitude) {
+        startLat = parseFloat((currentZone as any).latitude);
+        startLng = parseFloat((currentZone as any).longitude);
       }
 
       setTimeout(() => {
@@ -160,12 +222,44 @@ export default function Info() {
           mapRef.current.remove();
         }
 
-        const mapInstance = L.map('leaflet-map-container').setView([startLat, startLng], 13);
+        const bangladeshBounds = L.latLngBounds(BANGLADESH_BOUNDS[0], BANGLADESH_BOUNDS[1]);
+        const mapInstance = L.map('leaflet-map-container', {
+          maxBounds: bangladeshBounds,
+          maxBoundsViscosity: 1.0,
+          minZoom: 7,
+          maxZoom: 20
+        }).setView([startLat, startLng], 14);
         mapRef.current = mapInstance;
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
+        L.tileLayer(MAP_LAYERS.googleStreets.url, {
+          attribution: MAP_LAYERS.googleStreets.attribution,
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(mapInstance);
+
+        // Draw Selected Zone geofence if present
+        if (currentZone && (currentZone as any).latitude && (currentZone as any).longitude && (currentZone as any).radiusKm) {
+          const zoneLat = parseFloat((currentZone as any).latitude);
+          const zoneLng = parseFloat((currentZone as any).longitude);
+          const zoneRadius = parseFloat((currentZone as any).radiusKm);
+
+          const zoneCircle = L.circle([zoneLat, zoneLng], {
+            color: '#d70f64',
+            fillColor: '#d70f64',
+            fillOpacity: 0.08,
+            radius: zoneRadius * 1000,
+            weight: 2,
+            dashArray: '6, 6'
+          }).addTo(mapInstance);
+          zoneCircleRef.current = zoneCircle;
+
+          // Center and fit view to the zone if selecting location first time
+          if (!selectedLatLng) {
+            mapInstance.fitBounds(zoneCircle.getBounds(), { padding: [20, 20] });
+          }
+        } else {
+          zoneCircleRef.current = null;
+        }
 
         const markerInstance = L.marker([startLat, startLng], { draggable: true }).addTo(mapInstance);
         markerRef.current = markerInstance;
@@ -174,10 +268,9 @@ export default function Info() {
           setSelectedLatLng({ lat, lng });
           setIsGeocoding(true);
           try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
-            const data = await res.json();
-            if (data && data.display_name) {
-              setTempAddress(data.display_name);
+            const res = await reverseGeocodeBangladesh(lat, lng);
+            if (res && res.shortAddress) {
+              setTempAddress(res.shortAddress);
             }
           } catch (err) {
             console.error('Error reverse geocoding coordinates:', err);
@@ -186,7 +279,7 @@ export default function Info() {
           }
         };
 
-        if (!tempAddress) {
+        if (!tempAddress && !selectedLatLng) {
           updateCoords(startLat, startLng);
         }
 
@@ -224,33 +317,64 @@ export default function Info() {
     }
     markerRef.current = null;
     setSearchQuery('');
+    setSearchResults([]);
+    setShowSuggestions(false);
+  };
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (val.trim().length >= 2) {
+      setIsSearchingLocation(true);
+      searchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const results = await searchBangladeshLocations(val);
+          setSearchResults(results);
+          setShowSuggestions(true);
+        } catch (err) {
+          console.error('Search error:', err);
+        } finally {
+          setIsSearchingLocation(false);
+        }
+      }, 300);
+    } else {
+      setSearchResults([]);
+      setShowSuggestions(false);
+      setIsSearchingLocation(false);
+    }
+  };
+
+  const handleSelectSearchResult = (item: GeoSearchResult) => {
+    setSelectedLatLng({ lat: item.lat, lng: item.lng });
+    setTempAddress(item.displayName || `${item.title}, ${item.subtitle}`);
+
+    if (mapRef.current) {
+      const zoom = item.category === 'street' || item.category === 'building' ? 17 : 15;
+      mapRef.current.setView([item.lat, item.lng], zoom);
+    }
+    if (markerRef.current) {
+      markerRef.current.setLatLng([item.lat, item.lng]);
+    }
+    setSearchQuery(item.title);
+    setShowSuggestions(false);
+    toast.success(`Location set: ${item.title}`);
   };
 
   const handleMapSearch = async () => {
     if (!searchQuery.trim()) return;
     setIsSearchingLocation(true);
+    setShowSuggestions(false);
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`
-      );
-      const data = await res.json();
-      if (data && data.length > 0) {
-        const { lat, lon, display_name } = data[0];
-        const latitude = parseFloat(lat);
-        const longitude = parseFloat(lon);
-
-        setSelectedLatLng({ lat: latitude, lng: longitude });
-        setTempAddress(display_name);
-
-        if (mapRef.current) {
-          mapRef.current.setView([latitude, longitude], 14);
-        }
-        if (markerRef.current) {
-          markerRef.current.setLatLng([latitude, longitude]);
-        }
-        toast.success('Location found!');
+      const results = await searchBangladeshLocations(searchQuery);
+      if (results && results.length > 0) {
+        handleSelectSearchResult(results[0]);
       } else {
-        toast.error('Location not found. Please try a different search term.');
+        toast.error('Location not found in Bangladesh. Try searching road name (e.g. "Road 11, Banani").');
       }
     } catch (err) {
       console.error('Map search error:', err);
@@ -259,6 +383,17 @@ export default function Info() {
       setIsSearchingLocation(false);
     }
   };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleAutoDetectLocation = () => {
     if (!navigator.geolocation) {
@@ -627,10 +762,25 @@ export default function Info() {
                               size="xs" 
                               variant="outline" 
                               onClick={handleOpenMap}
-                              leftIcon={<Map className="h-3.5 w-3.5" />}
+                              leftIcon={<MapIcon className="h-3.5 w-3.5" />}
                             >
                               Change Location
                             </Button>
+                            {selectedZone && (
+                              <Button 
+                                type="button" 
+                                size="xs" 
+                                variant="outline" 
+                                onClick={() => {
+                                  handleOpenMap();
+                                  setTimeout(() => handleMoveMapToZone(), 350);
+                                }}
+                                leftIcon={<Navigation className="h-3.5 w-3.5 text-primary" />}
+                                className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-bold"
+                              >
+                                Move to {selectedZone.name} Zone
+                              </Button>
+                            )}
                             <Button 
                               type="button" 
                               size="xs" 
@@ -654,11 +804,26 @@ export default function Info() {
                               size="sm" 
                               variant="outline" 
                               onClick={handleOpenMap}
-                              leftIcon={<Map className="h-4 w-4" />}
+                              leftIcon={<MapIcon className="h-4 w-4" />}
                               className="shadow-sm"
                             >
                               Select on Map
                             </Button>
+                            {selectedZone && (
+                              <Button 
+                                type="button" 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => {
+                                  handleOpenMap();
+                                  setTimeout(() => handleMoveMapToZone(), 350);
+                                }}
+                                leftIcon={<Navigation className="h-4 w-4 text-primary" />}
+                                className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-bold shadow-sm"
+                              >
+                                Move to {selectedZone.name} Zone
+                              </Button>
+                            )}
                             <Button 
                               type="button" 
                               size="sm" 
@@ -812,36 +977,115 @@ export default function Info() {
 
       <Modal open={isMapModalOpen} onClose={handleCloseMap} size='lg'  title="Select Business Location">
         <Modal.Content className="space-y-4 ">
-          <div className="text-xs text-muted-foreground leading-relaxed">
-            Click on the map, drag the pin, or search for your address to select your restaurant's exact location.
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-xs text-muted-foreground leading-relaxed">
+              Click on the map, drag the pin, or search for your address to select your restaurant's exact location.
+            </div>
+            {selectedZone && (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={handleMoveMapToZone}
+                leftIcon={<Navigation className="h-3.5 w-3.5 text-primary" />}
+                className="shrink-0 font-bold bg-primary/5 border-primary/25 hover:bg-primary/15 text-primary"
+              >
+                Focus {selectedZone.name} Zone
+              </Button>
+            )}
           </div>
           
-          <div className="flex gap-2">
-            <Input
-              placeholder="Search city, area, or street name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleMapSearch();
-                }
-              }}
-              disabled={isMapLoading || isSearchingLocation}
-              className="flex-1"
-              leftIcon={<Search className="h-4 w-4 text-muted-foreground" />}
-            />
-            <Button
-              type="button"
-              variant="primary"
-              onClick={handleMapSearch}
-              disabled={isMapLoading || isSearchingLocation || !searchQuery.trim()}
-              loading={isSearchingLocation}
-              className="px-5 shrink-0"
-              leftIcon={<Search className="h-4 w-4" />}
-            >
-              Search
-            </Button>
+          <div ref={searchBoxRef} className="relative flex flex-col gap-1.5">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  placeholder="Search street, road, area in Bangladesh..."
+                  value={searchQuery}
+                  onChange={handleSearchInputChange}
+                  onFocus={() => {
+                    if (searchResults.length > 0) setShowSuggestions(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleMapSearch();
+                    }
+                  }}
+                  disabled={isMapLoading}
+                  className="w-full"
+                  leftIcon={<Search className="h-4 w-4 text-muted-foreground" />}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSearchResults([]);
+                      setShowSuggestions(false);
+                    }}
+                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleMapSearch}
+                disabled={isMapLoading || isSearchingLocation || !searchQuery.trim()}
+                loading={isSearchingLocation}
+                className="px-5 shrink-0"
+                leftIcon={<Search className="h-4 w-4" />}
+              >
+                Search
+              </Button>
+            </div>
+
+            {/* Autocomplete Suggestions Dropdown */}
+            {showSuggestions && (
+              <div className="absolute top-[48px] left-0 right-0 z-50 max-h-48 overflow-y-auto bg-card border border-border shadow-xl rounded-xl p-1 divide-y divide-border/40 animate-fade-in">
+                {searchResults.length > 0 ? (
+                  searchResults.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleSelectSearchResult(item)}
+                      className="w-full text-left p-2 hover:bg-primary/10 rounded-lg transition-colors flex items-start gap-2 cursor-pointer group"
+                    >
+                      <div className="mt-0.5 p-1 rounded-md bg-muted group-hover:bg-primary/20 shrink-0">
+                        {item.category === 'street' ? (
+                          <Navigation className="h-3 w-3 text-rose-500" />
+                        ) : item.category === 'building' ? (
+                          <Building2 className="h-3 w-3 text-amber-500" />
+                        ) : item.category === 'neighborhood' ? (
+                          <MapPin className="h-3 w-3 text-emerald-500" />
+                        ) : (
+                          <MapIcon className="h-3 w-3 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-bold text-foreground truncate group-hover:text-primary">
+                            {item.title}
+                          </p>
+                          <span className="text-[8px] uppercase px-1 py-0.2 rounded bg-muted text-muted-foreground font-semibold">
+                            {item.category}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                          {item.subtitle}
+                        </p>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-2 text-center text-[10px] text-muted-foreground">
+                    No locations found in Bangladesh.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="relative">
@@ -849,6 +1093,17 @@ export default function Info() {
               id="leaflet-map-container" 
               className="h-[320px] w-full rounded-2xl border border-border/60 shadow-inner z-10 bg-muted/20"
             />
+            {selectedZone && (
+              <button
+                type="button"
+                onClick={handleMoveMapToZone}
+                title={`Center map to ${selectedZone.name} delivery zone`}
+                className="absolute bottom-3 right-3 z-[1000] px-3 py-1.5 rounded-xl bg-card/95 hover:bg-card border border-border shadow-lg text-xs font-bold text-primary flex items-center gap-1.5 transition-all cursor-pointer backdrop-blur-md hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Navigation className="h-3.5 w-3.5 text-primary" />
+                <span>Focus {selectedZone.name} Zone</span>
+              </button>
+            )}
             {isMapLoading && (
               <div className="absolute inset-0 bg-card/60 backdrop-blur-xs flex items-center justify-center z-20 rounded-2xl">
                 <div className="flex flex-col items-center gap-3">
