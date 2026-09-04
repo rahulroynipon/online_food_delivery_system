@@ -11,7 +11,8 @@ import {
   RestaurantDeliveryZone, 
   Notification, 
   RestaurantAddon, 
-  FoodAddon 
+  FoodAddon,
+  PlatformSettings
 } from '../models/index.js';
 import { UserRole, UserStatus, RestaurantStatus, ActiveStatus } from '../enums/index.js';
 import { configureAssociations } from '../utils/syncModels.js';
@@ -29,8 +30,22 @@ const seed = async () => {
     await sequelize.authenticate();
     console.log('Database connected successfully.');
 
-    // 1. Clean up database (destroy all data in child tables first using force: true to bypass soft delete)
-    console.log('Cleaning up existing database records...');
+    // 1. Database Cleanup
+    console.log('Cleaning up table records...');
+
+    // Seed global platform settings if not present
+    let settings = await PlatformSettings.findOne();
+    if (!settings) {
+      console.log('Seeding default platform settings...');
+      await PlatformSettings.create({
+        commissionRate: 15.00,
+        riderBaseFee: 30.00,
+        riderFeePerKm: 15.00,
+        taxRate: 5.00,
+      });
+      console.log('Default platform settings seeded successfully.');
+    }
+    
     await FoodAddon.destroy({ where: {}, force: true });
     await RestaurantDeliveryZone.destroy({ where: {}, force: true });
     await FoodVariant.destroy({ where: {}, force: true });

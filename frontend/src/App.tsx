@@ -26,13 +26,18 @@ import HomePage from './pages/customer/HomePage';
 import CustomerRestaurants from './pages/customer/RestaurantsPage';
 import CustomerRestaurantMenu from './pages/customer/RestaurantMenuPage';
 import CartPage from './pages/customer/CartPage';
+import Checkout from './pages/customer/Checkout';
+import OrderTracking from './pages/customer/OrderTracking';
+import CustomerOrders from './pages/customer/OrdersPage';
+import RiderDashboard from './pages/RiderDashboard';
+import RestaurantWallet from './pages/restaurant/WalletPage';
 import api from './lib/axios';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Tabs, toast } from './design-system';
 import { Loader2, LogOut, User as UserIcon, Calendar, Phone, ShieldCheck, Mail, Bell, Store, Bike, Users, CheckCircle, XCircle } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRole?: 'ADMIN' | 'RESTAURANT' | 'RIDER';
+  allowedRole?: 'ADMIN' | 'RESTAURANT' | 'RIDER' | 'CUSTOMER';
 }
 
 function ProtectedRoute({ children, allowedRole = 'ADMIN' }: ProtectedRouteProps) {
@@ -87,7 +92,10 @@ function DashboardRedirect() {
     return <Navigate to="/" replace />;
   }
 
-  // Default fallback for rider
+  if (user.role === 'RIDER') {
+    return <Navigate to="/rider" replace />;
+  }
+
   return <Navigate to="/login" replace />;
 }
 
@@ -115,6 +123,40 @@ function App() {
         <Route path="/partner" element={<Partner />} />
         <Route path="/otp-verify" element={<OTPVerify />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute allowedRole="CUSTOMER">
+              <Checkout />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/order-tracking"
+          element={
+            <ProtectedRoute allowedRole="CUSTOMER">
+              <OrderTracking />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute allowedRole="CUSTOMER">
+              <CustomerOrders />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Rider Portal Route */}
+        <Route
+          path="/rider"
+          element={
+            <ProtectedRoute allowedRole="RIDER">
+              <RiderDashboard />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Admin layout — AdminDashboard renders <Outlet /> */}
         <Route
@@ -150,6 +192,7 @@ function App() {
           <Route path="menu/edit/:slug" element={<FoodFormPage />} />
           <Route path="orders" element={<RestaurantOrders />} />
           <Route path="addons" element={<RestaurantAddons />} />
+          <Route path="wallet" element={<RestaurantWallet />} />
         </Route>
 
         <Route path="/" element={<HomePage />} />

@@ -12,6 +12,11 @@ import {
   Notification,
   UserAddress,
   OTPVerification,
+  PlatformSettings,
+  Order,
+  OrderItem,
+  OrderItemAddon,
+  WalletTransaction,
 } from '../models/index.js';
 import { NotificationEvent } from '../enums/index.js';
 import { ensureDatabaseExists } from './ensureDb.js';

@@ -43,6 +43,7 @@ import {
   TrendingUp,
   Activity,
   Bell,
+  Wallet,
   Check,
   Loader2,
   Upload,
@@ -281,6 +282,12 @@ export default function RestaurantDashboard() {
           {activeOrdersCount}
         </span>
       ) : null
+    },
+    {
+      id: 'wallet',
+      label: 'Earnings & Wallet',
+      icon: <Wallet size={18} />,
+      path: '/restaurant/wallet',
     }
   ];
 

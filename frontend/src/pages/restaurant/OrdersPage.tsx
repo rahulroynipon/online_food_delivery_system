@@ -1,102 +1,315 @@
-import React, { useState } from 'react';
-import { Card, CardContent, Button, Badge, toast } from '../../design-system';
-import { ClipboardList, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Card, CardHeader, CardTitle, CardContent, Button, Tabs, toast } from '../../design-system';
+import { ShoppingBag, User, Phone, MapPin, CheckCircle, CookingPot, Check, X, RefreshCw, Loader2, Bike } from 'lucide-react';
+import api from '../../lib/axios';
 
-export default function OrdersPage() {
-  // Mock Orders state
-  const [orders, setOrders] = useState<any[]>([
-    { id: 101, customerName: 'Nipon Roy', items: '2x Double Cheese Beef Burger, 1x Premium Chocolate Shake', total: 22.97, status: 'PENDING', date: new Date().toLocaleTimeString() },
-    { id: 102, customerName: 'Fahim Ahmed', items: '1x Pepperoni Supreme Pizza', total: 12.49, status: 'PREPARING', date: new Date().toLocaleTimeString() },
-    { id: 103, customerName: 'Nabil Hasan', items: '1x Crispy Chicken Wings (8pcs)', total: 7.99, status: 'READY', date: new Date().toLocaleTimeString() },
-    { id: 104, customerName: 'Tasnim Jahan', items: '1x Double Cheese Beef Burger, 1x Crispy Chicken Wings', total: 16.98, status: 'DELIVERED', date: new Date().toLocaleTimeString() }
-  ]);
+export default function RestaurantOrdersPage() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  const handleUpdateOrderStatus = (orderId: number, nextStatus: string) => {
-    setOrders(prev => prev.map(o => {
-      if (o.id === orderId) {
-        toast.info(`Order #${orderId} marked as ${nextStatus}`);
-        return { ...o, status: nextStatus };
+  const fetchOrders = async () => {
+    try {
+      const res = await api.get('/orders/merchant');
+      if (res.data?.success) {
+        setOrders(res.data.orders || []);
       }
-      return o;
-    }));
+    } catch (err) {
+      console.error('Failed to load merchant orders:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  useEffect(() => {
+    fetchOrders();
+    // Poll every 8 seconds for new incoming orders
+    const interval = setInterval(fetchOrders, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleUpdateStatus = async (orderId: number, status: string) => {
+    setActionLoading(orderId);
+    try {
+      const res = await api.put(`/orders/${orderId}/status`, { status });
+      if (res.data?.success) {
+        toast.success(`Order #${orderId} updated to ${status}`);
+        fetchOrders();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update order status.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Filter orders by status categories
+  const incomingOrders = orders.filter(o => o.status === 'PENDING');
+  const activeOrders = orders.filter(o => o.status === 'CONFIRMED' || o.status === 'PREPARING');
+  const outForDelivery = orders.filter(o => ['READY', 'RIDER_ASSIGNED', 'PICKED_UP', 'ON_THE_WAY'].includes(o.status));
+  const completedOrders = orders.filter(o => o.status === 'DELIVERED' || o.status === 'CANCELLED');
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h2 className="text-2xl font-black text-foreground tracking-tight">Incoming Orders</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">Manage live orders, preparation progress and handoffs.</p>
+    <div className="space-y-6 animate-fade-in select-none">
+      
+      {/* Title Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-black text-foreground tracking-tight">Order Management</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Track incoming orders, update preparation status, and monitor payouts.</p>
+        </div>
+        <button 
+          onClick={fetchOrders} 
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border hover:bg-muted text-[10px] font-bold text-foreground cursor-pointer"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Refresh
+        </button>
       </div>
 
-      <div className="space-y-4">
-        {orders.length === 0 ? (
-          <Card className="border border-border/40 shadow-xs bg-card">
-            <CardContent className="p-8 text-center text-muted-foreground">
-              <ClipboardList size={32} className="mx-auto text-muted-foreground/30 mb-2" />
-              <p className="text-xs font-semibold">No active orders yet.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          orders.map((order: any) => (
-            <Card key={order.id} className="border border-border/40 shadow-xs bg-card">
-              <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-black text-foreground">Order #{order.id}</span>
-                    <span className="text-[10px] text-muted-foreground">{order.date}</span>
-                    <Badge
-                      variant="soft"
-                      color={
-                        order.status === 'PENDING' ? 'warning' :
-                        order.status === 'PREPARING' ? 'primary' :
-                        order.status === 'READY' ? 'success' : 'neutral'
-                      }
-                      className="font-bold text-[9px] px-2 py-0.5"
+      <Tabs defaultValue="incoming" className="w-full">
+        
+        {/* Tabs Bar */}
+        <div className="flex border-b border-border/20 mb-6 gap-2">
+          <Tabs.Trigger value="incoming" className="pb-3 text-xs font-bold relative px-2 cursor-pointer">
+            Incoming ({incomingOrders.length})
+            {incomingOrders.length > 0 && (
+              <span className="ml-1.5 h-2 w-2 rounded-full bg-rose-500 inline-block animate-pulse" />
+            )}
+          </Tabs.Trigger>
+          <Tabs.Trigger value="active" className="pb-3 text-xs font-bold relative px-2 cursor-pointer">
+            Active ({activeOrders.length})
+          </Tabs.Trigger>
+          <Tabs.Trigger value="delivery" className="pb-3 text-xs font-bold relative px-2 cursor-pointer">
+            Out for Delivery ({outForDelivery.length})
+          </Tabs.Trigger>
+          <Tabs.Trigger value="completed" className="pb-3 text-xs font-bold relative px-2 cursor-pointer">
+            Completed/Cancelled
+          </Tabs.Trigger>
+        </div>
+
+        {/* 1. INCOMING Tab */}
+        <Tabs.Content value="incoming" className="space-y-4 outline-none">
+          {incomingOrders.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <ShoppingBag className="h-10 w-10 mx-auto opacity-30 mb-3" />
+              <p className="text-xs">No incoming orders at the moment.</p>
+            </div>
+          ) : (
+            incomingOrders.map(order => (
+              <OrderCard 
+                key={order.id} 
+                order={order} 
+                actionLoading={actionLoading}
+                actions={
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <Button 
+                      onClick={() => handleUpdateStatus(order.id, 'CANCELLED')} 
+                      disabled={actionLoading !== null}
+                      variant="outline" 
+                      leftIcon={<X className="h-4 w-4" />}
+                      className="text-red-500 hover:bg-red-500/5 hover:border-red-500/50 flex-1 sm:flex-none py-2 text-xs"
                     >
-                      {order.status}
-                    </Badge>
+                      Reject
+                    </Button>
+                    <Button 
+                      onClick={() => handleUpdateStatus(order.id, 'CONFIRMED')} 
+                      disabled={actionLoading !== null}
+                      variant="primary" 
+                      leftIcon={<Check className="h-4 w-4" />}
+                      className="flex-1 sm:flex-none py-2 text-xs font-bold"
+                    >
+                      Accept Order
+                    </Button>
                   </div>
-                  <p className="text-xs font-extrabold text-foreground">{order.customerName}</p>
-                  <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">{order.items}</p>
-                  <p className="text-xs font-black text-foreground">Total payout: ৳{Number(order.total).toFixed(2)}</p>
-                </div>
+                }
+              />
+            ))
+          )}
+        </Tabs.Content>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {order.status === 'PENDING' && (
-                    <Button
-                      size="xs"
-                      variant="primary"
-                      onClick={() => handleUpdateOrderStatus(order.id, 'PREPARING')}
-                      className="bg-primary hover:bg-primary/95 text-primary-foreground shadow-xs font-semibold border-transparent"
-                    >
-                      Accept & Prepare
-                    </Button>
-                  )}
-                  {order.status === 'PREPARING' && (
-                    <Button
-                      size="xs"
-                      variant="primary"
-                      onClick={() => handleUpdateOrderStatus(order.id, 'READY')}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs font-semibold border-transparent"
-                    >
-                      Mark Ready
-                    </Button>
-                  )}
-                  {order.status === 'READY' && (
-                    <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-bold">
-                      <CheckCircle2 size={14} />
-                      <span>Waiting for delivery rider...</span>
-                    </div>
-                  )}
-                  {order.status === 'DELIVERED' && (
-                    <span className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-wider">Settled</span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+        {/* 2. ACTIVE Tab */}
+        <Tabs.Content value="active" className="space-y-4 outline-none">
+          {activeOrders.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <ShoppingBag className="h-10 w-10 mx-auto opacity-30 mb-3" />
+              <p className="text-xs">No active orders being prepared.</p>
+            </div>
+          ) : (
+            activeOrders.map(order => (
+              <OrderCard 
+                key={order.id} 
+                order={order} 
+                actionLoading={actionLoading}
+                actions={
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    {order.status === 'CONFIRMED' ? (
+                      <Button 
+                        onClick={() => handleUpdateStatus(order.id, 'PREPARING')} 
+                        disabled={actionLoading !== null}
+                        variant="primary" 
+                        leftIcon={<CookingPot className="h-4 w-4" />}
+                        className="w-full sm:w-auto py-2 text-xs font-bold"
+                      >
+                        Start Cooking
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={() => handleUpdateStatus(order.id, 'READY')} 
+                        disabled={actionLoading !== null}
+                        variant="primary" 
+                        leftIcon={<CheckCircle className="h-4 w-4" />}
+                        className="w-full sm:w-auto py-2 text-xs font-bold"
+                      >
+                        Mark Prepared
+                      </Button>
+                    )}
+                  </div>
+                }
+              />
+            ))
+          )}
+        </Tabs.Content>
+
+        {/* 3. DELIVERY Tab */}
+        <Tabs.Content value="delivery" className="space-y-4 outline-none">
+          {outForDelivery.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <ShoppingBag className="h-10 w-10 mx-auto opacity-30 mb-3" />
+              <p className="text-xs">No orders out for delivery.</p>
+            </div>
+          ) : (
+            outForDelivery.map(order => (
+              <OrderCard 
+                key={order.id} 
+                order={order} 
+                actionLoading={actionLoading}
+                infoBadge={
+                  <span className={`inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                    order.status === 'READY' 
+                      ? 'bg-amber-500/10 text-amber-500' 
+                      : order.status === 'RIDER_ASSIGNED'
+                      ? 'bg-indigo-500/10 text-indigo-500'
+                      : 'bg-teal-500/10 text-teal-500'
+                  }`}>
+                    {order.status === 'READY' ? 'Searching Rider' : order.status === 'RIDER_ASSIGNED' ? 'Rider Assigned' : 'On the Way'}
+                  </span>
+                }
+              />
+            ))
+          )}
+        </Tabs.Content>
+
+        {/* 4. COMPLETED/CANCELLED Tab */}
+        <Tabs.Content value="completed" className="space-y-4 outline-none">
+          {completedOrders.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <ShoppingBag className="h-10 w-10 mx-auto opacity-30 mb-3" />
+              <p className="text-xs">No order history found.</p>
+            </div>
+          ) : (
+            completedOrders.map(order => (
+              <OrderCard 
+                key={order.id} 
+                order={order} 
+                actionLoading={actionLoading}
+                infoBadge={
+                  <span className={`inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                    order.status === 'DELIVERED' 
+                      ? 'bg-emerald-500/10 text-emerald-500' 
+                      : 'bg-red-500/10 text-red-500'
+                  }`}>
+                    {order.status}
+                  </span>
+                }
+              />
+            ))
+          )}
+        </Tabs.Content>
+
+      </Tabs>
     </div>
+  );
+}
+
+// Sub-component: OrderCard
+function OrderCard({ order, actions, infoBadge, actionLoading }: { order: any; actions?: React.ReactNode; infoBadge?: React.ReactNode; actionLoading: number | null }) {
+  return (
+    <Card className="border border-border/40 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden">
+      {actionLoading === order.id && (
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-xs flex items-center justify-center z-10">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      )}
+      <CardContent className="p-5 space-y-4">
+        
+        {/* Header summary info */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-border/10 pb-3 gap-2">
+          <div>
+            <h3 className="text-xs font-black text-foreground">Order #{order.id}</h3>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Placed by {order.user?.name} at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {infoBadge}
+            <span className="text-xs font-extrabold text-primary bg-primary/5 px-2.5 py-0.5 rounded-full">
+              ৳{parseFloat(order.total).toFixed(2)}
+            </span>
+          </div>
+        </div>
+
+        {/* Customer Address & Delivery notes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div className="space-y-1.5">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Deliver to</p>
+            <div className="flex items-start gap-1 text-foreground/80 font-medium">
+              <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <p className="leading-relaxed">{order.deliveryAddressText.split(', Lat/Lng:')[0]}</p>
+            </div>
+            {order.notes && (
+              <p className="text-[10px] text-slate-500 italic mt-1 font-medium pl-4.5">"{order.notes}"</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Order Contents</p>
+            <div className="space-y-1 pl-1">
+              {order.items?.map((item: any, idx: number) => (
+                <div key={idx} className="flex justify-between items-center text-xs font-medium">
+                  <span className="truncate max-w-[200px]">
+                    <span className="text-primary font-bold mr-1.5">{item.quantity}×</span>
+                    {item.foodName}
+                    {item.variantName && <span className="text-[10px] text-muted-foreground ml-1.5">({item.variantName})</span>}
+                  </span>
+                  <span className="font-extrabold">৳{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer split splits earnings / action buttons */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-3 border-t border-border/10 gap-3">
+          <div className="text-[10px] text-muted-foreground font-semibold flex gap-3">
+            <div>
+              <span>Platform Comm: </span>
+              <span className="text-foreground font-bold">৳{parseFloat(order.platformCommission).toFixed(2)}</span>
+            </div>
+            <div>
+              <span>Your Net Earnings: </span>
+              <span className="text-emerald-500 font-bold">৳{parseFloat(order.restaurantEarnings).toFixed(2)}</span>
+            </div>
+          </div>
+          {actions}
+        </div>
+
+      </CardContent>
+    </Card>
   );
 }

@@ -9,10 +9,11 @@ export interface TabItem {
 
 export interface TabsProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
-  'value' | 'onChange'
+  'value' | 'defaultValue' | 'onChange'
 > {
-  value: string;
-  onValueChange: (value: string) => void;
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
   items?: TabItem[];
   variant?: 'line' | 'pill';
   size?: 'sm' | 'md' | 'lg';

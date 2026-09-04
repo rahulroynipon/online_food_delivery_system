@@ -14,7 +14,7 @@ const server = app.listen(PORT, async () => {
   }
 });
 
-// Initialize WebSocket server with the HTTP server
+// Initialize modular WebSocket server
 initWebSocket(server);
 
 export default server;

@@ -15,8 +15,11 @@ import userRoutes from './routes/userRoutes.js';
 import restaurantCategoryRoutes from './routes/restaurantCategoryRoutes.js';
 import foodRoutes from './routes/foodRoutes.js';
 import addonRoutes from './routes/addonRoutes.js';
-import publicRestaurantRoutes from './routes/publicRestaurantRoutes.js';
 import userAddressRoutes from './routes/userAddressRoutes.js';
+import publicRestaurantRoutes from './routes/publicRestaurantRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+import walletRoutes from './routes/walletRoutes.js';
 
 const app = express();
 
@@ -43,8 +46,11 @@ app.use(`${API_PREFIX}/users`, userRoutes);
 app.use(`${API_PREFIX}/restaurant-categories`, restaurantCategoryRoutes);
 app.use(`${API_PREFIX}/foods`, foodRoutes);
 app.use(`${API_PREFIX}/addons`, addonRoutes);
-app.use(`${API_PREFIX}/public/restaurants`, publicRestaurantRoutes);
 app.use(`${API_PREFIX}/user-addresses`, userAddressRoutes);
+app.use(`${API_PREFIX}/public/restaurants`, publicRestaurantRoutes);
+app.use(`${API_PREFIX}/settings`, settingsRoutes);
+app.use(`${API_PREFIX}/orders`, orderRoutes);
+app.use(`${API_PREFIX}/wallets`, walletRoutes);
 
 // Status Endpoint
 app.get(`${API_PREFIX}/status`, (req, res) => {

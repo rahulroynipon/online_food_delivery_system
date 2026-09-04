@@ -12,6 +12,11 @@ import RestaurantAddon from './RestaurantAddon.js';
 import FoodAddon from './FoodAddon.js';
 import UserAddress from './UserAddress.js';
 import OTPVerification from './OTPVerification.js';
+import PlatformSettings from './PlatformSettings.js';
+import Order from './Order.js';
+import OrderItem from './OrderItem.js';
+import OrderItemAddon from './OrderItemAddon.js';
+import WalletTransaction from './WalletTransaction.js';
 
 // Associations Configuration
 // User <-> Restaurant (One-to-One)
@@ -98,12 +103,37 @@ Restaurant.belongsToMany(DeliveryZone, {
   otherKey: 'deliveryZoneId',
   as: 'deliveryZones',
 });
-DeliveryZone.belongsToMany(Restaurant, {
-  through: RestaurantDeliveryZone,
-  foreignKey: 'deliveryZoneId',
-  otherKey: 'restaurantId',
-  as: 'restaurants',
-});
+// User <-> Order (One-to-Many)
+User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
+Order.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// Restaurant <-> Order (One-to-Many)
+Restaurant.hasMany(Order, { foreignKey: 'restaurantId', as: 'orders' });
+Order.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
+
+// Rider/User <-> Order (One-to-Many)
+User.hasMany(Order, { foreignKey: 'riderId', as: 'deliveryOrders' });
+Order.belongsTo(User, { foreignKey: 'riderId', as: 'rider' });
+
+// UserAddress <-> Order (One-to-Many)
+UserAddress.hasMany(Order, { foreignKey: 'addressId', as: 'orders' });
+Order.belongsTo(UserAddress, { foreignKey: 'addressId', as: 'address' });
+
+// Order <-> OrderItem (One-to-Many)
+Order.hasMany(OrderItem, { foreignKey: 'orderId', as: 'items', onDelete: 'CASCADE' });
+OrderItem.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
+
+// OrderItem <-> OrderItemAddon (One-to-Many)
+OrderItem.hasMany(OrderItemAddon, { foreignKey: 'orderItemId', as: 'addons', onDelete: 'CASCADE' });
+OrderItemAddon.belongsTo(OrderItem, { foreignKey: 'orderItemId', as: 'orderItem' });
+
+// User <-> WalletTransaction (One-to-Many)
+User.hasMany(WalletTransaction, { foreignKey: 'userId', as: 'transactions' });
+WalletTransaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// Order <-> WalletTransaction (One-to-Many)
+Order.hasMany(WalletTransaction, { foreignKey: 'orderId', as: 'transactions' });
+WalletTransaction.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
 
 export {
   User,
@@ -120,4 +150,9 @@ export {
   FoodAddon,
   UserAddress,
   OTPVerification,
+  PlatformSettings,
+  Order,
+  OrderItem,
+  OrderItemAddon,
+  WalletTransaction,
 };

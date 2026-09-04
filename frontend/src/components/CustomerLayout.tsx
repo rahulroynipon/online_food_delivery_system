@@ -15,7 +15,8 @@ import {
   Compass,
   Loader2,
   Search,
-  X
+  X,
+  ClipboardList
 } from 'lucide-react';
 import { Button, Input, Modal, toast } from '../design-system';
 
@@ -584,6 +585,13 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
             {/* Auth Button Controls */}
             {isAuthenticated && user ? (
               <div className="flex items-center gap-2">
+                <Link
+                  to="/orders"
+                  className="h-9 w-9 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                  title="My Orders"
+                >
+                  <ClipboardList className="h-4.5 w-4.5" />
+                </Link>
                 <span className="text-xs font-bold text-foreground/80 max-w-[100px] truncate hidden md:inline">
                   {user.name}
                 </span>

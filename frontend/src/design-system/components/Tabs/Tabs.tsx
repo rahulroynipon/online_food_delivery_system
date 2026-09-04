@@ -45,7 +45,8 @@ const useTabsContext = () => {
 export const TabsInner = React.forwardRef<HTMLDivElement, TabsProps>(
   (
     {
-      value,
+      value: valueProp,
+      defaultValue = '',
       onValueChange,
       items,
       variant = 'line',
@@ -61,6 +62,22 @@ export const TabsInner = React.forwardRef<HTMLDivElement, TabsProps>(
     },
     ref
   ) => {
+    const isControlled = valueProp !== undefined;
+    const [uncontrolledValue, setUncontrolledValue] = React.useState<string>(
+      defaultValue || (items && items.length > 0 ? items[0].value : '')
+    );
+    const value = isControlled ? (valueProp as string) : uncontrolledValue;
+
+    const handleValueChange = React.useCallback(
+      (nextValue: string) => {
+        if (!isControlled) {
+          setUncontrolledValue(nextValue);
+        }
+        onValueChange?.(nextValue);
+      },
+      [isControlled, onValueChange]
+    );
+
     const [ripples, setRipples] = React.useState<
       {
         id: number;
@@ -111,7 +128,7 @@ export const TabsInner = React.forwardRef<HTMLDivElement, TabsProps>(
     const contextValue = React.useMemo(
       () => ({
         value,
-        onValueChange,
+        onValueChange: handleValueChange,
         variant,
         size,
         rounded,
@@ -119,7 +136,7 @@ export const TabsInner = React.forwardRef<HTMLDivElement, TabsProps>(
         spawnRipple,
         removeRipple,
       }),
-      [value, onValueChange, variant, size, rounded, ripples, spawnRipple, removeRipple]
+      [value, handleValueChange, variant, size, rounded, ripples, spawnRipple, removeRipple]
     );
 
     if (items) {

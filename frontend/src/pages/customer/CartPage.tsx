@@ -451,9 +451,9 @@ export default function CartPage() {
                 disabled={
                   (isAuthenticated && user?.role === 'CUSTOMER' && (userAddresses.length === 0 || !isAddressCovered))
                 }
-                onClick={() => toast.info('Checkout will be fully implemented in Phase 2.')}
+                onClick={() => navigate('/checkout')}
               >
-                Place Order
+                Proceed to Checkout
               </Button>
 
               <p className="text-[10px] text-muted-foreground text-center font-medium">
