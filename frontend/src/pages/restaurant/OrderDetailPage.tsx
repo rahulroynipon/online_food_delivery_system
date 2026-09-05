@@ -444,7 +444,34 @@ export default function RestaurantOrderDetailPage() {
               </div>
 
               <div className="mt-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold leading-relaxed">
-                ✓ Payout for this completed order has been added to your merchant wallet balance.
+                ✓ Payout for this completed order has been credited to your merchant wallet balance.
+              </div>
+
+              {/* Customer Total Invoice Breakdown */}
+              <div className="mt-4 pt-3 border-t border-dashed border-border/60 space-y-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Customer Invoice Breakdown
+                </span>
+                <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1.5 text-[11px]">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Food Subtotal:</span>
+                    <span className="font-mono font-medium text-foreground">৳{foodSubtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Delivery Charge:</span>
+                    <span className="font-mono font-medium text-foreground">+৳{parseFloat(order.deliveryFee || 0).toFixed(2)}</span>
+                  </div>
+                  {parseFloat(order.tax || 0) > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Govt. Tax & VAT:</span>
+                      <span className="font-mono font-medium text-foreground">+৳{parseFloat(order.tax || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="pt-1.5 border-t border-border/40 flex justify-between font-bold text-foreground">
+                    <span>Customer Bill Total:</span>
+                    <span className="font-mono text-primary font-black">৳{parseFloat(order.total || 0).toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
 
             </CardContent>

@@ -400,8 +400,10 @@ export const ModalInner = React.forwardRef<HTMLDivElement, ModalProps>(
   (
     {
       open: controlledOpen,
+      isOpen,
       onClose: controlledClose,
       title,
+      description,
       children,
       size = 'md',
       rounded = 'lg',
@@ -415,8 +417,8 @@ export const ModalInner = React.forwardRef<HTMLDivElement, ModalProps>(
   ) => {
     const [localOpen, setLocalOpen] = useState(false);
     const [accentColor, setAccentColor] = useState<string | undefined>(propAccentColor);
-    const isControlled = controlledOpen !== undefined;
-    const open = isControlled ? controlledOpen : localOpen;
+    const isControlled = controlledOpen !== undefined || isOpen !== undefined;
+    const open = isControlled ? (controlledOpen !== undefined ? controlledOpen : !!isOpen) : localOpen;
 
     useEffect(() => {
       if (propAccentColor !== undefined) {
@@ -468,7 +470,7 @@ export const ModalInner = React.forwardRef<HTMLDivElement, ModalProps>(
       return (
         <ModalContext.Provider value={contextValue}>
           <Panel size={size} ref={ref} className={className} style={style} {...props}>
-            <Header showClose>{title}</Header>
+            <Header showClose title={title} description={description} />
             <Content>{children}</Content>
           </Panel>
         </ModalContext.Provider>

@@ -168,7 +168,7 @@ export default function RiderHistoryPage() {
           <span className="text-xs text-muted-foreground font-semibold">Loading delivery logs...</span>
         </div>
       ) : (
-        <Card className="border border-border/60 bg-card overflow-hidden shadow-2xs">
+        <Card className="border-none bg-transparent overflow-hidden shadow-2xs">
           <CardContent className="p-0">
             <DataTable
               data={filteredOrders}
@@ -226,21 +226,34 @@ export default function RiderHistoryPage() {
                 {
                   id: 'payment',
                   label: 'PAYMENT MODE',
-                  width: '140px',
-                  cell: ({ row }: { row: any }) => (
-                    <Badge variant="soft" color={row.paymentMethod === 'COD' ? 'warning' : 'success'} className="font-bold text-[9px] uppercase px-2 py-0.5">
-                      {row.paymentMethod === 'COD' ? `COD (৳${parseFloat(row.total).toFixed(2)})` : 'Prepaid Online'}
-                    </Badge>
-                  )
+                  minWidth: '150px',
+                  cell: ({ row }: { row: any }) => {
+                    const isCod = row.paymentMethod === 'COD';
+                    return (
+                      <div className="flex flex-col items-start gap-0.5">
+                        <Badge variant="soft" color={isCod ? 'warning' : 'success'} className="font-bold text-[9px] uppercase px-2 py-0.5">
+                          {isCod ? 'COD' : 'Prepaid Online'}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          {isCod ? `Cash Liability: -৳${parseFloat(row.total || 0).toFixed(2)}` : 'Prepaid Online (No Cash)'}
+                        </span>
+                      </div>
+                    );
+                  }
                 },
                 {
                   id: 'earnings',
                   label: 'FEE EARNED',
-                  width: '120px',
+                  minWidth: '140px',
                   cell: ({ row }: { row: any }) => (
-                    <span className="font-extrabold text-emerald-600 font-mono text-sm">
-                      +৳{parseFloat(row.riderEarnings || 0).toFixed(2)}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="font-extrabold text-emerald-600 font-mono text-sm">
+                        +৳{parseFloat(row.riderEarnings || 0).toFixed(2)}
+                      </span>
+                      <span className="text-[9px] font-bold text-emerald-600/80 uppercase tracking-wider">
+                        + TRIP FEE EARNED
+                      </span>
+                    </div>
                   )
                 },
                 {

@@ -20,6 +20,7 @@ import publicRestaurantRoutes from './routes/publicRestaurantRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import walletRoutes from './routes/walletRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 
 const app = express();
 
@@ -29,6 +30,7 @@ const API_PREFIX = '/api/v1';
 // Standard Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Static Folder for Uploads
 app.use(`${API_PREFIX}/uploads`, express.static('uploads'));
@@ -51,6 +53,7 @@ app.use(`${API_PREFIX}/public/restaurants`, publicRestaurantRoutes);
 app.use(`${API_PREFIX}/settings`, settingsRoutes);
 app.use(`${API_PREFIX}/orders`, orderRoutes);
 app.use(`${API_PREFIX}/wallets`, walletRoutes);
+app.use(`${API_PREFIX}/payments`, paymentRoutes);
 
 // Status Endpoint
 app.get(`${API_PREFIX}/status`, (req, res) => {

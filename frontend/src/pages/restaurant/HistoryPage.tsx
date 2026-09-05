@@ -16,7 +16,10 @@ import {
   Eye, 
   Receipt, 
   ArrowUpRight,
-  Sparkles
+  Sparkles,
+  Search,
+  TrendingUp,
+  CreditCard
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -48,13 +51,13 @@ export default function RestaurantHistoryPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'DELIVERED' | 'CANCELLED'>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchHistory = async () => {
     setLoading(true);
     try {
       const res = await api.get('/orders/merchant');
       if (res.data?.success) {
-        // Filter for completed/cancelled history
         const allOrders = res.data.orders || [];
         const historyOnly = allOrders.filter((o: any) => 
           o.status === 'DELIVERED' || o.status === 'CANCELLED'
@@ -72,10 +75,6 @@ export default function RestaurantHistoryPage() {
     fetchHistory();
   }, []);
 
-  const filteredOrders = statusFilter === 'ALL'
-    ? orders
-    : orders.filter((o) => o.status === statusFilter);
-
   const totalDelivered = orders.filter((o) => o.status === 'DELIVERED').length;
   const totalRestaurantEarnings = orders
     .filter((o) => o.status === 'DELIVERED')
@@ -86,6 +85,19 @@ export default function RestaurantHistoryPage() {
   const totalGrossSales = orders
     .filter((o) => o.status === 'DELIVERED')
     .reduce((acc, curr) => acc + (parseFloat(curr.subtotal || (parseFloat(curr.total) - parseFloat(curr.deliveryFee || 0))) || 0), 0);
+
+  const averageNetPerOrder = totalDelivered > 0
+    ? totalRestaurantEarnings / totalDelivered
+    : 0;
+
+  const filteredOrders = orders.filter((o) => {
+    const matchesStatus = statusFilter === 'ALL' || o.status === statusFilter;
+    const matchesSearch = searchQuery.trim() === '' ||
+      String(o.id).includes(searchQuery) ||
+      (o.user?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (o.rider?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
 
   return (
     <div className="space-y-6 animate-fade-in select-none">
@@ -136,7 +148,7 @@ export default function RestaurantHistoryPage() {
             <div>
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Completed Dropoffs</span>
               <h3 className="text-2xl font-black text-foreground mt-0.5">{totalDelivered}</h3>
-              <p className="text-[10px] text-muted-foreground font-medium mt-0.5">Successfully Delivered</p>
+              <p className="text-[10px] text-muted-foreground font-medium mt-0.5">Avg Net: ৳{averageNetPerOrder.toFixed(2)} / order</p>
             </div>
             <div className="h-11 w-11 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
               <PackageCheck size={20} />
@@ -168,7 +180,7 @@ export default function RestaurantHistoryPage() {
               <h3 className="text-2xl font-black text-foreground font-mono mt-0.5">
                 -৳{totalCommission.toFixed(2)}
               </h3>
-              <p className="text-[10px] text-muted-foreground font-medium mt-0.5">Platform service fee</p>
+              <p className="text-[10px] text-muted-foreground font-medium mt-0.5">Standard 15% service fee</p>
             </div>
             <div className="h-11 w-11 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
               <Receipt size={20} />
@@ -178,33 +190,47 @@ export default function RestaurantHistoryPage() {
 
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 p-1 bg-muted/40 rounded-xl w-fit border border-border/40">
-        {(['ALL', 'DELIVERED', 'CANCELLED'] as const).map((st) => {
-          const count = st === 'ALL'
-            ? orders.length
-            : orders.filter((o) => o.status === st).length;
-          const isSelected = statusFilter === st;
+      {/* Filter Tabs & Search Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-1.5 p-1 bg-muted/40 rounded-xl w-fit border border-border/40">
+          {(['ALL', 'DELIVERED', 'CANCELLED'] as const).map((st) => {
+            const count = st === 'ALL'
+              ? orders.length
+              : orders.filter((o) => o.status === st).length;
+            const isSelected = statusFilter === st;
 
-          return (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-200 cursor-pointer ${
-                isSelected
-                  ? 'bg-card text-foreground shadow-xs font-bold border border-border/50'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {st === 'ALL' ? 'All Deliveries' : st.charAt(0) + st.slice(1).toLowerCase()}
-              <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${
-                isSelected ? 'bg-primary/15 text-primary font-bold' : 'bg-muted text-muted-foreground'
-              }`}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-200 cursor-pointer ${
+                  isSelected
+                    ? 'bg-card text-foreground shadow-xs font-bold border border-border/50'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {st === 'ALL' ? 'All Deliveries' : st.charAt(0) + st.slice(1).toLowerCase()}
+                <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${
+                  isSelected ? 'bg-primary/15 text-primary font-bold' : 'bg-muted text-muted-foreground'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Quick Search */}
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search order #, customer, rider..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-border/60 bg-card text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+          />
+        </div>
       </div>
 
       {/* Order History Table */}
@@ -213,16 +239,16 @@ export default function RestaurantHistoryPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="text-xs text-muted-foreground font-semibold">Loading order history logs...</span>
         </div>
-      ) : orders.length === 0 ? (
+      ) : filteredOrders.length === 0 ? (
         <Card className="border border-border/60 p-12 text-center">
           <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-40" />
-          <h3 className="text-base font-bold text-foreground">No Order History Yet</h3>
+          <h3 className="text-base font-bold text-foreground">No Order History Found</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Orders that are completed and delivered will automatically appear in this history log.
+            {searchQuery ? 'No orders match your search term.' : 'Orders that are completed and delivered will automatically appear in this history log.'}
           </p>
         </Card>
       ) : (
-        <Card className="border border-border/60 bg-card overflow-hidden shadow-2xs">
+        <Card className="border-none bg-transparent overflow-hidden shadow-2xs">
           <CardContent className="p-0">
             <DataTable
               data={filteredOrders}
@@ -306,9 +332,19 @@ export default function RestaurantHistoryPage() {
                   )
                 },
                 {
+                  id: 'payment',
+                  label: 'PAYMENT',
+                  width: '130px',
+                  cell: ({ row }: { row: any }) => (
+                    <Badge variant="soft" color={row.paymentMethod === 'COD' ? 'warning' : 'success'} className="font-bold text-[9px] uppercase px-2 py-0.5">
+                      {row.paymentMethod === 'COD' ? 'COD' : 'Online Paid'}
+                    </Badge>
+                  )
+                },
+                {
                   id: 'gross',
                   label: 'FOOD TOTAL',
-                  width: '120px',
+                  width: '110px',
                   cell: ({ row }: { row: any }) => (
                     <span className="font-bold text-xs text-foreground font-mono">
                       ৳{parseFloat(row.subtotal || (parseFloat(row.total) - parseFloat(row.deliveryFee || 0))).toFixed(2)}
@@ -318,7 +354,7 @@ export default function RestaurantHistoryPage() {
                 {
                   id: 'commission',
                   label: 'COMMISSION',
-                  width: '120px',
+                  width: '110px',
                   cell: ({ row }: { row: any }) => (
                     <span className="font-semibold text-xs text-amber-600 dark:text-amber-500 font-mono">
                       -৳{parseFloat(row.platformCommission || 0).toFixed(2)}
@@ -328,7 +364,7 @@ export default function RestaurantHistoryPage() {
                 {
                   id: 'earnings',
                   label: 'NET PAYOUT (YOU GET)',
-                  width: '160px',
+                  width: '150px',
                   cell: ({ row }: { row: any }) => (
                     <div className="flex flex-col">
                       <span className="font-black text-sm text-emerald-600 font-mono">
@@ -354,7 +390,7 @@ export default function RestaurantHistoryPage() {
                 {
                   id: 'status',
                   label: 'STATUS',
-                  width: '110px',
+                  width: '100px',
                   align: 'center' as const,
                   cell: ({ row }: { row: any }) => (
                     row.status === 'DELIVERED'
@@ -365,7 +401,7 @@ export default function RestaurantHistoryPage() {
                 {
                   id: 'actions',
                   label: 'ACTION',
-                  width: '100px',
+                  width: '90px',
                   align: 'right' as const,
                   cell: ({ row }: { row: any }) => (
                     <Button

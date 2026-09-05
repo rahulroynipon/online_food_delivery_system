@@ -17,6 +17,7 @@ import Order from './Order.js';
 import OrderItem from './OrderItem.js';
 import OrderItemAddon from './OrderItemAddon.js';
 import WalletTransaction from './WalletTransaction.js';
+import WithdrawalRequest from './WithdrawalRequest.js';
 
 // Associations Configuration
 // User <-> Restaurant (One-to-One)
@@ -135,6 +136,10 @@ WalletTransaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Order.hasMany(WalletTransaction, { foreignKey: 'orderId', as: 'transactions' });
 WalletTransaction.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
 
+// User <-> WithdrawalRequest (One-to-Many)
+User.hasMany(WithdrawalRequest, { foreignKey: 'userId', as: 'withdrawalRequests' });
+WithdrawalRequest.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 export {
   User,
   Restaurant,
@@ -155,4 +160,5 @@ export {
   OrderItem,
   OrderItemAddon,
   WalletTransaction,
+  WithdrawalRequest,
 };

@@ -41,109 +41,36 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({
   children,
-  defaultTheme = 'system',
+  defaultTheme = 'light',
   storageKey = 'ui-theme',
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = React.useState<Theme>(defaultTheme);
-  const [resolvedTheme, setResolvedTheme] = React.useState<'light' | 'dark' | 'brand' | 'forest'>(
-    'light'
-  );
-
-  React.useEffect(() => {
-    const saved = localStorage.getItem(storageKey) as Theme;
-    if (saved) {
-      setThemeState(saved);
-    }
-  }, [storageKey]);
+  const [theme, setThemeState] = React.useState<Theme>('light');
+  const [resolvedTheme, setResolvedTheme] = React.useState<'light' | 'dark' | 'brand' | 'forest'>('light');
 
   const setTheme = React.useCallback(
     (nextTheme: Theme) => {
-      // Fallback for browsers that don't support View Transitions API
-      if (!(document as any).startViewTransition) {
-        setThemeState(nextTheme);
-        localStorage.setItem(storageKey, nextTheme);
-        return;
-      }
-
-      const x = lastClickX || window.innerWidth / 2;
-      const y = lastClickY || window.innerHeight / 2;
-      const endRadius = Math.hypot(
-        Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y)
-      );
-
-      const transition = (document as any).startViewTransition(() => {
-        React.startTransition(() => {
-          setThemeState(nextTheme);
-          localStorage.setItem(storageKey, nextTheme);
-        });
-      });
-
-      transition.ready.then(() => {
-        const clipPath = [
-          `circle(0px at ${x}px ${y}px)`,
-          `circle(${endRadius}px at ${x}px ${y}px)`,
-        ];
-        document.documentElement.animate(
-          {
-            clipPath: clipPath,
-            filter: ['blur(2px)', 'blur(0px)'],
-            transform: ['scale(1.02)', 'scale(1)'],
-          },
-          {
-            duration: 700,
-            easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-            pseudoElement: '::view-transition-new(root)',
-          }
-        );
-      });
+      setThemeState('light');
+      localStorage.setItem(storageKey, 'light');
     },
     [storageKey]
   );
 
   React.useEffect(() => {
     const root = window.document.documentElement;
-    root.classList.remove('light', 'dark', 'brand', 'forest');
-
-    let active: 'light' | 'dark' | 'brand' | 'forest' = 'light';
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
-      active = systemTheme;
-    } else {
-      active = theme as 'light' | 'dark' | 'brand' | 'forest';
-    }
-
-    root.classList.add(active);
-    setResolvedTheme(active);
-  }, [theme]);
-
-  // Sync system theme changes dynamically
-  React.useEffect(() => {
-    if (theme !== 'system') return;
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      const root = window.document.documentElement;
-      root.classList.remove('light', 'dark', 'brand');
-      const active = mediaQuery.matches ? 'dark' : 'light';
-      root.classList.add(active);
-      setResolvedTheme(active);
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [theme]);
+    root.classList.remove('dark', 'brand', 'forest');
+    root.classList.add('light');
+    localStorage.setItem(storageKey, 'light');
+    setThemeState('light');
+    setResolvedTheme('light');
+  }, [storageKey]);
 
   const value = React.useMemo(
     () => ({
-      theme,
-      resolvedTheme,
+      theme: 'light' as Theme,
+      resolvedTheme: 'light' as const,
       setTheme,
     }),
-    [theme, resolvedTheme, setTheme]
+    [setTheme]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

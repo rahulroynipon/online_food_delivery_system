@@ -120,6 +120,8 @@ export default function AdminDashboard() {
       navigate('/admin/restaurants');
     } else if (event === 'NEW_RIDER_APPLICATION') {
       navigate('/admin/riders');
+    } else if (event === 'WITHDRAWAL_REQUEST_CREATED' || event === 'GENERAL') {
+      navigate('/admin/withdrawals');
     }
   };
 

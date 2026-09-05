@@ -119,10 +119,14 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
       return (
         <span
           ref={ref}
-          className={cn(badgeVariants({ variant: variant as any, color, size }), className)}
+          className={cn(
+            badgeVariants({ variant: variant as any, color, size }),
+            'inline-flex items-center gap-1.5 whitespace-nowrap',
+            className
+          )}
           {...props}
         >
-          <span className="truncate">{children}</span>
+          <span className="truncate inline-flex items-center gap-1.5 whitespace-nowrap">{children}</span>
           {removable && (
             <button
               type="button"

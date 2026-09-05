@@ -118,6 +118,14 @@ export default function RiderOrderDetailPage() {
   const customerPhone = getCustomerPhone(order);
   const formattedAddress = formatDeliveryAddress(order);
 
+  const subtotal = parseFloat(order.subtotal || 0);
+  const deliveryFee = parseFloat(order.deliveryFee || 0);
+  const tax = parseFloat(order.tax || 0);
+  const discount = parseFloat(order.discount || 0);
+  const total = parseFloat(order.total || (subtotal + deliveryFee + tax - discount));
+  const riderEarnings = parseFloat(order.riderEarnings || deliveryFee);
+  const isCod = order.paymentMethod === 'COD';
+
   return (
     <div className="space-y-6 pb-12 animate-fade-in">
       
@@ -187,9 +195,9 @@ export default function RiderOrderDetailPage() {
                 Your Payout Earned
               </span>
               <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
-                +৳{parseFloat(order.riderEarnings || 0).toFixed(2)}
+                +৳{riderEarnings.toFixed(2)}
               </h3>
-              <p className="text-[10px] text-emerald-700/80 font-semibold mt-0.5">Credited to Rider Balance</p>
+              <p className="text-[10px] text-emerald-700/80 font-semibold mt-0.5">Credited Trip Fee Income</p>
             </div>
             <div className="h-11 w-11 rounded-2xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center">
               <DollarSign size={22} />
@@ -205,12 +213,12 @@ export default function RiderOrderDetailPage() {
                 Payment Collection
               </span>
               <h3 className="text-lg font-black text-foreground mt-0.5">
-                {order.paymentMethod === 'COD' ? 'Cash On Delivery' : 'Prepaid Online'}
+                {isCod ? 'Cash On Delivery' : 'Prepaid Online'}
               </h3>
               <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                {order.paymentMethod === 'COD' 
-                  ? `Collected ৳${parseFloat(order.total).toFixed(2)}` 
-                  : 'Paid Online via Gateway'}
+                {isCod 
+                  ? `Collected ৳${total.toFixed(2)} from customer` 
+                  : 'Paid Online via Payment Gateway'}
               </p>
             </div>
             <div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
@@ -224,13 +232,13 @@ export default function RiderOrderDetailPage() {
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Order Value
+                Total Customer Bill
               </span>
               <h3 className="text-2xl font-black text-foreground font-mono mt-0.5">
-                ৳{parseFloat(order.total || 0).toFixed(2)}
+                ৳{total.toFixed(2)}
               </h3>
               <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                Includes ৳{parseFloat(order.deliveryFee || 0).toFixed(2)} delivery
+                Food ৳{subtotal.toFixed(2)} + Fee ৳{deliveryFee.toFixed(2)}{tax > 0 ? ` + Tax ৳${tax.toFixed(2)}` : ''}
               </p>
             </div>
             <div className="h-11 w-11 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
@@ -421,47 +429,98 @@ export default function RiderOrderDetailPage() {
             <CardHeader className="p-5 border-b border-border/50 bg-muted/20">
               <CardTitle className="text-sm font-black text-foreground flex items-center gap-2">
                 <Receipt size={16} className="text-primary" />
-                Financial Receipt
+                Customer Financial Receipt
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-3 text-xs">
               <div className="flex justify-between text-muted-foreground">
-                <span>Items Subtotal</span>
-                <span className="font-mono font-medium">
-                  ৳{parseFloat(order.subtotal || (parseFloat(order.total) - parseFloat(order.deliveryFee || 0))).toFixed(2)}
+                <span>Food Items Subtotal</span>
+                <span className="font-mono font-medium text-foreground">
+                  ৳{subtotal.toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between text-muted-foreground">
-                <span>Delivery Charge</span>
-                <span className="font-mono font-medium">
-                  ৳{parseFloat(order.deliveryFee || 0).toFixed(2)}
+                <span>Delivery Charge (Rider Fee)</span>
+                <span className="font-mono font-medium text-foreground">
+                  +৳{deliveryFee.toFixed(2)}
                 </span>
               </div>
-              {parseFloat(order.discount || 0) > 0 && (
+              {tax > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Govt. Tax & VAT</span>
+                  <span className="font-mono font-medium text-foreground">
+                    +৳{tax.toFixed(2)}
+                  </span>
+                </div>
+              )}
+              {discount > 0 && (
                 <div className="flex justify-between text-emerald-600 font-medium">
-                  <span>Discount</span>
+                  <span>Promo Discount</span>
                   <span className="font-mono">
-                    -৳{parseFloat(order.discount).toFixed(2)}
+                    -৳{discount.toFixed(2)}
                   </span>
                 </div>
               )}
               <div className="pt-3 border-t border-border/60 flex justify-between font-black text-foreground text-base">
                 <span>Total Amount</span>
                 <span className="font-mono text-primary">
-                  ৳{parseFloat(order.total || 0).toFixed(2)}
+                  ৳{total.toFixed(2)}
                 </span>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-dashed border-border/60">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
+              {/* Rider Wallet Impact Breakdown */}
+              <div className="mt-4 pt-3 border-t border-dashed border-border/60 space-y-2.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                  Rider Wallet Accounting Breakdown
+                </span>
+                
+                <div className="p-3 rounded-xl bg-muted/40 border border-border/50 space-y-2 text-[11px]">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-muted-foreground flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                      Trip Fee Earned:
+                    </span>
+                    <span className="font-mono font-black text-emerald-600">
+                      +৳{riderEarnings.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {isCod ? (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-muted-foreground flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-rose-500"></span>
+                          COD Cash Collected (Liability):
+                        </span>
+                        <span className="font-mono font-black text-rose-500">
+                          -৳{total.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="pt-2 border-t border-border/50 flex justify-between items-center text-xs font-black">
+                        <span className="text-foreground">Net Balance Change:</span>
+                        <span className={`font-mono ${(riderEarnings - total) < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
+                          {(riderEarnings - total) < 0 ? '-' : '+'}৳{Math.abs(riderEarnings - total).toFixed(2)}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="pt-1 text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold">
+                      ✓ Prepaid Online: Full trip fee (+৳{riderEarnings.toFixed(2)}) is credited to your payout balance. No physical cash held.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-2 pt-2 border-t border-dashed border-border/60">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/20">
                   <div>
                     <span className="text-[10px] font-bold text-muted-foreground uppercase">Payment Status</span>
                     <p className="font-black text-xs text-foreground mt-0.5">
-                      {order.paymentMethod === 'COD' ? 'CASH ON DELIVERY' : 'ONLINE PREPAID'}
+                      {isCod ? 'CASH ON DELIVERY' : 'ONLINE PREPAID'}
                     </p>
                   </div>
-                  <Badge variant="soft" color={order.paymentMethod === 'COD' ? 'warning' : 'success'} className="font-bold text-[9px] uppercase">
-                    {order.paymentMethod === 'COD' ? 'Collected' : 'Verified'}
+                  <Badge variant="soft" color={isCod ? 'warning' : 'success'} className="font-bold text-[9px] uppercase">
+                    {isCod ? 'Cash In Hand' : 'Verified Online'}
                   </Badge>
                 </div>
               </div>

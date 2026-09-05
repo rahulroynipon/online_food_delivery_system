@@ -14,6 +14,7 @@ import SettingsPage from './pages/admin/SettingsPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
 import ZonesPage from './pages/admin/ZonesPage';
 import UsersPage from './pages/admin/UsersPage';
+import AdminPayoutsPage from './pages/admin/PayoutsPage';
 import PlaceholderPage from './pages/admin/PlaceholderPage';
 import RestaurantDashboard from './pages/RestaurantDashboard';
 import RestaurantOverview from './pages/restaurant/OverviewPage';
@@ -29,6 +30,7 @@ import CustomerRestaurants from './pages/customer/RestaurantsPage';
 import CustomerRestaurantMenu from './pages/customer/RestaurantMenuPage';
 import CartPage from './pages/customer/CartPage';
 import Checkout from './pages/customer/Checkout';
+import PaymentGateway from './pages/customer/PaymentGateway';
 import OrderTracking from './pages/customer/OrderTracking';
 import CustomerOrders from './pages/customer/OrdersPage';
 import RiderDashboard from './pages/RiderDashboard';
@@ -131,6 +133,7 @@ function App() {
         <Route path="/partner" element={<Partner />} />
         <Route path="/otp-verify" element={<OTPVerify />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/payment/gateway" element={<PaymentGateway />} />
         <Route
           path="/checkout"
           element={
@@ -190,6 +193,8 @@ function App() {
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="zones" element={<ZonesPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="withdrawals" element={<AdminPayoutsPage />} />
+          <Route path="payouts" element={<AdminPayoutsPage />} />
           <Route path=":section" element={<PlaceholderPage />} />
         </Route>
 

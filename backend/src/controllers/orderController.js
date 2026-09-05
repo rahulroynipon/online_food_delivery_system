@@ -13,6 +13,7 @@ import {
   Notification 
 } from '../models/index.js';
 import { sendToUser, broadcastToAdmins, sendToRole } from '../websocket/index.js';
+import { initSSLCommerzPayment } from '../services/sslcommerzService.js';
 
 // Helper: Haversine Formula (KM)
 const getDistanceKm = (lat1, lon1, lat2, lon2) => {
@@ -283,12 +284,8 @@ export const createOrder = async (req, res, next) => {
     const restaurantEarnings = subtotal - platformCommission;
     const riderEarnings = deliveryFee;
 
-    // 5. Check mock payment details
+    // 5. Payment details
     let paymentStatus = 'PENDING';
-    if (paymentMethod === 'ONLINE') {
-      // Simulated Payment Gateway Success immediately
-      paymentStatus = 'PAID';
-    }
 
     // 6. Create Order record
     const order = await Order.create({
@@ -334,7 +331,25 @@ export const createOrder = async (req, res, next) => {
       }
     }
 
-    // 8. Create database Notification and dispatch real-time WebSocket event to Restaurant Owner
+    // 8. Initiate SSLCommerz if Online Payment
+    let paymentGatewayUrl = null;
+    let tranId = null;
+
+    if (paymentMethod === 'ONLINE') {
+      try {
+        const sslResult = await initSSLCommerzPayment({
+          order,
+          user: req.user,
+          address,
+        });
+        paymentGatewayUrl = sslResult.gatewayUrl;
+        tranId = sslResult.tranId;
+      } catch (sslErr) {
+        console.error('[SSLCommerz Init Error]:', sslErr);
+      }
+    }
+
+    // 9. Create database Notification and dispatch real-time WebSocket event to Restaurant Owner
     try {
       const customerName = req.user.name || 'Customer';
       const orderTotalFormatted = parseFloat(order.total).toFixed(2);
@@ -360,6 +375,7 @@ export const createOrder = async (req, res, next) => {
           status: order.status,
           itemsCount: itemsData.length,
           paymentMethod: order.paymentMethod,
+          paymentStatus: order.paymentStatus,
           deliveryAddressText: order.deliveryAddressText,
           createdAt: order.createdAt,
           message: `🎉 New Order #${order.id} received from ${customerName} (৳${orderTotalFormatted})!`,
@@ -393,8 +409,10 @@ export const createOrder = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Order placed successfully.',
+      message: 'Order created successfully.',
       order,
+      paymentUrl: paymentGatewayUrl,
+      tranId,
     });
   } catch (error) {
     next(error);
@@ -705,35 +723,34 @@ export const updateOrderStatus = async (req, res, next) => {
           });
         }
 
-        // 2. Rider gets credited delivery fee, and debited full cash if COD
+        // 2. Rider gets credited delivery fee or net COD balance (single transaction per order)
         if (order.riderId) {
           const riderUser = await User.findByPk(order.riderId);
           if (riderUser) {
-            let balanceDelta = Number(order.riderEarnings);
-            
-            // Credit Rider Earnings
-            await WalletTransaction.create({
-              userId: riderUser.id,
-              orderId: order.id,
-              amount: order.riderEarnings,
-              type: 'DELIVERY_FEE',
-              description: `Delivery fee earning for Order #${order.id}`
-            });
-
-            // Debit COD Collection if cash collected
             if (order.paymentMethod === 'COD') {
-              balanceDelta -= Number(order.total);
+              const netCodAmount = Number(order.riderEarnings) - Number(order.total);
               await WalletTransaction.create({
                 userId: riderUser.id,
                 orderId: order.id,
-                amount: -Number(order.total),
+                amount: netCodAmount,
                 type: 'COD_COLLECTION',
-                description: `COD Cash collected for Order #${order.id}`
+                description: `COD Settlement for Order #${order.id} (Fee: +৳${Number(order.riderEarnings).toFixed(2)} - Cash: ৳${Number(order.total).toFixed(2)})`
               });
-            }
 
-            const newRiderBal = Number(riderUser.walletBalance) + balanceDelta;
-            await riderUser.update({ walletBalance: newRiderBal });
+              const newRiderBal = Number(riderUser.walletBalance) + netCodAmount;
+              await riderUser.update({ walletBalance: newRiderBal });
+            } else {
+              await WalletTransaction.create({
+                userId: riderUser.id,
+                orderId: order.id,
+                amount: order.riderEarnings,
+                type: 'DELIVERY_FEE',
+                description: `Delivery fee earning for Order #${order.id}`
+              });
+
+              const newRiderBal = Number(riderUser.walletBalance) + Number(order.riderEarnings);
+              await riderUser.update({ walletBalance: newRiderBal });
+            }
           }
         }
       }

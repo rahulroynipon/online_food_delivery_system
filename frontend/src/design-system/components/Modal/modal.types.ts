@@ -2,8 +2,10 @@ import * as React from 'react';
 
 export interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
   open?: boolean;
+  isOpen?: boolean;
   onClose?: () => void;
   title?: string; // Optional for backward compatibility
+  description?: string;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   rounded?: 'none' | 'sm' | 'md' | 'lg' | 'full';
