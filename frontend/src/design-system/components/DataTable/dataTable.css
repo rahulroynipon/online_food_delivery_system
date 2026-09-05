@@ -4,13 +4,13 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Row state tints derived from primary color */
-  --table-row-hover: color-mix(in srgb, var(--color-primary) 6%, transparent);
-  --table-row-selected: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  --table-row-selected-hover: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  /* Row state tints derived cleanly */
+  --table-row-hover: color-mix(in srgb, var(--color-muted) 45%, transparent);
+  --table-row-selected: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  --table-row-selected-hover: color-mix(in srgb, var(--color-primary) 12%, transparent);
 
   /* Structure */
-  --table-header-bg: var(--color-muted);
+  --table-header-bg: color-mix(in srgb, var(--color-muted) 55%, var(--color-card));
   --table-border: var(--color-border);
 
   /* Density heights */
@@ -41,12 +41,12 @@
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
 .datatable-head th {
-  background-color: color-mix(in srgb, var(--color-primary) 4%, var(--color-muted));
-  color: var(--color-foreground);
-  font-size: 0.75rem;
-  font-weight: 700;
+  background-color: var(--table-header-bg);
+  color: var(--color-muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   padding: 0 var(--spacing-4);
   white-space: nowrap;
   user-select: none;
