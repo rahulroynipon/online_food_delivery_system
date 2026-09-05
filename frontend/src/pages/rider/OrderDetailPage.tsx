@@ -23,7 +23,8 @@ import {
   Package,
   Navigation,
   Check,
-  ChevronRight
+  ChevronRight,
+  Star
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -418,6 +419,97 @@ export default function RiderOrderDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Customer Delivery Rating & Feedback Card */}
+          {isDelivered && (
+            <Card className="border border-border/60 bg-card overflow-hidden shadow-2xs">
+              <CardHeader className="p-5 border-b border-border/50 bg-muted/20 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-black text-foreground flex items-center gap-2">
+                  <Star size={16} className="text-amber-500 fill-amber-500" />
+                  Customer Delivery Rating & Feedback
+                </CardTitle>
+                {order.review?.riderRating ? (
+                  <Badge variant="soft" color="success" className="text-[10px] font-bold">
+                    Reviewed
+                  </Badge>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground font-medium">
+                    Pending review
+                  </span>
+                )}
+              </CardHeader>
+              <CardContent className="p-5">
+                {order.review?.riderRating ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs text-muted-foreground font-semibold">Your Delivery Score</span>
+                        <div className="flex items-center gap-1 mt-1">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              size={18}
+                              className={
+                                s <= order.review.riderRating
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'fill-slate-100 text-slate-200'
+                              }
+                            />
+                          ))}
+                          <span className="text-sm font-bold text-foreground ml-1.5">
+                            {order.review.riderRating}.0 / 5.0
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground font-medium">
+                        {new Date(order.review.createdAt).toLocaleDateString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+
+                    {order.review.riderTags && order.review.riderTags.length > 0 && (
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                          Customer Compliments:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {order.review.riderTags.map((tag: string, i: number) => (
+                            <span
+                              key={i}
+                              className="text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-lg border border-emerald-500/20"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {order.review.riderReview && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                          Customer Note:
+                        </span>
+                        <p className="text-xs text-foreground/90 italic bg-muted/30 p-3.5 rounded-xl border border-border/40">
+                          "{order.review.riderReview}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 space-y-1">
+                    <p className="text-xs font-semibold text-foreground">No customer rating submitted yet</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      The customer has not yet left a rating or review for this delivery trip.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
         </div>
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import CustomerLayout from '../../components/CustomerLayout';
 import { Card, CardContent, Button } from '../../design-system';
-import { ShoppingBag, ArrowRight, Calendar, Store, Clock, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Calendar, Store, Clock, RefreshCw, AlertCircle, Loader2, Star } from 'lucide-react';
 import api from '../../lib/axios';
 
 export default function CustomerOrdersPage() {
@@ -125,20 +125,34 @@ export default function CustomerOrdersPage() {
                     </div>
 
                     {/* Right: Price & Tracking CTA */}
-                    <div className="flex md:flex-col justify-between items-center md:items-end w-full md:w-auto gap-3 shrink-0 pt-3 md:pt-0 border-t border-border/10 md:border-none">
+                    <div className="flex md:flex-col justify-between items-center md:items-end w-full md:w-auto gap-2.5 shrink-0 pt-3 md:pt-0 border-t border-border/10 md:border-none">
                       <div className="text-right">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Total Bill</p>
                         <p className="text-base font-extrabold text-primary mt-0.5">৳{parseFloat(order.total).toFixed(2)}</p>
                       </div>
-                      <Button
-                        onClick={() => navigate(`/order-tracking?id=${order.id}`)}
-                        variant={order.status === 'DELIVERED' || order.status === 'CANCELLED' ? 'outline' : 'primary'}
-                        size="xs"
-                        rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
-                        className="font-bold py-1.5 px-3.5"
-                      >
-                        {order.status === 'DELIVERED' || order.status === 'CANCELLED' ? 'View Details' : 'Track Order'}
-                      </Button>
+
+                      <div className="flex items-center gap-2">
+                        {order.status === 'DELIVERED' && (
+                          <Button
+                            onClick={() => navigate(`/order-tracking?id=${order.id}`)}
+                            variant="secondary"
+                            size="xs"
+                            leftIcon={<Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />}
+                            className="font-bold py-1.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border-amber-500/20 cursor-pointer"
+                          >
+                            Rate & Review
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => navigate(`/order-tracking?id=${order.id}`)}
+                          variant={order.status === 'DELIVERED' || order.status === 'CANCELLED' ? 'outline' : 'primary'}
+                          size="xs"
+                          rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
+                          className="font-bold py-1.5 px-3.5 cursor-pointer"
+                        >
+                          {order.status === 'DELIVERED' || order.status === 'CANCELLED' ? 'Details' : 'Track'}
+                        </Button>
+                      </div>
                     </div>
 
                   </CardContent>

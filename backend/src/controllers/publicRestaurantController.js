@@ -5,7 +5,8 @@ import {
   RestaurantCategory, 
   Food, 
   FoodVariant, 
-  RestaurantAddon 
+  RestaurantAddon,
+  Review 
 } from '../models/index.js';
 import { RestaurantStatus } from '../enums/index.js';
 
@@ -130,9 +131,26 @@ export const getPublicRestaurantBySlug = async (req, res, next) => {
       ]
     });
 
+    // Calculate real review stats
+    const reviews = await Review.findAll({
+      where: { restaurantId: restaurant.id },
+      attributes: ['foodRating']
+    });
+
+    const totalReviews = reviews.length;
+    let averageRating = 4.8;
+    if (totalReviews > 0) {
+      const sum = reviews.reduce((acc, curr) => acc + curr.foodRating, 0);
+      averageRating = parseFloat((sum / totalReviews).toFixed(1));
+    }
+
+    const restaurantData = restaurant.toJSON();
+    restaurantData.rating = averageRating;
+    restaurantData.reviewCount = totalReviews;
+
     return res.status(200).json({
       success: true,
-      restaurant,
+      restaurant: restaurantData,
       categories
     });
   } catch (error) {

@@ -9,7 +9,8 @@ import {
   Store, 
   PackageCheck,
   Eye,
-  Phone
+  Phone,
+  Star
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -265,6 +266,21 @@ export default function RiderHistoryPage() {
                       {new Date(row.updatedAt || row.createdAt).toLocaleDateString()} at{' '}
                       {new Date(row.updatedAt || row.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
+                  )
+                },
+                {
+                  id: 'rating',
+                  label: 'RATING',
+                  width: '100px',
+                  cell: ({ row }: { row: any }) => (
+                    row.review?.riderRating ? (
+                      <div className="flex items-center gap-1 font-bold text-xs text-foreground">
+                        <Star size={12} className="fill-amber-400 text-amber-400 shrink-0" />
+                        <span>{row.review.riderRating}.0</span>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground font-medium">—</span>
+                    )
                   )
                 },
                 {

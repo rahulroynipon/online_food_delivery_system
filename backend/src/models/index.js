@@ -18,6 +18,7 @@ import OrderItem from './OrderItem.js';
 import OrderItemAddon from './OrderItemAddon.js';
 import WalletTransaction from './WalletTransaction.js';
 import WithdrawalRequest from './WithdrawalRequest.js';
+import Review from './Review.js';
 
 // Associations Configuration
 // User <-> Restaurant (One-to-One)
@@ -140,6 +141,22 @@ WalletTransaction.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
 User.hasMany(WithdrawalRequest, { foreignKey: 'userId', as: 'withdrawalRequests' });
 WithdrawalRequest.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+// Order <-> Review (One-to-One)
+Order.hasOne(Review, { foreignKey: 'orderId', as: 'review', onDelete: 'CASCADE' });
+Review.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
+
+// User (Customer) <-> Review (One-to-Many)
+User.hasMany(Review, { foreignKey: 'userId', as: 'reviews', onDelete: 'CASCADE' });
+Review.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// Restaurant <-> Review (One-to-Many)
+Restaurant.hasMany(Review, { foreignKey: 'restaurantId', as: 'reviews', onDelete: 'CASCADE' });
+Review.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
+
+// Rider (User) <-> Review (One-to-Many)
+User.hasMany(Review, { foreignKey: 'riderId', as: 'riderReviews', onDelete: 'SET NULL' });
+Review.belongsTo(User, { foreignKey: 'riderId', as: 'riderUser' });
+
 export {
   User,
   Restaurant,
@@ -161,4 +178,5 @@ export {
   OrderItemAddon,
   WalletTransaction,
   WithdrawalRequest,
+  Review,
 };

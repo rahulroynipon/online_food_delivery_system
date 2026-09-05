@@ -55,6 +55,19 @@ export default function RestaurantMenuPage() {
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Tab state: 'menu' | 'reviews'
+  const [activeTab, setActiveTab] = useState<'menu' | 'reviews'>('menu');
+  const [reviewData, setReviewData] = useState<{
+    stats: {
+      totalReviews: number;
+      averageRating: number;
+      ratingBreakdown: Record<number, number>;
+      popularTags: Array<{ tag: string; count: number }>;
+    };
+    reviews: any[];
+  } | null>(null);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  
   // Scroll spy active category id state
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
 
@@ -137,6 +150,23 @@ export default function RestaurantMenuPage() {
     return `${displayHour}:${minStr} ${ampm}`;
   };
 
+  const fetchReviews = async (restaurantId: number) => {
+    setLoadingReviews(true);
+    try {
+      const res = await api.get(`/reviews/restaurant/${restaurantId}`);
+      if (res.data?.success) {
+        setReviewData({
+          stats: res.data.stats,
+          reviews: res.data.reviews || []
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load restaurant reviews:', err);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
   useEffect(() => {
     const fetchRestaurantAndMenu = async () => {
       setLoading(true);
@@ -145,6 +175,9 @@ export default function RestaurantMenuPage() {
         if (res.data?.success) {
           setRestaurant(res.data.restaurant);
           setCategories(res.data.categories || []);
+          if (res.data.restaurant?.id) {
+            fetchReviews(res.data.restaurant.id);
+          }
         }
       } catch (err: any) {
         console.error('Failed to load menu:', err);
@@ -341,116 +374,321 @@ export default function RestaurantMenuPage() {
               </div>
             </section>
 
-            {/* Menu Listing Container */}
-            <div className="flex flex-col md:flex-row items-start gap-8">
-              
-              {/* Category Sticky Sidebar Navigation */}
-              {categories.length > 0 && (
-                <aside className="w-full md:w-56 sticky top-[72px] md:top-20 z-10 shrink-0 select-none bg-card/95 backdrop-blur-md p-3.5 md:p-3 rounded-2xl border border-border/40 md:space-y-1.5 flex flex-row overflow-x-auto gap-2.5 md:flex-col md:overflow-x-visible scrollbar-none">
-                  <p className="hidden md:block text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-3 py-1 pb-2 border-b border-border/10">
-                    Menu Categories
-                  </p>
-                  {categories.map((cat) => {
-                    const isActive = activeCategoryId === cat.id;
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={(e) => handleCategoryClick(e, cat.id)}
-                        className={`inline-block shrink-0 px-4 py-1.5 md:py-2.5 md:pl-3 md:pr-4 rounded-full md:rounded-r-xl md:rounded-l-none text-xs font-bold transition-all truncate cursor-pointer text-left md:border-l-4 ${
-                          isActive
-                            ? 'bg-primary text-primary-foreground md:bg-primary/10 md:text-primary md:border-primary md:font-extrabold shadow-2xs md:shadow-none'
-                            : 'bg-[#F5F6F8] text-foreground/70 border border-neutral-200/20 hover:bg-[#EAECEF] md:bg-transparent md:border-none md:text-foreground/75 md:hover:bg-muted/30 md:hover:text-foreground md:border-transparent'
-                        }`}
-                      >
-                        {cat.name}
-                      </button>
-                    );
-                  })}
-                </aside>
-              )}
+            {/* Navigation Tabs Switcher */}
+            <div className="flex items-center gap-3 border-b border-border/30 pb-3 select-none">
+              <button
+                onClick={() => setActiveTab('menu')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+                  activeTab === 'menu'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'bg-card border border-border/60 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Utensils className="h-4 w-4" />
+                <span>Menu & Dishes</span>
+              </button>
 
-              {/* Menu Categories List */}
-              <div className="flex-1 w-full space-y-12">
-                {categories.length === 0 ? (
-                  <Card className="p-8 text-center bg-card/30 border border-border/30">
-                    <Utensils className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                    <h3 className="text-sm font-bold text-foreground">No dishes available</h3>
-                    <p className="text-xs text-muted-foreground mt-1 font-medium">
-                      This kitchen hasn't added any menu categories or dishes yet.
+              <button
+                onClick={() => setActiveTab('reviews')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+                  activeTab === 'reviews'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'bg-card border border-border/60 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <span>Reviews & Ratings</span>
+                {reviewData && reviewData.stats.totalReviews > 0 && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
+                    activeTab === 'reviews' ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'
+                  }`}>
+                    {reviewData.stats.totalReviews}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* TAB 1: Menu & Foods */}
+            {activeTab === 'menu' && (
+              <div className="flex flex-col md:flex-row items-start gap-8 animate-fade-in">
+                
+                {/* Category Sticky Sidebar Navigation */}
+                {categories.length > 0 && (
+                  <aside className="w-full md:w-56 sticky top-[72px] md:top-20 z-10 shrink-0 select-none bg-card/95 backdrop-blur-md p-3.5 md:p-3 rounded-2xl border border-border/40 md:space-y-1.5 flex flex-row overflow-x-auto gap-2.5 md:flex-col md:overflow-x-visible scrollbar-none">
+                    <p className="hidden md:block text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-3 py-1 pb-2 border-b border-border/10">
+                      Menu Categories
+                    </p>
+                    {categories.map((cat) => {
+                      const isActive = activeCategoryId === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={(e) => handleCategoryClick(e, cat.id)}
+                          className={`inline-block shrink-0 px-4 py-1.5 md:py-2.5 md:pl-3 md:pr-4 rounded-full md:rounded-r-xl md:rounded-l-none text-xs font-bold transition-all truncate cursor-pointer text-left md:border-l-4 ${
+                            isActive
+                              ? 'bg-primary text-primary-foreground md:bg-primary/10 md:text-primary md:border-primary md:font-extrabold shadow-2xs md:shadow-none'
+                              : 'bg-[#F5F6F8] text-foreground/70 border border-neutral-200/20 hover:bg-[#EAECEF] md:bg-transparent md:border-none md:text-foreground/75 md:hover:bg-muted/30 md:hover:text-foreground md:border-transparent'
+                          }`}
+                        >
+                          {cat.name}
+                        </button>
+                      );
+                    })}
+                  </aside>
+                )}
+
+                {/* Menu Categories List */}
+                <div className="flex-1 w-full space-y-12">
+                  {categories.length === 0 ? (
+                    <Card className="p-8 text-center bg-card/30 border border-border/30">
+                      <Utensils className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                      <h3 className="text-sm font-bold text-foreground">No dishes available</h3>
+                      <p className="text-xs text-muted-foreground mt-1 font-medium">
+                        This kitchen hasn't added any menu categories or dishes yet.
+                      </p>
+                    </Card>
+                  ) : (
+                    categories.map((category) => (
+                      <section
+                        key={category.id}
+                        id={`category-${category.id}`}
+                        className="space-y-4 scroll-mt-24"
+                      >
+                        <h2 className="text-lg font-black text-foreground border-b border-border/10 pb-2">
+                          {category.name}
+                        </h2>
+
+                        {category.foods.length === 0 ? (
+                          <p className="text-xs text-muted-foreground italic font-medium">
+                            No items available in this category.
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {category.foods.map((food) => (
+                              <div 
+                                key={food.id} 
+                                className="p-4 flex gap-4 items-stretch justify-between border border-border/40 hover:border-primary/25 bg-card/65 hover:bg-card hover:shadow-xs rounded-2xl transition-all duration-300 group"
+                              >
+                                {/* Left: Food Text Details */}
+                                <div className="flex-1 flex flex-col justify-between min-w-0 pr-2">
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="text-xs font-extrabold text-foreground group-hover:text-primary transition-colors truncate">
+                                        {food.name}
+                                      </h4>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                      {food.description || 'Delicious freshly prepared recipe.'}
+                                    </p>
+                                  </div>
+                                  <div className="mt-4 flex items-center justify-between">
+                                    <span className="text-xs font-black text-foreground">
+                                      {getFoodPriceLabel(food)}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                                      <Star className="h-2.5 w-2.5 fill-current" />
+                                      4.9
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Right: Food Image & Add Button (Overlap Style) */}
+                                <div className="h-20 w-20 md:h-24 md:w-24 shrink-0 relative rounded-xl overflow-hidden shadow-2xs border border-border/10 select-none">
+                                  <img
+                                    src={getFoodImage(food)}
+                                    alt={food.name}
+                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                  />
+                                  
+                                  {/* Floating add button on bottom-right of image */}
+                                  <div className="absolute bottom-1.5 right-1.5 z-10">
+                                    <Button
+                                      size="icon-xs"
+                                      variant="primary"
+                                      rounded="lg"
+                                      onClick={() => handleOpenCustomizer(food)}
+                                      disabled={!restaurant.isOpen}
+                                      className="h-7 w-7 shadow-md border border-white/10 hover:scale-110 active:scale-95 transition-all animate-fade-in"
+                                      title="Add to Basket"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </section>
+                    ))
+                  )}
+                </div>
+
+              </div>
+            )}
+
+            {/* TAB 2: Customer Reviews & Ratings */}
+            {activeTab === 'reviews' && (
+              <div className="space-y-8 animate-fade-in">
+                
+                {/* Stats Header Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  
+                  {/* Overall Score */}
+                  <Card className="border border-border/40 bg-gradient-to-br from-amber-500/10 via-card to-card p-6 flex flex-col items-center justify-center text-center space-y-2">
+                    <span className="text-4xl font-black text-foreground">
+                      {reviewData?.stats.averageRating ? reviewData.stats.averageRating.toFixed(1) : '4.8'}
+                    </span>
+                    <div className="flex items-center gap-1 text-amber-400">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} className="h-5 w-5 fill-current" />
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground font-bold">
+                      Based on {reviewData?.stats.totalReviews || 0} customer reviews
                     </p>
                   </Card>
-                ) : (
-                  categories.map((category) => (
-                    <section
-                      key={category.id}
-                      id={`category-${category.id}`}
-                      className="space-y-4 scroll-mt-24"
-                    >
-                      <h2 className="text-lg font-black text-foreground border-b border-border/10 pb-2">
-                        {category.name}
-                      </h2>
 
-                      {category.foods.length === 0 ? (
-                        <p className="text-xs text-muted-foreground italic font-medium">
-                          No items available in this category.
-                        </p>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {category.foods.map((food) => (
-                            <div 
-                              key={food.id} 
-                              className="p-4 flex gap-4 items-stretch justify-between border border-border/40 hover:border-primary/25 bg-card/65 hover:bg-card hover:shadow-xs rounded-2xl transition-all duration-300 group"
-                            >
-                              {/* Left: Food Text Details */}
-                              <div className="flex-1 flex flex-col justify-between min-w-0 pr-2">
-                                <div className="space-y-1.5">
-                                  <h4 className="text-xs font-extrabold text-foreground group-hover:text-primary transition-colors truncate">
-                                    {food.name}
-                                  </h4>
-                                  <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
-                                    {food.description || 'Delicious freshly prepared recipe.'}
-                                  </p>
-                                </div>
-                                <div className="mt-4">
-                                  <span className="text-xs font-black text-foreground">
-                                    {getFoodPriceLabel(food)}
-                                  </span>
-                                </div>
+                  {/* Rating Breakdown Bars */}
+                  <Card className="border border-border/40 p-6 md:col-span-2 space-y-2.5">
+                    <p className="text-xs font-black uppercase text-foreground tracking-wider mb-2">
+                      Rating Breakdown
+                    </p>
+                    {[5, 4, 3, 2, 1].map((stars) => {
+                      const count = reviewData?.stats.ratingBreakdown[stars] || 0;
+                      const total = reviewData?.stats.totalReviews || 1;
+                      const pct = reviewData?.stats.totalReviews ? Math.round((count / total) * 100) : (stars === 5 ? 85 : stars === 4 ? 15 : 0);
+
+                      return (
+                        <div key={stars} className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
+                          <span className="w-12 text-foreground flex items-center gap-1 shrink-0">
+                            {stars} <Star className="h-3 w-3 fill-amber-400 text-amber-400 inline" />
+                          </span>
+                          <div className="flex-1 h-2 bg-muted/40 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="w-10 text-right text-[10px] text-muted-foreground">{pct}%</span>
+                        </div>
+                      );
+                    })}
+                  </Card>
+                </div>
+
+                {/* Popular Tags */}
+                {reviewData?.stats.popularTags && reviewData.stats.popularTags.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+                      Customer Highlights
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {reviewData.stats.popularTags.map(({ tag, count }) => (
+                        <span
+                          key={tag}
+                          className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-bold flex items-center gap-1.5"
+                        >
+                          {tag}
+                          <span className="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded-full font-black">
+                            {count}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Customer Reviews List */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-black text-foreground border-b border-border/10 pb-2">
+                    Recent Customer Reviews ({reviewData?.reviews.length || 0})
+                  </h3>
+
+                  {loadingReviews ? (
+                    <div className="py-12 text-center text-muted-foreground text-xs font-semibold">
+                      Loading customer reviews...
+                    </div>
+                  ) : !reviewData || reviewData.reviews.length === 0 ? (
+                    <Card className="p-8 text-center bg-card/30 border border-border/30">
+                      <Star className="h-8 w-8 text-amber-400/40 mx-auto mb-2" />
+                      <h4 className="text-xs font-bold text-foreground">No customer reviews yet</h4>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Be the first to order and leave a review for {restaurant.name}!
+                      </p>
+                    </Card>
+                  ) : (
+                    <div className="space-y-4">
+                      {reviewData.reviews.map((rev) => (
+                        <Card key={rev.id} className="border border-border/40 bg-card p-5 space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                              <div className="h-9 w-9 rounded-full bg-primary/10 text-primary font-black flex items-center justify-center text-xs">
+                                {rev.user?.name ? rev.user.name.charAt(0) : 'C'}
                               </div>
-
-                              {/* Right: Food Image & Add Button (Overlap Style) */}
-                              <div className="h-20 w-20 md:h-24 md:w-24 shrink-0 relative rounded-xl overflow-hidden shadow-2xs border border-border/10 select-none">
-                                <img
-                                  src={getFoodImage(food)}
-                                  alt={food.name}
-                                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                />
-                                
-                                {/* Floating add button on bottom-right of image */}
-                                <div className="absolute bottom-1.5 right-1.5 z-10">
-                                  <Button
-                                    size="icon-xs"
-                                    variant="primary"
-                                    rounded="lg"
-                                    onClick={() => handleOpenCustomizer(food)}
-                                    disabled={!restaurant.isOpen}
-                                    className="h-7 w-7 shadow-md border border-white/10 hover:scale-110 active:scale-95 transition-all animate-fade-in"
-                                    title="Add to Basket"
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                </div>
+                              <div>
+                                <h4 className="text-xs font-black text-foreground">{rev.user?.name || 'Verified Customer'}</h4>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {new Date(rev.createdAt).toLocaleDateString([], {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </p>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </section>
-                  ))
-                )}
-              </div>
 
-            </div>
+                            {/* Stars */}
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={`h-3.5 w-3.5 ${
+                                    s <= rev.foodRating
+                                      ? 'fill-amber-400 text-amber-400'
+                                      : 'fill-muted/20 text-muted-foreground/20'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Ordered items pill */}
+                          {rev.order?.items && rev.order.items.length > 0 && (
+                            <p className="text-[10px] text-muted-foreground font-semibold">
+                              <span className="text-foreground font-bold">Ordered: </span>
+                              {rev.order.items.map((it: any) => `${it.quantity}× ${it.foodName}`).join(', ')}
+                            </p>
+                          )}
+
+                          {/* Tags */}
+                          {rev.foodTags && rev.foodTags.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {rev.foodTags.map((tag: string, i: number) => (
+                                <span
+                                  key={i}
+                                  className="text-[10px] font-bold bg-muted/40 text-foreground px-2 py-0.5 rounded-md border border-border/40"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Review comment */}
+                          {rev.foodReview && (
+                            <p className="text-xs text-foreground/90 leading-relaxed font-medium bg-muted/10 p-3 rounded-xl border border-border/20">
+                              "{rev.foodReview}"
+                            </p>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
           </div>
         )}
       </div>

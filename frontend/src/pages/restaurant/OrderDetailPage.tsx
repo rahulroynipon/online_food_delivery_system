@@ -21,7 +21,8 @@ import {
   Package,
   ChevronRight,
   TrendingUp,
-  Percent
+  Percent,
+  Star
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -406,6 +407,97 @@ export default function RestaurantOrderDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Customer Food Rating & Feedback Card */}
+          {isDelivered && (
+            <Card className="border border-border/60 bg-card overflow-hidden shadow-2xs">
+              <CardHeader className="p-5 border-b border-border/50 bg-muted/20 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-black text-foreground flex items-center gap-2">
+                  <Star size={16} className="text-amber-500 fill-amber-500" />
+                  Customer Food Rating & Feedback
+                </CardTitle>
+                {order.review?.foodRating ? (
+                  <Badge variant="soft" color="success" className="text-[10px] font-bold">
+                    Reviewed
+                  </Badge>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground font-medium">
+                    Pending review
+                  </span>
+                )}
+              </CardHeader>
+              <CardContent className="p-5">
+                {order.review?.foodRating ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs text-muted-foreground font-semibold">Kitchen & Food Score</span>
+                        <div className="flex items-center gap-1 mt-1">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              size={18}
+                              className={
+                                s <= order.review.foodRating
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'fill-slate-100 text-slate-200'
+                              }
+                            />
+                          ))}
+                          <span className="text-sm font-bold text-foreground ml-1.5">
+                            {order.review.foodRating}.0 / 5.0
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground font-medium">
+                        {new Date(order.review.createdAt).toLocaleDateString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+
+                    {order.review.foodTags && order.review.foodTags.length > 0 && (
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                          Customer Food Compliments:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {order.review.foodTags.map((tag: string, i: number) => (
+                            <span
+                              key={i}
+                              className="text-xs font-semibold bg-amber-500/10 text-amber-800 dark:text-amber-200 px-3 py-1 rounded-lg border border-amber-500/20"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {order.review.foodReview && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                          Customer Review Comment:
+                        </span>
+                        <p className="text-xs text-foreground/90 italic bg-muted/30 p-3.5 rounded-xl border border-border/40">
+                          "{order.review.foodReview}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 space-y-1">
+                    <p className="text-xs font-semibold text-foreground">No customer review submitted yet</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      The customer has not yet submitted feedback for this order.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
         </div>
 

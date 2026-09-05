@@ -17,6 +17,8 @@ import {
   OrderItem,
   OrderItemAddon,
   WalletTransaction,
+  WithdrawalRequest,
+  Review,
 } from '../models/index.js';
 import { NotificationEvent } from '../enums/index.js';
 import { ensureDatabaseExists } from './ensureDb.js';

@@ -19,7 +19,10 @@ import {
   Check,
   X,
   Map as MapIcon,
-  Compass
+  Compass,
+  Star,
+  MessageSquare,
+  Sparkles
 } from 'lucide-react';
 import api from '../../lib/axios';
 import DeliveryRouteMap from '../../components/rider/DeliveryRouteMap';
@@ -45,16 +48,19 @@ export default function RiderOverviewPage() {
   const [historyOrders, setHistoryOrders] = useState<any[]>([]);
   const [wallet, setWallet] = useState<{ balance: number; transactions: any[] }>({ balance: 0, transactions: [] });
   const [riderProfile, setRiderProfile] = useState<any>(null);
+  const [reviewStats, setReviewStats] = useState<any>(null);
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
   const fetchData = async () => {
     try {
-      const [activeRes, histRes, walletRes, profileRes] = await Promise.all([
+      const [activeRes, histRes, walletRes, profileRes, reviewRes] = await Promise.all([
         api.get('/orders/rider'),
         api.get('/orders/rider?history=true'),
         api.get('/wallets/balance'),
-        api.get('/onboarding/my-rider')
+        api.get('/onboarding/my-rider'),
+        api.get('/reviews/my-rider').catch(() => ({ data: { success: false } }))
       ]);
 
       if (activeRes.data?.success) setActiveOrders(activeRes.data.orders || []);
@@ -66,6 +72,10 @@ export default function RiderOverviewPage() {
         });
       }
       if (profileRes.data?.success) setRiderProfile(profileRes.data.rider);
+      if (reviewRes.data?.success) {
+        setReviewStats(reviewRes.data.stats);
+        setReviewsList(reviewRes.data.reviews || []);
+      }
     } catch (err) {
       console.error('Failed to load rider overview data:', err);
     } finally {
@@ -138,11 +148,15 @@ export default function RiderOverviewPage() {
       {/* Top Welcome Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/15 relative overflow-hidden">
         <div className="space-y-1 z-10">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="solid" color="primary" className="text-[10px] font-black uppercase px-2 py-0.5">
               Rider Online
             </Badge>
             <span className="text-xs text-muted-foreground font-semibold">Vehicle: {riderProfile?.vehicleType || 'MOTORBIKE'}</span>
+            <span className="text-xs font-black text-amber-600 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+              <Star size={11} className="fill-current" />
+              {reviewStats?.averageRating ? reviewStats.averageRating.toFixed(1) : '5.0'} Rating ({reviewStats?.totalReviews || 0} reviews)
+            </span>
           </div>
           <h1 className="text-2xl font-black text-foreground tracking-tight">
             Welcome, {riderProfile?.user?.name || 'Rider'}! 🏍️
@@ -475,6 +489,107 @@ export default function RiderOverviewPage() {
                 </Card>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      {/* Customer Delivery Reviews & Compliments Section */}
+      <div className="space-y-4 pt-4 border-t border-border/40">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <h2 className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-500" />
+              Customer Delivery Feedback & Ratings
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Feedback and compliments given to you by customers after deliveries
+            </p>
+          </div>
+          <span className="text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
+            <Star className="h-3.5 w-3.5 fill-current" />
+            {reviewStats?.averageRating ? reviewStats.averageRating.toFixed(1) : '5.0'} / 5.0
+          </span>
+        </div>
+
+        {/* Compliment Badges */}
+        {reviewStats?.popularTags && reviewStats.popularTags.length > 0 && (
+          <Card className="border border-border/40 p-4">
+            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-wider mb-2">
+              Your Top Badges & Compliments
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {reviewStats.popularTags.map(({ tag, count }: any) => (
+                <span
+                  key={tag}
+                  className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5"
+                >
+                  {tag}
+                  <span className="text-[10px] bg-emerald-500/20 px-1.5 py-0.5 rounded-full font-black">
+                    {count}
+                  </span>
+                </span>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Reviews List */}
+        {reviewsList.length === 0 ? (
+          <Card className="p-8 text-center bg-card/40 border border-dashed border-border/60 rounded-2xl">
+            <Star className="h-8 w-8 text-amber-400/40 mx-auto mb-2" />
+            <h4 className="text-xs font-bold text-foreground">No customer delivery reviews yet</h4>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Deliver customer orders promptly to earn 5-star ratings and compliment badges!
+            </p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {reviewsList.slice(0, 4).map((rev: any) => (
+              <Card key={rev.id} className="border border-border/40 bg-card p-4 space-y-2.5">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-full bg-emerald-500/10 text-emerald-600 font-black flex items-center justify-center text-xs">
+                      {rev.user?.name ? rev.user.name.charAt(0) : 'C'}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-foreground">{rev.user?.name || 'Customer'}</h4>
+                      <p className="text-[10px] text-muted-foreground">Order #{rev.orderId}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className={`h-3 w-3 ${
+                          s <= (rev.riderRating || 5)
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'fill-muted/20 text-muted-foreground/20'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {rev.riderTags && rev.riderTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {rev.riderTags.map((tag: string, i: number) => (
+                      <span
+                        key={i}
+                        className="text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/20"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {rev.riderReview && (
+                  <p className="text-xs text-foreground/85 italic bg-muted/20 p-2.5 rounded-xl border border-border/20">
+                    "{rev.riderReview}"
+                  </p>
+                )}
+              </Card>
+            ))}
           </div>
         )}
       </div>

@@ -55,7 +55,8 @@ import {
   Settings,
   DoorOpen,
   DoorClosed,
-  History
+  History,
+  Star
 } from 'lucide-react';
 import api from '../lib/axios';
 import { NavLink, useLocation, Outlet, useOutletContext } from 'react-router-dom';
@@ -317,6 +318,12 @@ export default function RestaurantDashboard() {
       label: 'Order History',
       icon: <History size={18} />,
       path: '/restaurant/history',
+    },
+    {
+      id: 'reviews',
+      label: 'Customer Reviews',
+      icon: <Star size={18} />,
+      path: '/restaurant/reviews',
     },
     {
       id: 'wallet',

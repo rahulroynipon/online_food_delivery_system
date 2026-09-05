@@ -10,7 +10,8 @@ import {
   DeliveryZone, 
   PlatformSettings,
   WalletTransaction,
-  Notification 
+  Notification,
+  Review
 } from '../models/index.js';
 import { sendToUser, broadcastToAdmins, sendToRole } from '../websocket/index.js';
 import { initSSLCommerzPayment } from '../services/sslcommerzService.js';
@@ -436,7 +437,8 @@ export const getOrderById = async (req, res, next) => {
         { model: Restaurant, as: 'restaurant' },
         { model: User, as: 'user', attributes: ['id', 'name', 'email', 'phone'] },
         { model: User, as: 'rider', attributes: ['id', 'name', 'phone'] },
-        { model: UserAddress, as: 'address' }
+        { model: UserAddress, as: 'address' },
+        { model: Review, as: 'review' }
       ]
     });
 
@@ -512,7 +514,8 @@ export const getMerchantOrders = async (req, res, next) => {
         { model: User, as: 'user', attributes: ['id', 'name', 'phone'] },
         { model: User, as: 'rider', attributes: ['id', 'name', 'phone'] },
         { model: UserAddress, as: 'address' },
-        { model: OrderItem, as: 'items', include: [{ model: OrderItemAddon, as: 'addons' }] }
+        { model: OrderItem, as: 'items', include: [{ model: OrderItemAddon, as: 'addons' }] },
+        { model: Review, as: 'review' }
       ],
       order: [['createdAt', 'DESC']]
     });
@@ -565,7 +568,8 @@ export const getRiderOrders = async (req, res, next) => {
             model: OrderItem, 
             as: 'items',
             include: [{ model: OrderItemAddon, as: 'addons' }]
-          }
+          },
+          { model: Review, as: 'review' }
         ],
         order: [['updatedAt', 'DESC']]
       }),

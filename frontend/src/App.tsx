@@ -24,6 +24,7 @@ import RestaurantOrders from './pages/restaurant/OrdersPage';
 import RestaurantHistory from './pages/restaurant/HistoryPage';
 import RestaurantOrderDetail from './pages/restaurant/OrderDetailPage';
 import RestaurantAddons from './pages/restaurant/AddonsPage';
+import RestaurantReviews from './pages/restaurant/ReviewsPage';
 import FoodFormPage from './pages/restaurant/FoodFormPage';
 import HomePage from './pages/customer/HomePage';
 import CustomerRestaurants from './pages/customer/RestaurantsPage';
@@ -216,6 +217,7 @@ function App() {
           <Route path="history/:orderId" element={<RestaurantOrderDetail />} />
           <Route path="orders/:orderId" element={<RestaurantOrderDetail />} />
           <Route path="addons" element={<RestaurantAddons />} />
+          <Route path="reviews" element={<RestaurantReviews />} />
           <Route path="wallet" element={<RestaurantWallet />} />
         </Route>
 
