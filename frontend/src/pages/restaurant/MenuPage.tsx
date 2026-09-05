@@ -131,6 +131,7 @@ export default function MenuPage() {
                   {
                     id: 'dish',
                     label: 'Dish / Item Name',
+                    minWidth: '240px',
                     cell: ({ row }: { row: any }) => (
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-xl border border-border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
@@ -140,9 +141,9 @@ export default function MenuPage() {
                             <UtensilsCrossed size={14} className="text-muted-foreground" />
                           )}
                         </div>
-                        <div>
-                          <p className="font-extrabold text-sm text-foreground">{row.name}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 italic max-w-sm">{row.description || 'No description'}</p>
+                        <div className="min-w-0 max-w-[200px]">
+                          <p className="font-extrabold text-sm text-foreground truncate">{row.name}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 italic">{row.description || 'No description'}</p>
                         </div>
                       </div>
                     )
@@ -150,8 +151,9 @@ export default function MenuPage() {
                   {
                     id: 'category',
                     label: 'Category Mapping',
+                    width: '140px',
                     cell: ({ row }: { row: any }) => (
-                      <Badge variant="soft" color="neutral" className="font-bold text-[9px] uppercase px-2 py-0.5">
+                      <Badge variant="soft" color="neutral" className="font-bold text-[9px] uppercase px-2 py-0.5 truncate max-w-[130px]">
                         {row.restaurantCategory?.name || 'Uncategorized'}
                       </Badge>
                     )
@@ -159,14 +161,15 @@ export default function MenuPage() {
                   {
                     id: 'price',
                     label: 'Pricing & Variants',
+                    width: '180px',
                     cell: ({ row }: { row: any }) => (
                       <div className="space-y-1 py-1">
                         {row.variants && row.variants.length > 0 ? (
                           <>
                             {row.variants.slice(0, 2).map((v: any) => (
-                              <div key={v.id} className="text-[11px] leading-tight">
-                                <span className="font-semibold text-muted-foreground">{v.name}:</span>{' '}
-                                <span className="font-extrabold text-foreground">৳{Number(v.price).toFixed(2)}</span>
+                              <div key={v.id} className="text-[11px] leading-tight flex items-center gap-1.5">
+                                <span className="font-semibold text-muted-foreground truncate max-w-[100px]">{v.name}:</span>{' '}
+                                <span className="font-extrabold text-foreground shrink-0">৳{Number(v.price).toFixed(2)}</span>
                               </div>
                             ))}
                             {row.variants.length > 2 && (
@@ -184,19 +187,20 @@ export default function MenuPage() {
                   {
                     id: 'addons',
                     label: 'Add-ons / Extras',
+                    width: '200px',
                     cell: ({ row }: { row: any }) => (
-                      <div className="flex flex-wrap gap-1 py-1 max-w-[200px]">
+                      <div className="flex flex-col gap-1 py-1 max-w-[180px]">
                         {row.addons && row.addons.length > 0 ? (
                           <>
-                            {row.addons.slice(0, 3).map((a: any) => (
-                              <Badge key={a.id} variant="soft" color="primary" className="text-[8px] px-1.5 py-px font-semibold uppercase">
+                            {row.addons.slice(0, 2).map((a: any) => (
+                              <Badge key={a.id} variant="soft" color="primary" className="text-[8px] px-1.5 py-0.5 font-semibold uppercase truncate max-w-[170px] block" title={a.name}>
                                 +{a.name}
                               </Badge>
                             ))}
-                            {row.addons.length > 3 && (
-                              <Badge variant="soft" color="neutral" className="text-[8px] px-1.5 py-px font-semibold uppercase">
-                                +{row.addons.length - 3} more
-                              </Badge>
+                            {row.addons.length > 2 && (
+                              <span className="text-[9px] font-bold text-muted-foreground italic">
+                                +{row.addons.length - 2} more extras
+                              </span>
                             )}
                           </>
                         ) : (
@@ -208,33 +212,36 @@ export default function MenuPage() {
                   {
                     id: 'status',
                     label: 'Status',
+                    width: '90px',
+                    align: 'center' as const,
                     cell: ({ row }: { row: any }) => (
                       row.status === 'ACTIVE'
-                        ? <Badge variant="soft" color="success" className="font-bold text-[9px] uppercase px-2 py-0.5">Active</Badge>
-                        : <Badge variant="soft" color="neutral" className="font-bold text-[9px] uppercase px-2 py-0.5">Hidden</Badge>
+                        ? <Badge variant="soft" color="success" className="font-bold text-[9px] uppercase px-2.5 py-0.5">Active</Badge>
+                        : <Badge variant="soft" color="neutral" className="font-bold text-[9px] uppercase px-2.5 py-0.5">Hidden</Badge>
                     )
                   },
                   {
                     id: 'actions',
-                    label: '',
+                    label: 'Actions',
+                    width: '210px',
                     align: 'right' as const,
                     cell: ({ row }: { row: any }) => (
-                      <div className="flex items-center justify-end gap-2 shrink-0 w-max">
+                      <div className="flex items-center justify-end gap-1.5 shrink-0 w-max">
                         <Button
                           size="xs"
-                          variant={row.status === 'ACTIVE' ? 'tertiary' : 'primary'}
+                          variant={row.status === 'ACTIVE' ? 'outline' : 'primary'}
                           onClick={() => handleToggleFoodStatus(row)}
-                          leftIcon={<Power size={12} />}
-                          className="font-semibold"
+                          leftIcon={<Power size={11} />}
+                          className="font-semibold text-[11px]"
                         >
                           {row.status === 'ACTIVE' ? 'Hide' : 'Activate'}
                         </Button>
                         <Button
                           size="xs"
-                          variant="tertiary"
+                          variant="outline"
                           onClick={() => navigate(`/restaurant/menu/edit/${row.slug}`)}
-                          leftIcon={<Edit size={12} />}
-                          className="font-semibold"
+                          leftIcon={<Edit size={11} />}
+                          className="font-semibold text-[11px]"
                         >
                           Edit
                         </Button>
@@ -242,8 +249,8 @@ export default function MenuPage() {
                           size="xs"
                           variant="danger-soft"
                           onClick={() => setDeleteTargetFood(row)}
-                          leftIcon={<Trash2 size={12} />}
-                          className="font-semibold"
+                          leftIcon={<Trash2 size={11} />}
+                          className="font-semibold text-[11px]"
                         >
                           Delete
                         </Button>

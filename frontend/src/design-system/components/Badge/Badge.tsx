@@ -122,7 +122,7 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
           className={cn(badgeVariants({ variant: variant as any, color, size }), className)}
           {...props}
         >
-          <span>{children}</span>
+          <span className="truncate">{children}</span>
           {removable && (
             <button
               type="button"
@@ -131,7 +131,7 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
                 onRemove?.();
               }}
               className={cn(
-                'rounded-full p-0.5 flex items-center justify-center active:scale-95 transition-all outline-none hover:bg-black/10 dark:hover:bg-white/10',
+                'rounded-full p-0.5 flex items-center justify-center active:scale-95 transition-all outline-none hover:bg-black/10 dark:hover:bg-white/10 shrink-0',
                 sizes[size].removeBtn
               )}
             >

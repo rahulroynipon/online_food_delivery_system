@@ -21,7 +21,10 @@ import {
   Navigation,
   Building2,
   Map as MapIcon,
-  Check
+  Check,
+  Bike,
+  Store,
+  ShieldCheck
 } from 'lucide-react';
 import { Button, Input, Modal, toast } from '../design-system';
 import {
@@ -686,13 +689,42 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
             {/* Auth Button Controls */}
             {isAuthenticated && user ? (
               <div className="flex items-center gap-2">
-                <Link
-                  to="/orders"
-                  className="h-9 w-9 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
-                  title="My Orders"
-                >
-                  <ClipboardList className="h-4.5 w-4.5" />
-                </Link>
+                {user.role === 'RIDER' && (
+                  <Link
+                    to="/rider"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    <Bike className="h-3.5 w-3.5" />
+                    <span>Rider Portal</span>
+                  </Link>
+                )}
+                {user.role === 'RESTAURANT' && (
+                  <Link
+                    to="/restaurant"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    <Store className="h-3.5 w-3.5" />
+                    <span>Merchant Portal</span>
+                  </Link>
+                )}
+                {user.role === 'ADMIN' && (
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <span>Admin Portal</span>
+                  </Link>
+                )}
+                {user.role === 'CUSTOMER' && (
+                  <Link
+                    to="/orders"
+                    className="h-9 w-9 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                    title="My Orders"
+                  >
+                    <ClipboardList className="h-4.5 w-4.5" />
+                  </Link>
+                )}
                 <span className="text-xs font-bold text-foreground/80 max-w-[100px] truncate hidden md:inline">
                   {user.name}
                 </span>

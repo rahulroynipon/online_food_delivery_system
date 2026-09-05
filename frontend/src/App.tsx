@@ -30,6 +30,11 @@ import Checkout from './pages/customer/Checkout';
 import OrderTracking from './pages/customer/OrderTracking';
 import CustomerOrders from './pages/customer/OrdersPage';
 import RiderDashboard from './pages/RiderDashboard';
+import RiderOverview from './pages/rider/OverviewPage';
+import RiderDeliveries from './pages/rider/DeliveriesPage';
+import RiderHistory from './pages/rider/HistoryPage';
+import RiderWallet from './pages/rider/WalletPage';
+import RiderProfile from './pages/rider/ProfilePage';
 import RestaurantWallet from './pages/restaurant/WalletPage';
 import api from './lib/axios';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Tabs, toast } from './design-system';
@@ -148,7 +153,7 @@ function App() {
           }
         />
 
-        {/* Rider Portal Route */}
+        {/* Rider Portal Nested Routes */}
         <Route
           path="/rider"
           element={
@@ -156,7 +161,13 @@ function App() {
               <RiderDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<RiderOverview />} />
+          <Route path="deliveries" element={<RiderDeliveries />} />
+          <Route path="history" element={<RiderHistory />} />
+          <Route path="wallet" element={<RiderWallet />} />
+          <Route path="profile" element={<RiderProfile />} />
+        </Route>
 
         {/* Admin layout — AdminDashboard renders <Outlet /> */}
         <Route

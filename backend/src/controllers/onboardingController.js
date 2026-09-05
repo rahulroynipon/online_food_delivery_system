@@ -666,5 +666,78 @@ export const toggleRestaurantOpen = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get currently logged-in rider profile
+ * @route   GET /api/v1/onboarding/my-rider
+ * @access  Private (Rider Only)
+ */
+export const getMyRider = async (req, res, next) => {
+  try {
+    let rider = await Rider.findOne({ 
+      where: { userId: req.user.id },
+      include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email', 'phone', 'status', 'walletBalance'] }]
+    });
+
+    // If no explicit rider entry yet, find or create default for RIDER user
+    if (!rider && req.user.role === 'RIDER') {
+      rider = await Rider.create({
+        userId: req.user.id,
+        vehicleType: 'MOTORBIKE',
+        licenseNumber: 'PENDING',
+        status: RiderStatus.APPROVED,
+        isAvailable: true,
+        rating: 5.0,
+      });
+      rider = await Rider.findOne({
+        where: { userId: req.user.id },
+        include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email', 'phone', 'status', 'walletBalance'] }]
+      });
+    }
+
+    if (!rider) {
+      return res.status(404).json({ success: false, message: 'Rider profile not found.' });
+    }
+
+    return res.status(200).json({ success: true, rider });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Rider toggles their availability status (Online/Offline)
+ * @route   PUT /api/v1/onboarding/my-rider/toggle-availability
+ * @access  Private (Rider Only)
+ */
+export const toggleMyRiderAvailability = async (req, res, next) => {
+  try {
+    let rider = await Rider.findOne({ where: { userId: req.user.id } });
+    if (!rider && req.user.role === 'RIDER') {
+      rider = await Rider.create({
+        userId: req.user.id,
+        vehicleType: 'MOTORBIKE',
+        licenseNumber: 'PENDING',
+        status: RiderStatus.APPROVED,
+        isAvailable: true,
+      });
+    }
+
+    if (!rider) {
+      return res.status(404).json({ success: false, message: 'Rider profile not found.' });
+    }
+
+    rider.isAvailable = !rider.isAvailable;
+    await rider.save();
+
+    return res.status(200).json({
+      success: true,
+      message: rider.isAvailable ? 'You are now Online & Available for orders.' : 'You are now Offline.',
+      isAvailable: rider.isAvailable,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 

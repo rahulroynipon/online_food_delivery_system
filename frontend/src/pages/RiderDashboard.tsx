@@ -1,336 +1,550 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { Card, CardHeader, CardTitle, CardContent, Button, Tabs, toast } from '../design-system';
-import { LogOut, Bike, MapPin, Store, User, Phone, CheckCircle, RefreshCw, Loader2, DollarSign, Wallet, ArrowRight, XCircle } from 'lucide-react';
+import { 
+  AppShell,
+  Sidebar,
+  SidebarTrigger,
+  Header,
+  Main,
+  Content,
+  Dropdown,
+  Button,
+  Badge,
+  toast 
+} from '../design-system';
+import { 
+  Bike, 
+  MapPin, 
+  Store, 
+  User, 
+  Mail, 
+  Phone, 
+  ClipboardList, 
+  CheckCircle2, 
+  LogOut, 
+  DollarSign, 
+  TrendingUp, 
+  Activity, 
+  Bell, 
+  Wallet, 
+  Check, 
+  Loader2, 
+  VolumeX, 
+  Volume2, 
+  ShoppingBag, 
+  CreditCard, 
+  Settings, 
+  History,
+  LayoutDashboard,
+  ShieldCheck,
+  Package
+} from 'lucide-react';
 import api from '../lib/axios';
+
+const getRelativeTime = (dateInput: any) => {
+  const date = new Date(dateInput);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  return `${diffDays}d`;
+};
 
 export default function RiderDashboard() {
   const navigate = useNavigate();
-  const { logout, user } = useAuthStore();
+  const location = useLocation();
+  const { user, logout, token } = useAuthStore();
+  const [riderProfile, setRiderProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
+  const [activeTasksCount, setActiveTasksCount] = useState(0);
 
-  const [assignedOrders, setAssignedOrders] = useState<any[]>([]);
-  const [wallet, setWallet] = useState<{ balance: number; transactions: any[] }>({ balance: 0, transactions: [] });
-  const [loading, setLoading] = useState(true);
-  const [walletLoading, setWalletLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isMuted, setIsMuted] = useState(() => localStorage.getItem('notif_sound') === 'off');
 
-  const fetchRiderData = async () => {
+  const toggleMute = () => {
+    const nextState = !isMuted;
+    setIsMuted(nextState);
+    localStorage.setItem('notif_sound', nextState ? 'off' : 'on');
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const response = await api.get('/onboarding/my-rider');
+      if (response.data?.success) {
+        setRiderProfile(response.data.rider);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const fetchActiveCount = async () => {
     try {
       const res = await api.get('/orders/rider');
       if (res.data?.success) {
-        setAssignedOrders(res.data.orders || []);
+        setActiveTasksCount((res.data.orders || []).length);
       }
-    } catch (err) {
-      console.error('Failed to load rider orders:', err);
-    } finally {
-      setLoading(false);
+    } catch {
+      // ignore
     }
   };
 
-  const fetchWalletData = async () => {
-    setWalletLoading(true);
+  const handleToggleAvailability = async () => {
+    setIsTogglingAvailability(true);
     try {
-      const res = await api.get('/wallets/balance');
-      if (res.data?.success) {
-        setWallet({
-          balance: parseFloat(res.data.walletBalance || 0),
-          transactions: res.data.transactions || []
-        });
+      const response = await api.put('/onboarding/my-rider/toggle-availability');
+      if (response.data?.success) {
+        setRiderProfile((prev: any) => prev ? { ...prev, isAvailable: response.data.isAvailable } : prev);
+        toast.success(response.data.message);
       }
-    } catch (err) {
-      console.error('Failed to load rider wallet details:', err);
+    } catch {
+      toast.error('Failed to update availability status.');
     } finally {
-      setWalletLoading(false);
+      setIsTogglingAvailability(false);
     }
   };
+
+  // Sound notification trigger (Dual-tone ascending chime)
+  const playNotificationSound = () => {
+    if (localStorage.getItem('notif_sound') === 'off') return;
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const now = ctx.currentTime;
+      
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(659.25, now);
+      gain1.gain.setValueAtTime(0.3, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.18);
+
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880, now + 0.14);
+      gain2.gain.setValueAtTime(0.35, now + 0.14);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.14);
+      osc2.stop(now + 0.55);
+    } catch (e) {
+      // Audio API not supported
+    }
+  };
+
+  // Fetch Notifications
+  const fetchNotifications = async () => {
+    try {
+      const response = await api.get('/notifications');
+      if (response.data?.success) {
+        setNotifications(response.data.notifications || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    }
+  };
+
+  const handleMarkAsRead = async (id: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      await api.put(`/notifications/${id}/read`);
+      fetchNotifications();
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.put('/notifications/read-all');
+      fetchNotifications();
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   useEffect(() => {
-    fetchRiderData();
-    fetchWalletData();
-    const interval = setInterval(fetchRiderData, 7000);
-    return () => clearInterval(interval);
+    fetchProfile();
+    fetchActiveCount();
+    fetchNotifications();
   }, []);
 
-  const handleRiderResponse = async (orderId: number, action: 'ACCEPT' | 'REJECT') => {
-    setActionLoading(orderId);
-    try {
-      const res = await api.put(`/orders/${orderId}/rider-response`, { action });
-      if (res.data?.success) {
-        toast.success(action === 'ACCEPT' ? 'Order accepted! Navigate to restaurant.' : 'Assignment rejected.');
-        fetchRiderData();
-        fetchWalletData();
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to submit response.');
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  // Live WebSocket support for notifications & real-time assignments
+  useEffect(() => {
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let isMounted = true;
+    let reconnectAttempts = 0;
 
-  const handleUpdateStatus = async (orderId: number, status: string) => {
-    setActionLoading(orderId);
-    try {
-      const res = await api.put(`/orders/${orderId}/status`, { status });
-      if (res.data?.success) {
-        toast.success(`Status updated to: ${status}`);
-        fetchRiderData();
-        fetchWalletData();
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to update order status.');
-    } finally {
-      setActionLoading(null);
-    }
-  };
+    const connect = () => {
+      if (!isMounted) return;
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5005/api/v1';
+      const wsBaseUrl = apiUrl.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
+      const wsUrlObj = new URL(wsBaseUrl);
+      const protocol = wsUrlObj.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${wsUrlObj.host}?token=${token}`;
+
+      console.log('[WebSocket Rider] Connecting to:', wsUrl);
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log('[WebSocket Rider] Connected successfully');
+        reconnectAttempts = 0;
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          
+          if (payload.event === 'NEW_ASSIGNMENT' || payload.event === 'NEW_ORDER') {
+            const data = payload.data;
+            const message = data?.message || `New delivery assignment received for Order #${data?.orderId || ''}!`;
+            toast.success(message, { duration: 8000 });
+            playNotificationSound();
+            fetchNotifications();
+            fetchActiveCount();
+            window.dispatchEvent(new CustomEvent('NEW_RIDER_ORDER', { detail: data }));
+          } else if (payload.event === 'NOTIFICATION_ADDED') {
+            fetchNotifications();
+            playNotificationSound();
+          }
+        } catch (err) {
+          console.error('[WebSocket Rider] Error handling message:', err);
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('[WebSocket Rider] Disconnected');
+        if (isMounted) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+          reconnectTimeout = setTimeout(() => {
+            reconnectAttempts++;
+            connect();
+          }, delay);
+        }
+      };
+    };
+
+    connect();
+
+    return () => {
+      isMounted = false;
+      if (ws) ws.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    };
+  }, [token]);
+
+  const menuItems = [
+    {
+      id: 'overview',
+      label: 'Live Dashboard',
+      icon: <LayoutDashboard size={18} />,
+      path: '/rider',
+    },
+    {
+      id: 'deliveries',
+      label: 'Active Deliveries',
+      icon: <Package size={18} />,
+      path: '/rider/deliveries',
+      badge: activeTasksCount > 0 ? (
+        <span className="h-5 min-w-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center bg-primary text-primary-foreground shadow-xs">
+          {activeTasksCount}
+        </span>
+      ) : null
+    },
+    {
+      id: 'history',
+      label: 'Delivery History',
+      icon: <History size={18} />,
+      path: '/rider/history',
+    },
+    {
+      id: 'wallet',
+      label: 'Earnings & Wallet',
+      icon: <Wallet size={18} />,
+      path: '/rider/wallet',
+    },
+    {
+      id: 'profile',
+      label: 'Profile & Vehicle',
+      icon: <User size={18} />,
+      path: '/rider/profile',
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans select-none">
-      
-      {/* Rider Header Bar */}
-      <header className="sticky top-0 z-40 w-full border-b border-slate-900 bg-slate-950/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <Bike className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-sm font-black text-white">Rider Portal</span>
+    <AppShell sidebarWidth={256} collapsedWidth={64} desktopBehavior="collapse" defaultCollapsed={false}>
+      {/* Sidebar navigation */}
+      <Sidebar className="border-r border-border/40 bg-card flex flex-col select-none overflow-y-auto shrink-0">
+        {/* Sidebar Header Brand */}
+        <div className="h-16 flex items-center px-6 border-b border-border/10 gap-3 shrink-0">
+          <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/10">
+            <Bike size={18} className="text-primary-foreground" />
           </div>
-
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-400 font-semibold hidden sm:inline">Active: {user?.name}</span>
-            <button
-              onClick={handleLogout}
-              className="h-8 w-8 rounded-full border border-slate-800 hover:bg-slate-900 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-              title="Sign Out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
+          <span className="font-extrabold text-sm tracking-tight text-foreground appshell-sidebar-label">Rider Portal</span>
         </div>
-      </header>
 
-      {/* Main dashboard content */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-8">
-        <Tabs defaultValue="tasks" className="w-full">
-          
-          <div className="flex justify-between items-center border-b border-slate-900 mb-8 pb-1">
-            <div className="flex gap-2">
-              <Tabs.Trigger value="tasks" className="pb-3 text-xs font-bold px-3 cursor-pointer">
-                Deliveries ({assignedOrders.length})
-              </Tabs.Trigger>
-              <Tabs.Trigger value="wallet" className="pb-3 text-xs font-bold px-3 cursor-pointer">
-                Rider Wallet
-              </Tabs.Trigger>
-            </div>
-            <button 
-              onClick={() => { fetchRiderData(); fetchWalletData(); }} 
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-800 hover:bg-slate-900 text-[9px] font-bold text-slate-400 cursor-pointer"
+        {/* Navigation Items */}
+        <div className="flex-1 p-4 space-y-1">
+          {menuItems.map((item) => (
+            <NavLink
+              key={item.id}
+              to={item.path}
+              end={item.id === 'overview'}
+              className={({ isActive }) =>
+                `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-200 group cursor-pointer ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/15'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`
+              }
             >
-              <RefreshCw className="h-2.5 w-2.5" />
-              Refresh
-            </button>
+              {({ isActive }) => (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className={`transition-transform duration-200 group-hover:scale-105 ${
+                      isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'
+                    }`}>
+                      {item.icon}
+                    </div>
+                    <span className="appshell-sidebar-label text-nowrap">{item.label}</span>
+                  </div>
+                  {item.badge}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      </Sidebar>
+
+      {/* Main Container */}
+      <Main className="min-h-screen bg-muted/20 text-foreground flex flex-col">
+        {/* Top Header */}
+        <Header className="border-b border-border/50 bg-card/60 backdrop-blur-md h-16 flex items-center justify-between px-6 shrink-0 shadow-xs">
+          {/* Left Actions */}
+          <div className="flex items-center gap-3">
+            <SidebarTrigger />
+            <div className="hidden sm:block">
+              <h1 className="text-sm font-black tracking-tight text-foreground">
+                {riderProfile?.user?.name || user?.name || 'Delivery Partner'}
+              </h1>
+              <p className="text-[9px] text-muted-foreground -mt-0.5 font-medium">
+                Vehicle: {riderProfile?.vehicleType || 'MOTORBIKE'}
+              </p>
+            </div>
           </div>
 
-          {/* DELIVERIES TAB */}
-          <Tabs.Content value="tasks" className="outline-none space-y-6">
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : assignedOrders.length === 0 ? (
-              <div className="text-center py-24 text-slate-500 bg-slate-900/10 border border-dashed border-slate-900 rounded-3xl">
-                <Bike className="h-10 w-10 mx-auto opacity-30 mb-3 text-primary animate-bounce" />
-                <h3 className="text-sm font-black text-slate-300">Searching for new orders</h3>
-                <p className="text-[10px] text-slate-500 mt-1">Keep this tab active. We will notify you when a food packet is ready.</p>
-              </div>
-            ) : (
-              assignedOrders.map((order) => {
-                const isAssigned = order.status === 'RIDER_ASSIGNED';
-                const isWay = order.status === 'ON_THE_WAY';
-                const isPicked = order.status === 'PICKED_UP';
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
+            
+            {/* Online / Offline Availability Toggle */}
+            <button
+              onClick={handleToggleAvailability}
+              disabled={isTogglingAvailability}
+              title={riderProfile?.isAvailable ? 'Click to go Offline' : 'Click to go Online'}
+              className={`
+                relative flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-extrabold tracking-wide uppercase transition-all duration-200 cursor-pointer select-none
+                ${riderProfile?.isAvailable
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20'
+                  : 'bg-muted/40 border-border/40 text-muted-foreground hover:bg-muted/60'
+                }
+                ${isTogglingAvailability ? 'opacity-60 cursor-not-allowed' : ''}
+              `}
+            >
+              {isTogglingAvailability ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <span className={`h-2 w-2 rounded-full ${riderProfile?.isAvailable ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}`} />
+              )}
+              <span>{riderProfile?.isAvailable ? 'Online & Available' : 'Offline'}</span>
+            </button>
 
-                return (
-                  <Card key={order.id} className="border border-slate-900 bg-slate-950/40 relative overflow-hidden shadow-2xl">
-                    {actionLoading === order.id && (
-                      <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-xs flex items-center justify-center z-10">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            {/* Notification Dropdown */}
+            <Dropdown>
+              <Dropdown.Trigger>
+                <button className="relative p-2 rounded-full hover:bg-muted transition-colors cursor-pointer">
+                  <Bell className="h-[18px] w-[18px] text-foreground" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 h-[18px] min-w-[18px] px-1 bg-primary text-primary-foreground text-[9px] font-black rounded-full flex items-center justify-center shadow-md ring-2 ring-card animate-bounce">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              </Dropdown.Trigger>
+
+              <Dropdown.Menu align="end" width={340} sideOffset={10}>
+                {/* Header */}
+                <Dropdown.Item closeOnClick={false} content={
+                  <div className="flex justify-between items-center w-full py-0.5">
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Bell size={12} className="text-primary" />
                       </div>
-                    )}
-                    <CardContent className="p-6 space-y-6">
-                      
-                      {/* Top Header info */}
-                      <div className="flex justify-between items-center border-b border-slate-900 pb-3">
-                        <div>
-                          <p className="text-[9px] text-slate-500 font-black uppercase tracking-wider">Assignment Details</p>
-                          <h3 className="text-sm font-black text-white mt-0.5">Order #{order.id}</h3>
-                        </div>
-                        <span className="text-xs font-black text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-                          Fee Earning: ৳{parseFloat(order.riderEarnings).toFixed(2)}
+                      <span className="font-bold text-[13px] text-foreground tracking-tight">Notifications</span>
+                      {unreadCount > 0 && (
+                        <span className="h-5 min-w-5 px-1.5 bg-primary text-primary-foreground text-[10px] font-black rounded-full flex items-center justify-center">
+                          {unreadCount} new
                         </span>
-                      </div>
-
-                      {/* Status indicator banners */}
-                      {isAssigned && (
-                        <div className="p-4 rounded-2xl border border-dashed border-primary/40 bg-primary/5 flex flex-col sm:flex-row justify-between items-center gap-4">
-                          <div>
-                            <h4 className="text-xs font-black text-white">Incoming Order Assigned</h4>
-                            <p className="text-[10px] text-slate-400 mt-0.5">Accept order to start delivery, or reject to pass to the next rider.</p>
-                          </div>
-                          <div className="flex gap-2 w-full sm:w-auto shrink-0">
-                            <Button
-                              onClick={() => handleRiderResponse(order.id, 'REJECT')}
-                              variant="outline"
-                              className="text-red-500 hover:bg-red-500/5 hover:border-red-500/50 flex-1 sm:flex-none py-1.5 text-[11px]"
-                            >
-                              Reject
-                            </Button>
-                            <Button
-                              onClick={() => handleRiderResponse(order.id, 'ACCEPT')}
-                              variant="primary"
-                              className="flex-1 sm:flex-none py-1.5 text-[11px] font-bold"
-                            >
-                              Accept Job
-                            </Button>
-                          </div>
-                        </div>
                       )}
+                    </div>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleMarkAllAsRead(); }}
+                        className="text-[10px] font-bold text-primary/80 hover:text-primary hover:underline cursor-pointer transition-colors px-2 py-0.5 rounded-md hover:bg-primary/5"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                } />
 
-                      {/* Map routing splits */}
-                      {!isAssigned && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs leading-relaxed">
-                          
-                          {/* Pick Up from */}
-                          <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-900 space-y-2">
-                            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                              <Store className="h-3.5 w-3.5 text-primary" />
-                              1. Restaurant Pickup
-                            </p>
-                            <div>
-                              <h4 className="text-xs font-bold text-white">{order.restaurant?.name}</h4>
-                              <p className="text-[10px] text-slate-400 mt-1 leading-normal">
-                                Address: {order.restaurant?.address || 'Restaurant zone coordinates'}
-                              </p>
-                            </div>
-                            {isWay && (
-                              <Button
-                                onClick={() => handleUpdateStatus(order.id, 'PICKED_UP')}
-                                variant="primary"
-                                fullWidth
-                                className="py-2 text-[11px] font-bold mt-2"
-                              >
-                                Mark Picked Up
-                              </Button>
-                            )}
-                          </div>
+                <Dropdown.Separator />
 
-                          {/* Drop Off to */}
-                          <div className={`p-4 rounded-2xl bg-slate-900/40 border border-slate-900 space-y-2 ${isWay ? 'opacity-50' : ''}`}>
-                            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                              <MapPin className="h-3.5 w-3.5 text-primary" />
-                              2. Customer Dropoff
-                            </p>
-                            <div>
-                              <h4 className="text-xs font-bold text-white">{order.user?.name} ({order.user?.phone || 'No phone'})</h4>
-                              <p className="text-[10px] text-slate-400 mt-1 leading-normal">
-                                Address: {order.deliveryAddressText.split(', Lat/Lng:')[0]}
-                              </p>
+                {/* Notifications list */}
+                {notifications.length === 0 ? (
+                  <Dropdown.Item closeOnClick={false} content={
+                    <div className="py-8 w-full flex flex-col items-center gap-3 text-muted-foreground">
+                      <div className="h-12 w-12 rounded-2xl bg-muted/60 flex items-center justify-center">
+                        <Bell size={20} className="opacity-30" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs font-semibold text-foreground/50">All caught up!</p>
+                        <p className="text-[10px] text-muted-foreground/60 mt-0.5">No notifications yet.</p>
+                      </div>
+                    </div>
+                  } />
+                ) : (
+                  notifications.slice(0, 5).map((notif) => {
+                    const isOrder = notif.event === 'ORDER';
+                    const isDelivery = notif.event === 'DELIVERY';
+                    const isPayment = notif.event === 'PAYMENT';
+
+                    let avatarStyle = 'bg-gradient-to-br from-pink-400 to-rose-600 text-white';
+                    let avatarIcon = <Settings size={15} />;
+                    let eventLabel = 'System';
+                    let chipStyle = 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400';
+
+                    if (isOrder) {
+                      avatarStyle = 'bg-gradient-to-br from-indigo-400 to-blue-600 text-white';
+                      avatarIcon = <ShoppingBag size={15} />;
+                      eventLabel = 'Order';
+                      chipStyle = 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400';
+                    } else if (isDelivery) {
+                      avatarStyle = 'bg-gradient-to-br from-teal-400 to-emerald-500 text-white';
+                      avatarIcon = <Bike size={15} />;
+                      eventLabel = 'Delivery';
+                      chipStyle = 'bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-400';
+                    } else if (isPayment) {
+                      avatarStyle = 'bg-gradient-to-br from-amber-400 to-orange-500 text-white';
+                      avatarIcon = <CreditCard size={15} />;
+                      eventLabel = 'Payment';
+                      chipStyle = 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400';
+                    }
+
+                    return (
+                      <Dropdown.Item 
+                        key={notif.id}
+                        closeOnClick={true}
+                        onClick={() => handleMarkAsRead(notif.id)}
+                        content={
+                          <div className={`flex items-start gap-3 w-full group py-0.5 ${!notif.read ? '' : 'opacity-60'}`}>
+                            <div className="relative shrink-0 mt-0.5">
+                              <div className={`h-9 w-9 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm ${avatarStyle}`}>
+                                {avatarIcon}
+                              </div>
+                              {!notif.read && (
+                                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-[2.5px] border-popover shadow-sm animate-pulse" />
+                              )}
                             </div>
-                            <div className="flex gap-2 items-center text-[10px] text-slate-400 mt-1.5 font-bold uppercase">
-                              <span>Payment:</span>
-                              <span className={`px-2 py-0.5 rounded-md ${
-                                order.paymentMethod === 'COD' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
-                              }`}>
-                                {order.paymentMethod === 'COD' ? `COD (Collect ৳${parseFloat(order.total).toFixed(2)})` : 'ONLINE (PREPAID)'}
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${chipStyle}`}>
+                                  {eventLabel}
+                                </span>
+                                {!notif.read && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wide">
+                                    New
+                                  </span>
+                                )}
+                              </div>
+                              <p className={`text-xs leading-snug line-clamp-2 ${!notif.read ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'}`}>
+                                {notif.message}
+                              </p>
+                              <span className="text-[9px] text-muted-foreground/75 mt-0.5 block">
+                                {getRelativeTime(notif.createdAt)}
                               </span>
                             </div>
-                            {isPicked && (
-                              <Button
-                                onClick={() => handleUpdateStatus(order.id, 'DELIVERED')}
-                                variant="primary"
-                                fullWidth
-                                className="py-2 text-[11px] font-bold mt-2"
+
+                            {!notif.read && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id, e); }}
+                                className="shrink-0 opacity-0 group-hover:opacity-100 mt-1 p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-all cursor-pointer"
+                                title="Mark as read"
                               >
-                                Mark Delivered
-                              </Button>
+                                <Check size={11} />
+                              </button>
                             )}
                           </div>
+                        }
+                      />
+                    );
+                  })
+                )}
 
-                        </div>
-                      )}
+                <Dropdown.Separator />
 
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </Tabs.Content>
-
-          {/* WALLET TAB */}
-          <Tabs.Content value="wallet" className="outline-none space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
-              {/* Cash collection liability balance */}
-              <Card className="border border-slate-900 bg-slate-950/40 col-span-1">
-                <CardContent className="p-6 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-400 font-bold">Ledger Balance</span>
-                    <Wallet className="h-5 w-5 text-primary" />
-                  </div>
-                  <h2 className={`text-2xl font-black ${wallet.balance < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                    ৳{wallet.balance.toFixed(2)}
-                  </h2>
-                  <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                    {wallet.balance < 0 
-                      ? 'You hold COD cash collected. Settle this with the admin to make your balance positive.' 
-                      : 'Platform owes you this balance in delivery fees.'}
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Transactions Ledger */}
-              <Card className="border border-slate-900 bg-slate-950/40 md:col-span-2">
-                <CardHeader className="pb-2 border-b border-slate-900">
-                  <CardTitle className="text-xs font-black flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-primary" />
-                    Transaction Logs
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {walletLoading ? (
-                    <div className="flex items-center justify-center py-10">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                {/* Footer Sound Settings Toggle */}
+                <Dropdown.Item
+                  closeOnClick={false}
+                  onClick={toggleMute}
+                  content={
+                    <div className={`flex items-center gap-2 w-full text-[11px] font-semibold ${isMuted ? 'text-rose-500' : 'text-muted-foreground'}`}>
+                      <div className={`relative h-5 w-5 rounded-md flex items-center justify-center ${isMuted ? 'bg-rose-50 dark:bg-rose-500/10' : 'bg-muted'}`}>
+                        {isMuted ? <VolumeX size={11} /> : <Volume2 size={11} />}
+                        {!isMuted && (
+                          <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500 ring-1 ring-popover" />
+                        )}
+                      </div>
+                      <span>{isMuted ? 'Notifications muted' : 'Sound enabled'}</span>
                     </div>
-                  ) : wallet.transactions.length === 0 ? (
-                    <p className="text-center py-10 text-xs text-slate-600">No transactions recorded yet.</p>
-                  ) : (
-                    <div className="divide-y divide-slate-900 max-h-80 overflow-y-auto pr-1">
-                      {wallet.transactions.map((tx) => (
-                        <div key={tx.id} className="p-4 flex justify-between items-center text-xs">
-                          <div>
-                            <p className="font-black text-white">{tx.description}</p>
-                            <span className="text-[9px] text-slate-500 font-semibold uppercase">{tx.type} • {new Date(tx.createdAt).toLocaleDateString()}</span>
-                          </div>
-                          <span className={`font-black text-sm ${parseFloat(tx.amount) < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                            {parseFloat(tx.amount) < 0 ? '-' : '+'}৳{Math.abs(parseFloat(tx.amount)).toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                  }
+                />
+              </Dropdown.Menu>
+            </Dropdown>
 
-            </div>
-          </Tabs.Content>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={logout}
+              leftIcon={<LogOut className="h-4 w-4" />}
+              className="text-rose-500 hover:bg-rose-500/5 font-semibold text-xs rounded-xl"
+            >
+              Sign Out
+            </Button>
+          </div>
+        </Header>
 
-        </Tabs>
-      </main>
-    </div>
+        {/* Main Content Workspace */}
+        <Content className="flex-1 p-6 md:p-8 overflow-y-auto">
+          <Outlet />
+        </Content>
+      </Main>
+    </AppShell>
   );
 }

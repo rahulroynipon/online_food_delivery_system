@@ -13,7 +13,9 @@ import {
    deleteRestaurant,
    deleteRider,
    toggleRestaurantOpen,
-   toggleMyRestaurantOpen
+   toggleMyRestaurantOpen,
+   getMyRider,
+   toggleMyRiderAvailability
 } from '../controllers/onboardingController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
@@ -117,6 +119,8 @@ router.post('/rider', applyAsRider);
 router.get('/applications', protect, authorize('ADMIN'), getApplications);
 router.get('/my-restaurant', protect, getMyRestaurant);
 router.put('/my-restaurant/toggle-open', protect, toggleMyRestaurantOpen);
+router.get('/my-rider', protect, getMyRider);
+router.put('/my-rider/toggle-availability', protect, toggleMyRiderAvailability);
 
 /**
  * @desc    Approve/Reject Restaurant (Admin Only)

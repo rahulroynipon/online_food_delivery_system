@@ -227,6 +227,7 @@ export default function CategoriesPage() {
                   {
                     id: 'category',
                     label: 'Category Name',
+                    minWidth: '220px',
                     cell: ({ row }: { row: any }) => (
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-xl border border-border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
@@ -236,9 +237,9 @@ export default function CategoriesPage() {
                             <ImageIcon size={14} className="text-muted-foreground" />
                           )}
                         </div>
-                        <div>
-                          <p className="font-extrabold text-sm text-foreground">{row.name}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 italic max-w-sm">
+                        <div className="min-w-0 max-w-[200px]">
+                          <p className="font-extrabold text-sm text-foreground truncate">{row.name}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 italic">
                             {row.description || 'No description provided.'}
                           </p>
                         </div>
@@ -248,8 +249,9 @@ export default function CategoriesPage() {
                   {
                     id: 'platformCategory',
                     label: 'Platform Mapping',
+                    width: '180px',
                     cell: ({ row }: { row: any }) => (
-                      <Badge variant="soft" color="primary" className="font-bold text-[9px] uppercase px-2.5 py-0.5">
+                      <Badge variant="soft" color="primary" className="font-bold text-[9px] uppercase px-2.5 py-0.5 truncate max-w-[160px]">
                         {row.platformCategory?.name || 'Unmapped'}
                       </Badge>
                     )
@@ -257,33 +259,36 @@ export default function CategoriesPage() {
                   {
                     id: 'status',
                     label: 'Status',
+                    width: '100px',
+                    align: 'center' as const,
                     cell: ({ row }: { row: any }) => (
                       row.status === 'ACTIVE'
-                        ? <Badge variant="soft" color="success" className="font-bold text-[9px] uppercase px-2 py-0.5">Active</Badge>
-                        : <Badge variant="soft" color="neutral" className="font-bold text-[9px] uppercase px-2 py-0.5">Inactive</Badge>
+                        ? <Badge variant="soft" color="success" className="font-bold text-[9px] uppercase px-2.5 py-0.5">Active</Badge>
+                        : <Badge variant="soft" color="neutral" className="font-bold text-[9px] uppercase px-2.5 py-0.5">Inactive</Badge>
                     )
                   },
                   {
                     id: 'actions',
-                    label: '',
+                    label: 'Actions',
+                    width: '210px',
                     align: 'right' as const,
                     cell: ({ row }: { row: any }) => (
-                      <div className="flex items-center justify-end gap-2 shrink-0 w-max">
+                      <div className="flex items-center justify-end gap-1.5 shrink-0 w-max">
                         <Button
                           size="xs"
-                          variant={row.status === 'ACTIVE' ? 'tertiary' : 'primary'}
+                          variant={row.status === 'ACTIVE' ? 'outline' : 'primary'}
                           onClick={() => handleToggleCategoryStatus(row)}
-                          leftIcon={<Power size={12} />}
-                          className="font-semibold"
+                          leftIcon={<Power size={11} />}
+                          className="font-semibold text-[11px]"
                         >
                           {row.status === 'ACTIVE' ? 'Hide' : 'Activate'}
                         </Button>
                         <Button
                           size="xs"
-                          variant="tertiary"
+                          variant="outline"
                           onClick={() => openEditCategory(row)}
-                          leftIcon={<Edit size={12} />}
-                          className="font-semibold"
+                          leftIcon={<Edit size={11} />}
+                          className="font-semibold text-[11px]"
                         >
                           Edit
                         </Button>
@@ -291,8 +296,8 @@ export default function CategoriesPage() {
                           size="xs"
                           variant="danger-soft"
                           onClick={() => setDeleteTargetCategory(row)}
-                          leftIcon={<Trash2 size={12} />}
-                          className="font-semibold"
+                          leftIcon={<Trash2 size={11} />}
+                          className="font-semibold text-[11px]"
                         >
                           Delete
                         </Button>

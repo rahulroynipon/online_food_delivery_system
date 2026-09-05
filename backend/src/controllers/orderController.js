@@ -9,8 +9,10 @@ import {
   UserAddress, 
   DeliveryZone, 
   PlatformSettings,
-  WalletTransaction 
+  WalletTransaction,
+  Notification 
 } from '../models/index.js';
+import { sendToUser, broadcastToAdmins, sendToRole } from '../websocket/index.js';
 
 // Helper: Haversine Formula (KM)
 const getDistanceKm = (lat1, lon1, lat2, lon2) => {
@@ -237,6 +239,63 @@ export const createOrder = async (req, res, next) => {
       }
     }
 
+    // 8. Create database Notification and dispatch real-time WebSocket event to Restaurant Owner
+    try {
+      const customerName = req.user.name || 'Customer';
+      const orderTotalFormatted = parseFloat(order.total).toFixed(2);
+
+      if (restaurant.userId) {
+        await Notification.create({
+          userId: restaurant.userId,
+          event: 'ORDER',
+          message: `New Order #${order.id} received from ${customerName} (৳${orderTotalFormatted})`,
+        });
+
+        // Real-time WebSocket event directly to the restaurant owner's active connections
+        sendToUser(restaurant.userId, 'NEW_ORDER', {
+          orderId: order.id,
+          restaurantId: restaurant.id,
+          restaurantName: restaurant.name,
+          customerName,
+          customerPhone: req.user.phone || '',
+          total: order.total,
+          subtotal: order.subtotal,
+          deliveryFee: order.deliveryFee,
+          tax: order.tax,
+          status: order.status,
+          itemsCount: itemsData.length,
+          paymentMethod: order.paymentMethod,
+          deliveryAddressText: order.deliveryAddressText,
+          createdAt: order.createdAt,
+          message: `🎉 New Order #${order.id} received from ${customerName} (৳${orderTotalFormatted})!`,
+        });
+
+        // Trigger notification drawer badge update
+        sendToUser(restaurant.userId, 'NOTIFICATION_ADDED', {
+          type: 'ORDER',
+          orderId: order.id,
+        });
+      }
+
+      // Also broadcast real-time event to Admin dashboard
+      broadcastToAdmins('NEW_ORDER', {
+        orderId: order.id,
+        restaurantId: restaurant.id,
+        restaurantName: restaurant.name,
+        customerName,
+        total: order.total,
+        status: order.status,
+        createdAt: order.createdAt,
+      });
+
+      broadcastToAdmins('NOTIFICATION_ADDED', {
+        type: 'ORDER',
+        orderId: order.id,
+      });
+    } catch (notifErr) {
+      console.error('[Notification/WS] Failed to send new order notification:', notifErr);
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Order placed successfully.',
@@ -343,11 +402,17 @@ export const getMerchantOrders = async (req, res, next) => {
  */
 export const getRiderOrders = async (req, res, next) => {
   try {
+    const { history, all } = req.query;
+    let whereClause = { riderId: req.user.id };
+
+    if (history === 'true') {
+      whereClause.status = { [Op.in]: ['DELIVERED', 'CANCELLED'] };
+    } else if (all !== 'true') {
+      whereClause.status = { [Op.notIn]: ['DELIVERED', 'CANCELLED'] };
+    }
+
     const orders = await Order.findAll({
-      where: { 
-        riderId: req.user.id,
-        status: { [Op.notIn]: ['DELIVERED', 'CANCELLED'] }
-      },
+      where: whereClause,
       include: [
         { model: Restaurant, as: 'restaurant' },
         { model: User, as: 'user', attributes: ['id', 'name', 'phone'] },

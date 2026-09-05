@@ -1,7 +1,7 @@
 import { cva } from 'class-variance-authority';
 
 export const badgeVariants = cva(
-  'inline-flex items-center justify-center font-medium rounded-full border transition-all duration-200 leading-none shrink-0 relative',
+  'inline-flex items-center justify-center font-medium rounded-full border transition-all duration-200 leading-none shrink-0 relative max-w-full overflow-hidden text-ellipsis',
   {
     variants: {
       variant: {

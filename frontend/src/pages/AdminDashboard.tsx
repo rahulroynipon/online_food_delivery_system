@@ -175,7 +175,13 @@ export default function AdminDashboard() {
       ws.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data);
-          if (payload.event === 'NEW_RESTAURANT_APPLICATION') {
+          if (payload.event === 'NEW_ORDER') {
+            const data = payload.data;
+            const message = `🛍️ New Order #${data?.orderId} placed at "${data?.restaurantName}" (৳${parseFloat(data?.total || 0).toFixed(2)})`;
+            toast.success(message, { duration: 6000 });
+            if (localStorage.getItem('notif_sound') !== 'off') playNotificationSound();
+            fetchNotifications();
+          } else if (payload.event === 'NEW_RESTAURANT_APPLICATION') {
             const message = `New Restaurant: "${payload.data.name}" by ${payload.data.owner}`;
             toast.success(message, { duration: 6000 });
             if (localStorage.getItem('notif_sound') !== 'off') playNotificationSound();
@@ -184,6 +190,8 @@ export default function AdminDashboard() {
             const message = `New Rider: ${payload.data.fullName} (${payload.data.vehicleType})`;
             toast.info(message, { duration: 6000 });
             if (localStorage.getItem('notif_sound') !== 'off') playNotificationSound();
+            fetchNotifications();
+          } else if (payload.event === 'NOTIFICATION_ADDED') {
             fetchNotifications();
           }
         } catch (err) {

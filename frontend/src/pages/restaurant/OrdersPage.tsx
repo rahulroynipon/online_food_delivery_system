@@ -23,9 +23,19 @@ export default function RestaurantOrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-    // Poll every 8 seconds for new incoming orders
-    const interval = setInterval(fetchOrders, 8000);
-    return () => clearInterval(interval);
+
+    const handleNewOrder = () => {
+      fetchOrders();
+    };
+
+    window.addEventListener('NEW_MERCHANT_ORDER', handleNewOrder);
+    // Background polling fallback
+    const interval = setInterval(fetchOrders, 10000);
+
+    return () => {
+      window.removeEventListener('NEW_MERCHANT_ORDER', handleNewOrder);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleUpdateStatus = async (orderId: number, status: string) => {

@@ -59,6 +59,8 @@ export default function Login() {
       navigate('/admin');
     } else if (usr.role === 'RESTAURANT') {
       navigate('/restaurant');
+    } else if (usr.role === 'RIDER') {
+      navigate('/rider');
     } else {
       navigate('/');
     }
