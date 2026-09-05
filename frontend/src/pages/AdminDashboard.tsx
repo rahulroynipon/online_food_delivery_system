@@ -249,7 +249,7 @@ export default function AdminDashboard() {
           <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/10">
             <span className="font-bold text-sm text-primary-foreground">BS</span>
           </div>
-          <span className="font-extrabold text-sm tracking-tight text-foreground appshell-sidebar-label">FoodGo Admin</span>
+          <span className="font-extrabold text-sm tracking-tight text-foreground appshell-sidebar-label">BiteSpeed Admin</span>
         </div>
 
         {/* Navigation Items */}
