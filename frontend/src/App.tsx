@@ -20,6 +20,8 @@ import RestaurantOverview from './pages/restaurant/OverviewPage';
 import RestaurantCategories from './pages/restaurant/CategoriesPage';
 import RestaurantMenu from './pages/restaurant/MenuPage';
 import RestaurantOrders from './pages/restaurant/OrdersPage';
+import RestaurantHistory from './pages/restaurant/HistoryPage';
+import RestaurantOrderDetail from './pages/restaurant/OrderDetailPage';
 import RestaurantAddons from './pages/restaurant/AddonsPage';
 import FoodFormPage from './pages/restaurant/FoodFormPage';
 import HomePage from './pages/customer/HomePage';
@@ -33,6 +35,7 @@ import RiderDashboard from './pages/RiderDashboard';
 import RiderOverview from './pages/rider/OverviewPage';
 import RiderDeliveries from './pages/rider/DeliveriesPage';
 import RiderHistory from './pages/rider/HistoryPage';
+import RiderOrderDetail from './pages/rider/OrderDetailPage';
 import RiderWallet from './pages/rider/WalletPage';
 import RiderProfile from './pages/rider/ProfilePage';
 import RestaurantWallet from './pages/restaurant/WalletPage';
@@ -165,6 +168,8 @@ function App() {
           <Route index element={<RiderOverview />} />
           <Route path="deliveries" element={<RiderDeliveries />} />
           <Route path="history" element={<RiderHistory />} />
+          <Route path="history/:orderId" element={<RiderOrderDetail />} />
+          <Route path="orders/:orderId" element={<RiderOrderDetail />} />
           <Route path="wallet" element={<RiderWallet />} />
           <Route path="profile" element={<RiderProfile />} />
         </Route>
@@ -202,6 +207,9 @@ function App() {
           <Route path="menu/create" element={<FoodFormPage />} />
           <Route path="menu/edit/:slug" element={<FoodFormPage />} />
           <Route path="orders" element={<RestaurantOrders />} />
+          <Route path="history" element={<RestaurantHistory />} />
+          <Route path="history/:orderId" element={<RestaurantOrderDetail />} />
+          <Route path="orders/:orderId" element={<RestaurantOrderDetail />} />
           <Route path="addons" element={<RestaurantAddons />} />
           <Route path="wallet" element={<RestaurantWallet />} />
         </Route>

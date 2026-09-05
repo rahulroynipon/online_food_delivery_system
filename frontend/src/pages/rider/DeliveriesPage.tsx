@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge, toast } from '../../design-system';
 import { 
@@ -25,7 +25,11 @@ import {
   ListFilter,
   ExternalLink,
   ShieldCheck,
-  Package
+  Package,
+  Zap,
+  Radio,
+  Sparkles,
+  Route as RouteIcon
 } from 'lucide-react';
 import api from '../../lib/axios';
 import DeliveryRouteMap from '../../components/rider/DeliveryRouteMap';
@@ -51,6 +55,7 @@ export default function RiderDeliveriesPage() {
   const [riderProfile, setRiderProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PICKUP' | 'DELIVERY'>('ALL');
 
   // Selected Order for Detail View
   const initialOrderId = searchParams.get('orderId') ? parseInt(searchParams.get('orderId')!, 10) : null;
@@ -133,11 +138,31 @@ export default function RiderDeliveriesPage() {
     }
   };
 
+  // Filtered Orders
+  const filteredOrders = useMemo(() => {
+    if (statusFilter === 'PICKUP') {
+      return assignedOrders.filter(o => o.status === 'RIDER_ASSIGNED' || o.status === 'ON_THE_WAY');
+    }
+    if (statusFilter === 'DELIVERY') {
+      return assignedOrders.filter(o => o.status === 'PICKED_UP');
+    }
+    return assignedOrders;
+  }, [assignedOrders, statusFilter]);
+
+  const totalEarningsInQueue = useMemo(() => {
+    return assignedOrders.reduce((acc, curr) => acc + (parseFloat(curr.riderEarnings) || 0), 0);
+  }, [assignedOrders]);
+
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-2">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-xs text-muted-foreground font-semibold">Loading active tasks...</span>
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <div className="relative">
+          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary animate-spin">
+            <Loader2 size={24} />
+          </div>
+          <div className="absolute -inset-1 rounded-2xl bg-primary/20 blur-sm animate-pulse"></div>
+        </div>
+        <span className="text-xs text-muted-foreground font-black tracking-wider uppercase">Loading Dispatch Control...</span>
       </div>
     );
   }
@@ -146,7 +171,7 @@ export default function RiderDeliveriesPage() {
   const selectedOrder = assignedOrders.find((o) => o.id === selectedOrderId);
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
+    <div className="space-y-6 animate-fade-in max-w-7xl mx-auto pb-12">
       
       {/* ========================================================================= */}
       {/* SCENARIO 1: PRO COMMAND CENTER DUAL-COLUMN ORDER VIEW */}
@@ -155,46 +180,49 @@ export default function RiderDeliveriesPage() {
         <div className="space-y-6 animate-fade-in">
           
           {/* Top Command Breadcrumb Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-3xl bg-card border border-border shadow-xs">
-            <div className="flex items-center gap-3">
+          <div className="p-4 sm:p-5 rounded-3xl bg-card border border-border/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 size="sm"
                 variant="outline"
                 onClick={handleBackToList}
                 leftIcon={<ArrowLeft size={14} />}
-                className="font-bold text-xs"
+                className="font-bold text-xs bg-muted/30 hover:bg-muted"
               >
                 Back to List ({assignedOrders.length})
               </Button>
 
-              <div className="h-4 w-px bg-border hidden sm:block"></div>
+              <div className="h-5 w-px bg-border/80 hidden sm:block"></div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <div className="h-7 w-7 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-xs">
+                <div className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/25 flex items-center justify-center text-primary font-black text-xs shadow-2xs">
                   #{selectedOrder.id}
                 </div>
                 <h2 className="text-base font-black text-foreground">{selectedOrder.restaurant?.name}</h2>
-                <Badge variant="soft" color="primary" className="text-xs font-black px-2 py-0.5">
+                
+                <Badge variant="soft" color="primary" className="text-xs font-black px-2.5 py-0.5">
                   Fee: ৳{parseFloat(selectedOrder.riderEarnings || 0).toFixed(2)}
                 </Badge>
-                <Badge variant="soft" color={selectedOrder.paymentMethod === 'COD' ? 'warning' : 'success'} className="text-[10px] font-extrabold uppercase">
+                
+                <Badge variant="soft" color={selectedOrder.paymentMethod === 'COD' ? 'warning' : 'success'} className="text-[10px] font-extrabold uppercase px-2 py-0.5">
                   {selectedOrder.paymentMethod === 'COD' ? `COD: ৳${parseFloat(selectedOrder.total || 0).toFixed(2)}` : 'Prepaid Online'}
                 </Badge>
+
                 <a
                   href={`tel:${selectedOrder.user?.phone || '+8801571323156'}`}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-xs font-extrabold hover:bg-emerald-500/20 transition-colors shadow-2xs"
                   title="Direct call customer"
                 >
-                  <Phone size={12} className="text-emerald-600 dark:text-emerald-400" />
-                  <span>Customer: {selectedOrder.user?.phone || '+8801571323156'}</span>
+                  <Phone size={12} className="text-emerald-600 dark:text-emerald-400 fill-current" />
+                  <span>{selectedOrder.user?.name || 'Customer'}: {selectedOrder.user?.phone || '+8801571323156'}</span>
                 </a>
               </div>
             </div>
 
             {/* Quick Order Switcher */}
             {assignedOrders.length > 1 && (
-              <div className="flex items-center gap-1.5 overflow-x-auto">
-                <span className="text-[10px] font-black uppercase text-muted-foreground mr-1">Switch:</span>
+              <div className="flex items-center gap-1.5 overflow-x-auto shrink-0 bg-muted/20 p-1.5 rounded-2xl border border-border/50">
+                <span className="text-[10px] font-black uppercase text-muted-foreground px-2">Switch Task:</span>
                 {assignedOrders.map((ord) => (
                   <button
                     key={ord.id}
@@ -203,7 +231,7 @@ export default function RiderDeliveriesPage() {
                     className={`px-3 py-1 rounded-xl text-xs font-black transition-all ${
                       ord.id === selectedOrder.id
                         ? 'bg-primary text-primary-foreground shadow-xs'
-                        : 'bg-muted/40 hover:bg-muted text-foreground border border-border/50'
+                        : 'hover:bg-muted text-foreground'
                     }`}
                   >
                     #{ord.id}
@@ -243,32 +271,35 @@ export default function RiderDeliveriesPage() {
                 {/* ------------------------------------------------------------- */}
                 <div className="lg:col-span-7 space-y-4">
                   
-                  {/* Status Pipeline Progress Indicator */}
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold select-none p-1.5 bg-card rounded-2xl border border-border shadow-xs">
-                    <div className={`p-2.5 rounded-xl border transition-all ${
-                      isAssigned ? 'bg-primary text-primary-foreground border-primary shadow-xs' : 'bg-muted/30 text-muted-foreground border-transparent'
+                  {/* Status Pipeline Progress Stepper */}
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs font-black select-none p-2 bg-card rounded-2xl border border-border shadow-xs">
+                    <div className={`p-2.5 rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
+                      isAssigned ? 'bg-primary text-primary-foreground border-primary shadow-xs' : 'bg-muted/20 text-muted-foreground border-transparent'
                     }`}>
-                      1. Job Assigned
+                      <span>1. Assigned</span>
                     </div>
-                    <div className={`p-2.5 rounded-xl border transition-all ${
-                      isWay ? 'bg-primary text-primary-foreground border-primary shadow-xs' : isPicked ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' : 'bg-muted/30 text-muted-foreground border-transparent'
+                    <div className={`p-2.5 rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
+                      isWay ? 'bg-primary text-primary-foreground border-primary shadow-xs' : isPicked ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' : 'bg-muted/20 text-muted-foreground border-transparent'
                     }`}>
-                      2. Store Pickup
+                      <span>2. Store Pickup</span>
                     </div>
-                    <div className={`p-2.5 rounded-xl border transition-all ${
-                      isPicked ? 'bg-primary text-primary-foreground border-primary shadow-xs' : 'bg-muted/30 text-muted-foreground border-transparent'
+                    <div className={`p-2.5 rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
+                      isPicked ? 'bg-primary text-primary-foreground border-primary shadow-xs' : 'bg-muted/20 text-muted-foreground border-transparent'
                     }`}>
-                      3. Customer Dropoff
+                      <span>3. Dropoff</span>
                     </div>
                   </div>
 
                   {/* Accept / Reject Decision Banner if New Assignment */}
                   {isAssigned && (
-                    <div className="p-4 rounded-3xl bg-primary/10 border border-primary/25 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                    <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border border-primary/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
                       <div className="space-y-0.5">
-                        <h4 className="text-xs font-black text-foreground">Incoming Delivery Job</h4>
-                        <p className="text-[11px] text-muted-foreground">
-                          Earn ৳{parseFloat(selectedOrder.riderEarnings || 0).toFixed(2)} upon completing this delivery.
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-primary animate-ping"></span>
+                          <h4 className="text-xs font-black text-foreground uppercase tracking-wider">New Incoming Delivery Task</h4>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Accept job to start live navigation. Fee: <strong className="text-foreground">৳{parseFloat(selectedOrder.riderEarnings || 0).toFixed(2)}</strong>.
                         </p>
                       </div>
                       <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
@@ -276,7 +307,7 @@ export default function RiderDeliveriesPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleRiderResponse(selectedOrder.id, 'REJECT')}
-                          className="flex-1 sm:flex-none text-rose-500 hover:bg-rose-500/10 font-bold"
+                          className="flex-1 sm:flex-none text-rose-500 hover:bg-rose-500/10 font-black text-xs"
                         >
                           Reject
                         </Button>
@@ -284,7 +315,7 @@ export default function RiderDeliveriesPage() {
                           size="sm"
                           variant="primary"
                           onClick={() => handleRiderResponse(selectedOrder.id, 'ACCEPT')}
-                          className="flex-1 sm:flex-none font-bold shadow-xs"
+                          className="flex-1 sm:flex-none font-black text-xs shadow-md"
                           leftIcon={<Check size={14} />}
                         >
                           Accept & Start
@@ -305,7 +336,7 @@ export default function RiderDeliveriesPage() {
                           : null
                       }
                       currentStatus={selectedOrder.status}
-                      height="520px"
+                      height="540px"
                     />
                   </div>
                 </div>
@@ -317,11 +348,11 @@ export default function RiderDeliveriesPage() {
                   
                   {/* Immediate Action Execution Card */}
                   {!isAssigned && (
-                    <Card className="border border-primary/30 bg-gradient-to-br from-primary/5 via-card to-card shadow-sm">
-                      <CardContent className="p-5 space-y-3">
+                    <Card className="border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card shadow-md">
+                      <CardContent className="p-5 space-y-3.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-primary">
-                            Current Delivery Action
+                          <span className="text-[10px] font-black uppercase tracking-wider text-primary flex items-center gap-1.5">
+                            <Zap size={13} /> Current Stage Action
                           </span>
                           <Badge variant="soft" color={isWay ? 'warning' : 'success'} className="text-[10px] font-black uppercase">
                             {isWay ? 'Pickup Pending' : 'Dropoff Pending'}
@@ -329,9 +360,9 @@ export default function RiderDeliveriesPage() {
                         </div>
 
                         {isWay && (
-                          <div className="space-y-2">
-                            <p className="text-xs text-muted-foreground">
-                              Ride to <strong className="text-foreground">{selectedOrder.restaurant?.name}</strong> and collect the food parcel.
+                          <div className="space-y-3">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              Ride to <strong className="text-foreground">{selectedOrder.restaurant?.name}</strong>, collect parcel, then confirm pickup below.
                             </p>
                             <Button
                               size="lg"
@@ -339,8 +370,8 @@ export default function RiderDeliveriesPage() {
                               fullWidth
                               disabled={actionLoading === selectedOrder.id}
                               onClick={() => handleUpdateStatus(selectedOrder.id, 'PICKED_UP')}
-                              className="font-black text-xs py-3 shadow-md"
-                              leftIcon={actionLoading === selectedOrder.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                              className="font-black text-xs py-3.5 shadow-lg bg-gradient-to-r from-primary to-[#f43f5e] hover:opacity-95"
+                              leftIcon={actionLoading === selectedOrder.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                             >
                               Mark Picked Up (Food in Bag)
                             </Button>
@@ -350,12 +381,12 @@ export default function RiderDeliveriesPage() {
                         {isPicked && (
                           <div className="space-y-3">
                             {selectedOrder.paymentMethod === 'COD' ? (
-                              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs font-black text-amber-700 dark:text-amber-400 leading-snug">
-                                ⚠️ Cash on Delivery: Collect physical cash ৳{parseFloat(selectedOrder.total).toFixed(2)} from the customer before handing over the food parcel!
+                              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs font-black text-amber-700 dark:text-amber-400 leading-snug">
+                                ⚠️ Cash on Delivery: Collect physically ৳{parseFloat(selectedOrder.total).toFixed(2)} cash from customer before handing over food!
                               </div>
                             ) : (
-                              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-xs font-black text-emerald-700 dark:text-emerald-400">
-                                ✓ Prepaid Online Order — No cash collection needed. Hand over parcel to customer.
+                              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-xs font-black text-emerald-700 dark:text-emerald-400">
+                                ✓ Prepaid Online Order — No cash collection needed.
                               </div>
                             )}
 
@@ -365,8 +396,8 @@ export default function RiderDeliveriesPage() {
                               fullWidth
                               disabled={actionLoading === selectedOrder.id}
                               onClick={() => handleUpdateStatus(selectedOrder.id, 'DELIVERED')}
-                              className="font-black text-xs py-3 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
-                              leftIcon={actionLoading === selectedOrder.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                              className="font-black text-xs py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/25"
+                              leftIcon={actionLoading === selectedOrder.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
                             >
                               Mark Delivered & Collect Fee ৳{parseFloat(selectedOrder.riderEarnings || 0).toFixed(2)}
                             </Button>
@@ -378,7 +409,7 @@ export default function RiderDeliveriesPage() {
 
                   {/* Step 1: Restaurant Pickup Location Card */}
                   <Card className={`border transition-all ${
-                    isWay ? 'border-primary/40 bg-card ring-1 ring-primary/20 shadow-xs' : 'border-border/60 bg-muted/15 opacity-80'
+                    isWay ? 'border-amber-500/40 bg-card ring-2 ring-amber-500/15 shadow-sm' : 'border-border/60 bg-muted/15 opacity-85'
                   }`}>
                     <CardContent className="p-5 space-y-3">
                       <div className="flex items-center justify-between">
@@ -401,8 +432,8 @@ export default function RiderDeliveriesPage() {
                             href={`tel:${selectedOrder.restaurant.phone}`}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-card border border-border hover:bg-muted text-xs font-bold text-foreground transition-colors shadow-2xs"
                           >
-                            <Phone size={12} className="text-primary" />
-                            <span>Call Merchant: {selectedOrder.restaurant.phone}</span>
+                            <Phone size={12} className="text-amber-600 fill-current" />
+                            <span>Call Store: {selectedOrder.restaurant.phone}</span>
                           </a>
                         </div>
                       )}
@@ -439,7 +470,7 @@ export default function RiderDeliveriesPage() {
                       <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/25 space-y-2.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400 tracking-wider flex items-center gap-1">
-                            <Phone size={11} /> Customer Contact Number
+                            <Phone size={11} className="fill-current" /> Customer Contact
                           </span>
                           <span className="text-xs font-black text-foreground tracking-wide font-mono">
                             {selectedOrder.user?.phone || '+880 1571-323156'}
@@ -477,7 +508,7 @@ export default function RiderDeliveriesPage() {
                           <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                             <ShoppingBag size={12} /> Food Parcel Contents ({selectedOrder.items.length})
                           </span>
-                          <span className="text-[10px] font-bold text-muted-foreground">Verify items before leaving store</span>
+                          <span className="text-[10px] font-bold text-muted-foreground">Verify items before leaving</span>
                         </div>
 
                         <div className="flex flex-wrap gap-1.5">
@@ -505,46 +536,99 @@ export default function RiderDeliveriesPage() {
         /* ========================================================================= */
         <div className="space-y-6">
           
-          {/* List Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/15">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-black text-foreground tracking-tight">Active Deliveries</h2>
-                <Badge variant="solid" color="primary" className="text-[10px] font-black uppercase px-2 py-0.5">
-                  {assignedOrders.length} Tasks Active
-                </Badge>
+          {/* Pro Telemetry Dispatch Header */}
+          <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-primary/15 via-primary/5 to-transparent border border-primary/20 shadow-sm relative overflow-hidden space-y-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Rider Online & Ready</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-semibold">Vehicle: {riderProfile?.vehicleType || 'Motorbike'}</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+                  Active Delivery Dispatch Board
+                </h1>
+                <p className="text-xs text-muted-foreground max-w-xl">
+                  Real-time matched delivery orders. Tap any job to activate live turn navigation and order route telemetry.
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Select any delivery below to open the dedicated command center with interactive GPS road map and turn navigation.
-              </p>
+
+              {/* Stats pill & refresh button */}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="px-4 py-2 rounded-2xl bg-card border border-border shadow-xs text-right">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block leading-none">Queue Earnings</span>
+                  <span className="text-base font-black text-primary">৳{totalEarningsInQueue.toFixed(2)}</span>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={fetchRiderOrders}
+                  leftIcon={<RefreshCw size={13} />}
+                  className="font-bold text-xs bg-card hover:bg-muted"
+                >
+                  Refresh
+                </Button>
+              </div>
             </div>
 
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={fetchRiderOrders}
-              leftIcon={<RefreshCw size={13} />}
-              className="font-bold text-xs bg-card"
-            >
-              Refresh List
-            </Button>
+            {/* Filter Tabs Switcher */}
+            <div className="flex items-center gap-2 overflow-x-auto pt-1 relative z-10">
+              <button
+                type="button"
+                onClick={() => setStatusFilter('ALL')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  statusFilter === 'ALL'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-card/70 hover:bg-card text-muted-foreground border border-border/60'
+                }`}
+              >
+                All Tasks ({assignedOrders.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('PICKUP')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                  statusFilter === 'PICKUP'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'bg-card/70 hover:bg-card text-muted-foreground border border-border/60'
+                }`}
+              >
+                <Store size={12} />
+                <span>Store Pickup ({assignedOrders.filter(o => o.status === 'RIDER_ASSIGNED' || o.status === 'ON_THE_WAY').length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('DELIVERY')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                  statusFilter === 'DELIVERY'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-card/70 hover:bg-card text-muted-foreground border border-border/60'
+                }`}
+              >
+                <MapPin size={12} />
+                <span>Out for Delivery ({assignedOrders.filter(o => o.status === 'PICKED_UP').length})</span>
+              </button>
+            </div>
           </div>
 
-          {assignedOrders.length === 0 ? (
+          {filteredOrders.length === 0 ? (
             <Card className="border-dashed border-2 border-border/70 bg-card/40">
               <CardContent className="py-20 text-center space-y-3">
                 <div className="h-16 w-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary mx-auto">
                   <Bike size={32} className="animate-bounce" />
                 </div>
-                <h3 className="text-base font-extrabold text-foreground">No Deliveries in Progress</h3>
+                <h3 className="text-base font-extrabold text-foreground">No Deliveries Matching Filter</h3>
                 <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                  You are currently online and ready for orders. When a nearby merchant prepares food, you will receive an audio chime and matched task here.
+                  You are online. When new orders are prepared by restaurants in your zone, they will immediately appear here.
                 </p>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {assignedOrders.map((order) => {
+            <div className="grid grid-cols-1 gap-5">
+              {filteredOrders.map((order) => {
                 const isAssigned = order.status === 'RIDER_ASSIGNED';
                 const isWay = order.status === 'ON_THE_WAY';
                 const isPicked = order.status === 'PICKED_UP';
@@ -552,89 +636,98 @@ export default function RiderDeliveriesPage() {
                 return (
                   <Card 
                     key={order.id} 
-                    className="border border-border bg-card shadow-xs hover:shadow-md hover:border-primary/40 transition-all overflow-hidden"
+                    className="border border-border/70 bg-card hover:border-primary/40 hover:shadow-md transition-all rounded-2xl overflow-hidden group shadow-2xs"
                   >
-                    <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                    <div className="p-4 sm:p-4.5 space-y-3">
                       
-                      {/* Left: Order Info & Routing summary */}
-                      <div className="flex items-start gap-4 min-w-0 flex-1">
-                        <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex flex-col items-center justify-center text-primary font-black shrink-0">
-                          <span className="text-[10px] uppercase font-bold text-primary/70">Order</span>
-                          <span className="text-sm">#{order.id}</span>
+                      {/* Top Row: Order ID, Merchant, Stage, Fee & Payment */}
+                      <div className="flex flex-wrap items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="h-6 px-2 rounded-lg bg-primary/10 text-primary font-black text-xs inline-flex items-center justify-center">
+                            #{order.id}
+                          </span>
+                          <h3 className="text-sm sm:text-base font-black text-foreground group-hover:text-primary transition-colors truncate">
+                            {order.restaurant?.name || 'Restaurant'}
+                          </h3>
+                          <Badge 
+                            variant="soft" 
+                            color={isAssigned ? 'warning' : isWay ? 'primary' : 'success'} 
+                            className="text-[9px] font-black uppercase px-2 py-0.5"
+                          >
+                            {isAssigned ? 'New Assignment' : isWay ? 'Heading to Store' : 'Out for Delivery'}
+                          </Badge>
+                          <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                            • {order.items?.length || 1} item{(order.items?.length || 1) > 1 ? 's' : ''}
+                          </span>
                         </div>
 
-                        <div className="space-y-1.5 min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-base font-black text-foreground truncate">
-                              {order.restaurant?.name || 'Restaurant'}
-                            </h3>
-
-                            <Badge 
-                              variant="soft" 
-                              color={isAssigned ? 'warning' : isWay ? 'primary' : 'success'} 
-                              className="text-[10px] font-black uppercase px-2 py-0.5"
-                            >
-                              {isAssigned ? 'New Assignment' : isWay ? '1. Pickup Stage' : '2. Out for Delivery'}
-                            </Badge>
-                          </div>
-
-                          {/* Route Summary Trail */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-1">
-                            <div className="flex items-center gap-1.5 truncate">
-                              <Store size={13} className="text-amber-500 shrink-0" />
-                              <span className="font-semibold text-foreground truncate">{order.restaurant?.address || 'Store Location'}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 truncate">
-                              <MapPin size={13} className="text-emerald-500 shrink-0" />
-                              <span className="font-semibold text-foreground truncate">
-                                {formatDeliveryAddress(order)}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-0.5">
-                            <div className="flex items-center gap-1.5">
-                              <span>Customer:</span>
-                              <strong className="text-foreground font-bold">{order.user?.name || 'Customer'}</strong>
-                            </div>
-                            <span>•</span>
-                            <a
-                              href={`tel:${order.user?.phone || '+8801571323156'}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 font-extrabold text-[11px] hover:bg-emerald-500/20 transition-colors shadow-2xs"
-                              title="Call customer directly"
-                            >
-                              <Phone size={10} className="fill-current" />
-                              <span>{order.user?.phone || '+880 1571-323156'}</span>
-                            </a>
-                            <span>•</span>
-                            <span>{order.items?.length || 0} items in bag</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right: Fees, Payment & View Details Button */}
-                      <div className="flex sm:flex-col md:items-end justify-between gap-3 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-border/50">
-                        <div className="space-y-0.5 text-left md:text-right">
-                          <div className="flex items-center md:justify-end gap-2">
-                            <span className="text-xs text-muted-foreground font-bold">Your Fee:</span>
-                            <span className="text-base font-black text-primary">৳{parseFloat(order.riderEarnings || 0).toFixed(2)}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground">Fee:</span>
+                            <span className="text-sm sm:text-base font-black text-primary">
+                              ৳{parseFloat(order.riderEarnings || 0).toFixed(2)}
+                            </span>
                           </div>
                           <Badge 
                             variant="soft" 
                             color={order.paymentMethod === 'COD' ? 'warning' : 'success'} 
-                            className="text-[10px] font-extrabold uppercase px-2 py-0.5"
+                            className="text-[9px] font-extrabold uppercase px-2 py-0.5"
                           >
-                            {order.paymentMethod === 'COD' ? `Collect COD: ৳${parseFloat(order.total || 0).toFixed(2)}` : 'Prepaid Online'}
+                            {order.paymentMethod === 'COD' ? `COD: ৳${parseFloat(order.total || 0).toFixed(2)}` : 'Prepaid Online'}
                           </Badge>
+                        </div>
+                      </div>
+
+                      {/* Middle Row: Clean Minimal Route */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs py-2 px-3 rounded-xl bg-muted/20 border border-border/40">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Store size={13} className="text-amber-500 shrink-0" />
+                          <span className="text-muted-foreground text-[11px] shrink-0 font-medium">Pickup:</span>
+                          <span className="font-semibold text-foreground truncate">{order.restaurant?.address || 'Store Location'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <MapPin size={13} className="text-emerald-500 shrink-0" />
+                          <span className="text-muted-foreground text-[11px] shrink-0 font-medium">Dropoff:</span>
+                          <span className="font-semibold text-foreground truncate">{formatDeliveryAddress(order)}</span>
+                        </div>
+                      </div>
+
+                      {/* Bottom Row: Customer Info & Action CTA */}
+                      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-0.5">
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground text-[11px]">Customer:</span>
+                            <strong className="text-foreground font-bold">{order.user?.name || 'Customer'}</strong>
+                          </div>
+
+                          <a
+                            href={`tel:${order.user?.phone || '+8801571323156'}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-extrabold text-[11px] transition-colors"
+                            title="Call customer directly"
+                          >
+                            <Phone size={10} className="fill-current" />
+                            <span>{order.user?.phone || '+880 1571-323156'}</span>
+                          </a>
+
+                          <a
+                            href={`https://wa.me/${(order.user?.phone || '+8801571323156').replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground text-[11px] font-bold transition-colors"
+                            title="Chat on WhatsApp"
+                          >
+                            <span>💬 WhatsApp</span>
+                          </a>
                         </div>
 
                         <Button
                           size="sm"
                           variant="primary"
                           onClick={() => handleSelectOrder(order.id)}
-                          rightIcon={<ChevronRight size={14} />}
-                          className="font-black text-xs shadow-xs px-4"
+                          rightIcon={<ChevronRight size={13} />}
+                          className="font-black text-xs px-4 py-1.5 shadow-xs"
                         >
                           View Order & Live Map
                         </Button>

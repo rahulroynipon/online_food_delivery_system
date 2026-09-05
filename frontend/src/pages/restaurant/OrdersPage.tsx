@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent, Button, Tabs, toast } from '../../design-system';
-import { ShoppingBag, User, Phone, MapPin, CheckCircle, CookingPot, Check, X, RefreshCw, Loader2, Bike } from 'lucide-react';
+import { ShoppingBag, User, Phone, MapPin, CheckCircle, CookingPot, Check, X, RefreshCw, Loader2, Bike, Eye } from 'lucide-react';
 import api from '../../lib/axios';
 
 export default function RestaurantOrdersPage() {
@@ -252,6 +253,8 @@ export default function RestaurantOrdersPage() {
 
 // Sub-component: OrderCard
 function OrderCard({ order, actions, infoBadge, actionLoading }: { order: any; actions?: React.ReactNode; infoBadge?: React.ReactNode; actionLoading: number | null }) {
+  const navigate = useNavigate();
+
   return (
     <Card className="border border-border/40 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden">
       {actionLoading === order.id && (
@@ -263,9 +266,16 @@ function OrderCard({ order, actions, infoBadge, actionLoading }: { order: any; a
         
         {/* Header summary info */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-border/10 pb-3 gap-2">
-          <div>
-            <h3 className="text-xs font-black text-foreground">Order #{order.id}</h3>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Placed by {order.user?.name} at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+          <div 
+            onClick={() => navigate(`/restaurant/history/${order.id}`)}
+            className="cursor-pointer group"
+          >
+            <h3 className="text-xs font-black text-foreground group-hover:text-primary transition-colors">
+              Order #{order.id}
+            </h3>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Placed by {order.user?.name} at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {infoBadge}
@@ -281,7 +291,7 @@ function OrderCard({ order, actions, infoBadge, actionLoading }: { order: any; a
             <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Deliver to</p>
             <div className="flex items-start gap-1 text-foreground/80 font-medium">
               <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-              <p className="leading-relaxed">{order.deliveryAddressText.split(', Lat/Lng:')[0]}</p>
+              <p className="leading-relaxed">{order.deliveryAddressText?.split(', Lat/Lng:')[0]}</p>
             </div>
             {order.notes && (
               <p className="text-[10px] text-slate-500 italic mt-1 font-medium pl-4.5">"{order.notes}"</p>
@@ -294,7 +304,7 @@ function OrderCard({ order, actions, infoBadge, actionLoading }: { order: any; a
                 <div key={idx} className="flex justify-between items-center text-xs font-medium">
                   <span className="truncate max-w-[200px]">
                     <span className="text-primary font-bold mr-1.5">{item.quantity}×</span>
-                    {item.foodName}
+                    {item.foodName || item.itemName || item.name}
                     {item.variantName && <span className="text-[10px] text-muted-foreground ml-1.5">({item.variantName})</span>}
                   </span>
                   <span className="font-extrabold">৳{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
@@ -309,14 +319,25 @@ function OrderCard({ order, actions, infoBadge, actionLoading }: { order: any; a
           <div className="text-[10px] text-muted-foreground font-semibold flex gap-3">
             <div>
               <span>Platform Comm: </span>
-              <span className="text-foreground font-bold">৳{parseFloat(order.platformCommission).toFixed(2)}</span>
+              <span className="text-foreground font-bold">৳{parseFloat(order.platformCommission || 0).toFixed(2)}</span>
             </div>
             <div>
               <span>Your Net Earnings: </span>
-              <span className="text-emerald-500 font-bold">৳{parseFloat(order.restaurantEarnings).toFixed(2)}</span>
+              <span className="text-emerald-500 font-bold">৳{parseFloat(order.restaurantEarnings || 0).toFixed(2)}</span>
             </div>
           </div>
-          {actions}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={() => navigate(`/restaurant/history/${order.id}`)}
+              leftIcon={<Eye size={12} className="text-primary" />}
+              className="text-xs font-bold py-1.5 px-3"
+            >
+              View Details
+            </Button>
+            {actions}
+          </div>
         </div>
 
       </CardContent>
