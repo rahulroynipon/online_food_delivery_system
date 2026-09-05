@@ -505,10 +505,20 @@ export default function RiderOverviewPage() {
               Feedback and compliments given to you by customers after deliveries
             </p>
           </div>
-          <span className="text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
-            <Star className="h-3.5 w-3.5 fill-current" />
-            {reviewStats?.averageRating ? reviewStats.averageRating.toFixed(1) : '5.0'} / 5.0
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
+              <Star className="h-3.5 w-3.5 fill-current" />
+              {reviewStats?.averageRating ? reviewStats.averageRating.toFixed(1) : '5.0'} / 5.0
+            </span>
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={() => navigate('/rider/reviews')}
+              className="font-bold text-xs"
+            >
+              View All Reviews ({reviewStats?.totalReviews || 0})
+            </Button>
+          </div>
         </div>
 
         {/* Compliment Badges */}

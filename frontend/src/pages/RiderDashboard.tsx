@@ -38,7 +38,8 @@ import {
   History,
   LayoutDashboard,
   ShieldCheck,
-  Package
+  Package,
+  Star
 } from 'lucide-react';
 import api from '../lib/axios';
 
@@ -272,6 +273,12 @@ export default function RiderDashboard() {
       label: 'Delivery History',
       icon: <History size={18} />,
       path: '/rider/history',
+    },
+    {
+      id: 'reviews',
+      label: 'Reviews & Ratings',
+      icon: <Star size={18} />,
+      path: '/rider/reviews',
     },
     {
       id: 'wallet',

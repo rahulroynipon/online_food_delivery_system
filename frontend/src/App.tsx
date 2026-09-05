@@ -41,6 +41,7 @@ import RiderHistory from './pages/rider/HistoryPage';
 import RiderOrderDetail from './pages/rider/OrderDetailPage';
 import RiderWallet from './pages/rider/WalletPage';
 import RiderProfile from './pages/rider/ProfilePage';
+import RiderReviews from './pages/rider/ReviewsPage';
 import RestaurantWallet from './pages/restaurant/WalletPage';
 import api from './lib/axios';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Tabs, toast } from './design-system';
@@ -174,6 +175,7 @@ function App() {
           <Route path="history" element={<RiderHistory />} />
           <Route path="history/:orderId" element={<RiderOrderDetail />} />
           <Route path="orders/:orderId" element={<RiderOrderDetail />} />
+          <Route path="reviews" element={<RiderReviews />} />
           <Route path="wallet" element={<RiderWallet />} />
           <Route path="profile" element={<RiderProfile />} />
         </Route>
