@@ -17,6 +17,7 @@ import UsersPage from './pages/admin/UsersPage';
 import AdminOrdersPage from './pages/admin/OrdersPage';
 import AdminOrderDetailPage from './pages/admin/OrderDetailPage';
 import AdminPayoutsPage from './pages/admin/PayoutsPage';
+import ReportsPage from './pages/admin/ReportsPage';
 import PlaceholderPage from './pages/admin/PlaceholderPage';
 import RestaurantDashboard from './pages/RestaurantDashboard';
 import RestaurantOverview from './pages/restaurant/OverviewPage';
@@ -191,7 +192,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<DashboardPage />} />
+          <Route index element={<ReportsPage />} />
           <Route path="restaurants" element={<RestaurantsPage />} />
           <Route path="riders" element={<RidersPage />} />
           <Route path="users" element={<UsersPage />} />
@@ -202,7 +203,7 @@ function App() {
           <Route path="payouts" element={<AdminPayoutsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="zones" element={<ZonesPage />} />
-          <Route path="reports" element={<DashboardPage />} />
+          <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path=":section" element={<PlaceholderPage />} />
         </Route>

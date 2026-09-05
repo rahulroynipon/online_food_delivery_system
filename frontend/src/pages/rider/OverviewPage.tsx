@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent, Button, Badge, toast } from '../../design-system';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Badge, toast } from '../../design-system';
 import { 
   Bike, 
   MapPin, 
@@ -26,6 +26,41 @@ import {
 } from 'lucide-react';
 import api from '../../lib/axios';
 import DeliveryRouteMap from '../../components/rider/DeliveryRouteMap';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from 'recharts';
+
+const CustomRiderTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card/95 backdrop-blur-md border border-border/60 shadow-xl rounded-xl p-3 text-xs space-y-1.5 z-50">
+        <p className="font-extrabold text-foreground border-b border-border/20 pb-1">{label}</p>
+        {payload.map((entry: any, index: number) => {
+          const isTrips = entry.name?.toLowerCase().includes('trip');
+          return (
+            <div key={index} className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-1.5 text-muted-foreground font-semibold">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                {entry.name}:
+              </span>
+              <span className="font-black text-foreground">
+                {isTrips ? entry.value : `৳${Number(entry.value).toFixed(2)}`}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  return null;
+};
 
 const formatDeliveryAddress = (order: any): string => {
   if (!order) return 'Customer Destination';
@@ -132,6 +167,40 @@ export default function RiderOverviewPage() {
   const totalEarned = historyOrders
     .filter((o: any) => o.status === 'DELIVERED')
     .reduce((acc, curr) => acc + (parseFloat(curr.riderEarnings) || 0), 0);
+
+  const [dateRange, setDateRange] = useState<'7DAYS' | '14DAYS' | '30DAYS'>('7DAYS');
+
+  // Compute daily earnings trend from real orders
+  const dailyRiderTrend = useMemo(() => {
+    const numDays = dateRange === '7DAYS' ? 7 : dateRange === '14DAYS' ? 14 : 30;
+    const daysMap: Record<string, { date: string; income: number; trips: number }> = {};
+    const now = new Date();
+
+    for (let i = numDays - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const key = d.toISOString().split('T')[0];
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      daysMap[key] = { date: label, income: 0, trips: 0 };
+    }
+
+    const allOrders = [...historyOrders, ...activeOrders];
+    allOrders.forEach((o: any) => {
+      const key = o.createdAt ? o.createdAt.split('T')[0] : '';
+      if (key && daysMap[key]) {
+        if (o.status === 'DELIVERED') {
+          daysMap[key].income += parseFloat(o.riderEarnings) || 0;
+          daysMap[key].trips += 1;
+        }
+      }
+    });
+
+    return Object.values(daysMap);
+  }, [historyOrders, activeOrders, dateRange]);
+
+  const maxRiderIncome = useMemo(() => {
+    return Math.max(...dailyRiderTrend.map((d) => d.income), 20);
+  }, [dailyRiderTrend]);
 
   if (loading) {
     return (
@@ -244,6 +313,106 @@ export default function RiderOverviewPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Rider Delivery Earnings Progression Chart (Real Data) */}
+      <Card className="border border-border/40 shadow-xs bg-card">
+        <CardHeader className="pb-2 border-b border-border/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <CardTitle className="text-sm font-black flex items-center gap-2">
+              <TrendingUp size={16} className="text-purple-500" />
+              Delivery Income & Completed Trips Trend
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Live accumulated courier fee disbursements and successful drop-offs
+            </CardDescription>
+          </div>
+
+          <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-xl border border-border/40 self-start sm:self-auto">
+            {(
+              [
+                { id: '7DAYS', label: '7 Days' },
+                { id: '14DAYS', label: '14 Days' },
+                { id: '30DAYS', label: '30 Days' }
+              ] as const
+            ).map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setDateRange(t.id)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  dateRange === t.id
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-6">
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={dailyRiderTrend}
+                margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="riderIncomeGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.45} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
+                <XAxis 
+                  dataKey="date" 
+                  tickLine={false} 
+                  axisLine={false} 
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis 
+                  tickLine={false} 
+                  axisLine={false} 
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(val) => `৳${val}`}
+                />
+                <Tooltip content={<CustomRiderTooltip />} />
+                <Legend 
+                  verticalAlign="top" 
+                  align="right" 
+                  iconType="circle"
+                  wrapperStyle={{ paddingBottom: '10px', fontSize: '11px', fontWeight: 'bold' }}
+                />
+
+                <Area
+                  type="monotone"
+                  dataKey="income"
+                  stroke="#8b5cf6"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#riderIncomeGradient)"
+                  name="Delivery Earnings (৳)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t border-border/10 text-xs font-bold text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-sm bg-purple-500" />
+              <span>Rider Trip Earnings (৳)</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-foreground">
+              <span>Period Total:</span>
+              <span className="text-purple-500 font-black">
+                ৳{dailyRiderTrend.reduce((s, x) => s + x.income, 0).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Active Deliveries / Incoming Orders Section */}
       <div className="space-y-4">
