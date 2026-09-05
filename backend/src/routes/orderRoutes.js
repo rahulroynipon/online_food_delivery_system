@@ -7,7 +7,9 @@ import {
   getRiderOrders, 
   updateOrderStatus, 
   riderResponse,
-  updateRiderLocation
+  updateRiderLocation,
+  getAllAdminOrders,
+  getAdminDashboardStats
 } from '../controllers/orderController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -17,6 +19,8 @@ router.post('/', protect, createOrder);
 router.get('/customer', protect, getCustomerOrders);
 router.get('/merchant', protect, getMerchantOrders);
 router.get('/rider', protect, getRiderOrders);
+router.get('/admin', protect, getAllAdminOrders);
+router.get('/admin/stats', protect, getAdminDashboardStats);
 router.put('/rider/location', protect, updateRiderLocation);
 router.get('/:id', protect, getOrderById);
 router.put('/:id/status', protect, updateOrderStatus);

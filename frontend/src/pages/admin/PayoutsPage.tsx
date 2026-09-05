@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, Button, Badge, DataTable, Modal, toast } from '../../design-system';
+import { Card, CardContent, Button, Badge, DataTable, Modal, toast, Input } from '../../design-system';
 import { 
   ArrowDownToLine, 
   Wallet, 
@@ -19,7 +19,8 @@ import {
   User as UserIcon,
   Phone,
   Mail,
-  Receipt
+  Receipt,
+  Filter
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -210,270 +211,340 @@ export default function AdminPayoutsPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2">
-        
-        <div className="flex flex-wrap items-center gap-2">
-          
-          {/* Status Filter */}
-          <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-xl border border-border/40">
-            {[
-              { id: 'ALL', label: 'All Status' },
-              { id: 'PENDING', label: 'Pending' },
-              { id: 'PROCESSED', label: 'Disbursed' },
-              { id: 'REJECTED', label: 'Rejected' },
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setStatusFilter(t.id as any)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all cursor-pointer ${
-                  statusFilter === t.id
-                    ? 'bg-card text-foreground shadow-xs font-bold border border-border/50'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+      <Card className="border border-border/40 bg-card">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+            {/* Search Input */}
+            <div className="flex-1 relative">
+              <Input
+                placeholder="Search partner name, phone, email, restaurant, account number, ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                leftIcon={<Search className="h-4 w-4 text-muted-foreground" />}
+                className="w-full text-xs pr-8"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/50 transition-colors"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+
+            {/* Role Filter Tabs */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-xs font-bold text-muted-foreground mr-1 hidden sm:inline">Role:</span>
+              {[
+                { id: 'ALL', label: 'All Roles', count: requests.length },
+                { id: 'RESTAURANT', label: 'Restaurants', count: requests.filter((r) => r.user?.role === 'RESTAURANT').length },
+                { id: 'RIDER', label: 'Riders', count: requests.filter((r) => r.user?.role === 'RIDER').length },
+              ].map((r) => {
+                const isSelected = roleFilter === r.id;
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setRoleFilter(r.id as any)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-primary text-primary-foreground shadow-xs'
+                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                    }`}
+                  >
+                    <span>{r.label}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {r.count}
+                    </span>
+                  </button>
+                );
+              })}
+
+              {(searchQuery || statusFilter !== 'ALL' || roleFilter !== 'ALL') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('ALL');
+                    setRoleFilter('ALL');
+                  }}
+                  className="text-xs font-bold shrink-0 text-muted-foreground hover:text-foreground ml-1"
+                  leftIcon={<X size={12} />}
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
           </div>
 
-          {/* Role Filter */}
-          <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-xl border border-border/40">
+          {/* Status Filter Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar border-t border-border/20">
             {[
-              { id: 'ALL', label: 'All Roles' },
-              { id: 'RESTAURANT', label: 'Restaurants' },
-              { id: 'RIDER', label: 'Riders' },
-            ].map((r) => (
-              <button
-                key={r.id}
-                onClick={() => setRoleFilter(r.id as any)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all cursor-pointer ${
-                  roleFilter === r.id
-                    ? 'bg-card text-foreground shadow-xs font-bold border border-border/50'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
+              { id: 'ALL', label: 'All Requests', count: requests.length },
+              { id: 'PENDING', label: 'Pending Review', count: pendingRequests.length },
+              { id: 'PROCESSED', label: 'Disbursed / Paid', count: processedRequests.length },
+              { id: 'REJECTED', label: 'Rejected', count: rejectedRequests.length },
+            ].map((t) => {
+              const isSelected = statusFilter === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setStatusFilter(t.id as any)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-foreground text-background shadow-xs scale-[1.02]'
+                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                  }`}
+                >
+                  <span>{t.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    isSelected ? 'bg-background/20 text-background' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {t.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-
-        </div>
-
-        {/* Quick Search */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search partner, phone, bank, ID..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-xl border border-border/60 bg-card text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
-          />
-        </div>
-
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Main Table Content */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-xs text-muted-foreground font-semibold">Loading withdrawal requests...</span>
-        </div>
-      ) : filteredRequests.length === 0 ? (
-        <Card className="border-dashed border-2 border-border/70 bg-card/40">
-          <CardContent className="py-16 text-center text-xs text-muted-foreground space-y-2">
-            <Receipt className="h-10 w-10 text-muted-foreground mx-auto opacity-40 mb-2" />
+      <Card className="border border-border/40 bg-card overflow-hidden">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="text-xs text-muted-foreground font-semibold">Loading withdrawal requests...</span>
+          </div>
+        ) : filteredRequests.length === 0 ? (
+          <div className="py-16 text-center space-y-2">
+            <Receipt className="h-10 w-10 text-muted-foreground/40 mx-auto" />
             <p className="font-bold text-foreground text-sm">No Withdrawal Requests Found</p>
             <p className="text-xs text-muted-foreground">
-              {searchQuery ? 'Try matching another search keyword or filter.' : 'When partners submit payout requests, they will appear here.'}
+              {searchQuery || statusFilter !== 'ALL' || roleFilter !== 'ALL'
+                ? 'Try adjusting your search keyword or filter tabs.'
+                : 'When partners submit payout requests, they will appear here.'}
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="border-none bg-transparent shadow-none">
-          <CardContent className="p-0">
-            <DataTable
-              data={filteredRequests}
-              pagination={false}
-              searchable={false}
-              toolbar={null}
-              columns={[
-                {
-                  id: 'id',
-                  label: 'ID',
-                  width: '70px',
-                  cell: ({ row }: { row: any }) => (
-                    <span className="font-bold text-xs font-mono text-foreground">
-                      #{row.id}
+            {(searchQuery || statusFilter !== 'ALL' || roleFilter !== 'ALL') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('ALL');
+                  setRoleFilter('ALL');
+                }}
+                className="font-bold text-xs mt-2"
+                leftIcon={<X size={12} />}
+              >
+                Clear All Filters
+              </Button>
+            )}
+          </div>
+        ) : (
+          <DataTable
+            data={filteredRequests}
+            pagination={false}
+            searchable={false}
+            toolbar={null}
+            getRowId={(item) => String(item.id)}
+            columns={[
+              {
+                id: 'id',
+                label: 'ID',
+                width: '70px',
+                cell: ({ row }: { row: any }) => (
+                  <span className="font-mono font-black text-xs text-primary">
+                    #{row.id}
+                  </span>
+                )
+              },
+              {
+                id: 'requester',
+                label: 'Partner & Role',
+                width: '210px',
+                cell: ({ row }: { row: any }) => (
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-extrabold text-xs text-foreground truncate">
+                        {row.user?.name || 'Partner'}
+                      </span>
+                      <span
+                        className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
+                          row.user?.role === 'RESTAURANT'
+                            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20'
+                            : 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20'
+                        }`}
+                      >
+                        {row.user?.role === 'RESTAURANT' ? 'Restaurant' : 'Rider'}
+                      </span>
+                    </div>
+                    {row.user?.restaurant?.name && (
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1 font-semibold truncate">
+                        <Store size={11} className="text-amber-500 shrink-0" />
+                        <span>{row.user.restaurant.name}</span>
+                      </p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground font-mono truncate">
+                      {row.user?.phone || row.user?.email || 'N/A'}
+                    </p>
+                  </div>
+                )
+              },
+              {
+                id: 'amount',
+                label: 'Requested Amount',
+                width: '150px',
+                cell: ({ row }: { row: any }) => (
+                  <div className="space-y-0.5">
+                    <p className="font-black text-sm text-foreground font-mono">
+                      ৳{parseFloat(row.amount || 0).toFixed(2)}
+                    </p>
+                    <span className="text-[10px] text-muted-foreground font-medium block">
+                      Wallet: ৳{parseFloat(row.user?.walletBalance || 0).toFixed(2)}
                     </span>
-                  )
-                },
-                {
-                  id: 'requester',
-                  label: 'PARTNER & ROLE',
-                  minWidth: '220px',
-                  cell: ({ row }: { row: any }) => (
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-bold text-xs text-foreground">
-                          {row.user?.name || 'Unknown Partner'}
-                        </p>
-                        <Badge
-                          variant="soft"
-                          color={row.user?.role === 'RESTAURANT' ? 'primary' : 'success'}
-                          className="text-[9px] font-extrabold uppercase px-1.5 py-0.2"
-                        >
-                          {row.user?.role === 'RESTAURANT' ? 'Restaurant' : 'Rider'}
-                        </Badge>
-                      </div>
-                      {row.user?.restaurant?.name && (
-                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Store size={10} className="text-primary" />
-                          <span>{row.user.restaurant.name}</span>
-                        </p>
-                      )}
-                      <p className="text-[10px] text-muted-foreground font-mono">
-                        {row.user?.phone || row.user?.email}
-                      </p>
-                    </div>
-                  )
-                },
-                {
-                  id: 'amount',
-                  label: 'AMOUNT REQUESTED',
-                  width: '160px',
-                  cell: ({ row }: { row: any }) => (
-                    <div className="space-y-0.5">
-                      <span className="font-black text-sm font-mono text-foreground">
-                        ৳{parseFloat(row.amount).toFixed(2)}
+                  </div>
+                )
+              },
+              {
+                id: 'channel',
+                label: 'Destination Channel',
+                width: '190px',
+                cell: ({ row }: { row: any }) => (
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`text-[9px] font-black uppercase px-2 py-0.5 rounded font-mono ${
+                          row.paymentMethod === 'BKASH'
+                            ? 'bg-pink-500/10 text-pink-600 border border-pink-500/20'
+                            : row.paymentMethod === 'NAGAD'
+                            ? 'bg-orange-500/10 text-orange-600 border border-orange-500/20'
+                            : row.paymentMethod === 'ROCKET'
+                            ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20'
+                            : 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
+                        }`}
+                      >
+                        {row.paymentMethod}
                       </span>
-                      <p className="text-[9px] text-muted-foreground">
-                        Available Balance: ৳{parseFloat(row.user?.walletBalance || 0).toFixed(2)}
+                      <span className="text-xs font-bold font-mono text-foreground">
+                        {row.accountNumber}
+                      </span>
+                    </div>
+                    {row.paymentMethod === 'BANK_TRANSFER' && (
+                      <p className="text-[10px] text-muted-foreground font-medium truncate">
+                        {row.bankName} {row.branchName ? `(${row.branchName})` : ''} • {row.accountHolderName}
                       </p>
-                    </div>
-                  )
-                },
-                {
-                  id: 'channel',
-                  label: 'DESTINATION CHANNEL',
-                  minWidth: '220px',
-                  cell: ({ row }: { row: any }) => (
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <Badge variant="soft" color="primary" className="text-[9px] font-extrabold uppercase px-1.5 py-0.2">
-                          {row.paymentMethod}
-                        </Badge>
-                        <span className="text-xs font-bold font-mono text-foreground">{row.accountNumber}</span>
-                      </div>
-                      {row.paymentMethod === 'BANK_TRANSFER' && (
-                        <p className="text-[10px] text-muted-foreground">
-                          {row.bankName} {row.branchName ? `(${row.branchName})` : ''} • A/C: {row.accountHolderName}
-                        </p>
-                      )}
-                      {row.notes && (
-                        <p className="text-[10px] text-slate-500 italic mt-0.5">
-                          &ldquo;{row.notes}&rdquo;
-                        </p>
-                      )}
-                    </div>
-                  )
-                },
-                {
-                  id: 'status',
-                  label: 'STATUS',
-                  minWidth: '140px',
-                  cell: ({ row }: { row: any }) => {
-                    if (row.status === 'PROCESSED') {
-                      return (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 whitespace-nowrap select-none">
-                          <CheckCircle2 size={12} className="shrink-0 text-emerald-600" />
-                          <span>Disbursed</span>
-                        </span>
-                      );
-                    }
-                    if (row.status === 'REJECTED') {
-                      return (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-rose-500/10 text-rose-600 border border-rose-500/20 whitespace-nowrap select-none">
-                          <XCircle size={12} className="shrink-0 text-rose-600" />
-                          <span>Rejected</span>
-                        </span>
-                      );
-                    }
+                    )}
+                    {row.notes && (
+                      <p className="text-[10px] text-muted-foreground/80 italic line-clamp-1">
+                        "{row.notes}"
+                      </p>
+                    )}
+                  </div>
+                )
+              },
+              {
+                id: 'status',
+                label: 'Status',
+                width: '130px',
+                cell: ({ row }: { row: any }) => {
+                  if (row.status === 'PROCESSED') {
                     return (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20 whitespace-nowrap select-none">
-                        <Clock size={12} className="shrink-0 text-amber-600" />
-                        <span>Pending Review</span>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                        <CheckCircle2 size={11} /> Disbursed
                       </span>
                     );
                   }
-                },
-                {
-                  id: 'adminRemarks',
-                  label: 'ADMIN REMARKS',
-                  minWidth: '180px',
-                  cell: ({ row }: { row: any }) => (
-                    <div className="text-xs text-muted-foreground">
-                      {row.adminNote ? (
-                        <span className="text-foreground/90 font-medium">{row.adminNote}</span>
-                      ) : (
-                        <span className="italic text-muted-foreground/60">—</span>
-                      )}
-                    </div>
-                  )
-                },
-                {
-                  id: 'date',
-                  label: 'REQUESTED AT',
-                  width: '150px',
-                  cell: ({ row }: { row: any }) => (
-                    <div className="text-[11px] text-muted-foreground font-medium">
-                      {new Date(row.createdAt).toLocaleDateString()} at{' '}
-                      {new Date(row.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  )
-                },
-                {
-                  id: 'actions',
-                  label: 'ACTIONS',
-                  width: '160px',
-                  align: 'right' as const,
-                  cell: ({ row }: { row: any }) => {
-                    if (row.status === 'PENDING') {
-                      return (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            size="xs"
-                            variant="primary"
-                            onClick={() => handleOpenActionModal(row, 'APPROVE')}
-                            leftIcon={<Check size={12} />}
-                            className="font-bold text-[11px] h-7.5 px-2.5 bg-emerald-600 hover:bg-emerald-700"
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            size="xs"
-                            variant="outline"
-                            onClick={() => handleOpenActionModal(row, 'REJECT')}
-                            leftIcon={<X size={12} />}
-                            className="font-bold text-[11px] h-7.5 px-2 text-rose-600 hover:bg-rose-500/10 border-rose-200 hover:border-rose-300"
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      );
-                    }
+                  if (row.status === 'REJECTED') {
                     return (
-                      <span className="text-[10px] text-muted-foreground font-semibold">
-                        Completed
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                        <XCircle size={11} /> Rejected
                       </span>
                     );
                   }
+                  return (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                      <Clock size={11} /> Pending
+                    </span>
+                  );
                 }
-              ]}
-            />
-          </CardContent>
-        </Card>
-      )}
+              },
+              {
+                id: 'adminRemarks',
+                label: 'Admin Remarks',
+                width: '160px',
+                cell: ({ row }: { row: any }) => (
+                  <div className="text-xs">
+                    {row.adminNote ? (
+                      <p className="text-foreground/90 font-medium text-[11px] line-clamp-2">
+                        {row.adminNote}
+                      </p>
+                    ) : (
+                      <span className="italic text-muted-foreground/40 text-[11px]">—</span>
+                    )}
+                  </div>
+                )
+              },
+              {
+                id: 'date',
+                label: 'Requested At',
+                width: '130px',
+                cell: ({ row }: { row: any }) => (
+                  <div className="text-[11px] text-muted-foreground font-medium">
+                    <p className="font-semibold text-foreground/80">{new Date(row.createdAt).toLocaleDateString()}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(row.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                )
+              },
+              {
+                id: 'actions',
+                label: 'Actions',
+                width: '140px',
+                align: 'right' as const,
+                cell: ({ row }: { row: any }) => {
+                  if (row.status === 'PENDING') {
+                    return (
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          size="xs"
+                          variant="primary"
+                          onClick={() => handleOpenActionModal(row, 'APPROVE')}
+                          leftIcon={<Check size={11} />}
+                          className="font-black text-[10px] h-7 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          onClick={() => handleOpenActionModal(row, 'REJECT')}
+                          leftIcon={<X size={11} />}
+                          className="font-black text-[10px] h-7 px-2 text-rose-600 hover:bg-rose-500/10 border-rose-300 hover:border-rose-400"
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <span className="text-[11px] text-muted-foreground/70 font-semibold italic">
+                      Completed
+                    </span>
+                  );
+                }
+              }
+            ]}
+          />
+        )}
+      </Card>
 
       {/* Modal: Process Action (Approve / Reject) */}
       <Modal
@@ -552,7 +623,7 @@ export default function AdminPayoutsPage() {
                   size="sm"
                   loading={actionLoading}
                   onClick={handleProcessAction}
-                  variant={actionType === 'APPROVE' ? 'primary' : 'destructive'}
+                  variant={actionType === 'APPROVE' ? 'primary' : 'danger'}
                   className="font-extrabold shadow-sm"
                 >
                   {actionType === 'APPROVE' ? 'Confirm Approval & Disburse' : 'Confirm Rejection'}

@@ -14,6 +14,8 @@ import SettingsPage from './pages/admin/SettingsPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
 import ZonesPage from './pages/admin/ZonesPage';
 import UsersPage from './pages/admin/UsersPage';
+import AdminOrdersPage from './pages/admin/OrdersPage';
+import AdminOrderDetailPage from './pages/admin/OrderDetailPage';
 import AdminPayoutsPage from './pages/admin/PayoutsPage';
 import PlaceholderPage from './pages/admin/PlaceholderPage';
 import RestaurantDashboard from './pages/RestaurantDashboard';
@@ -193,11 +195,15 @@ function App() {
           <Route path="restaurants" element={<RestaurantsPage />} />
           <Route path="riders" element={<RidersPage />} />
           <Route path="users" element={<UsersPage />} />
-          <Route path="categories" element={<CategoriesPage />} />
-          <Route path="zones" element={<ZonesPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="orders/:orderId" element={<AdminOrderDetailPage />} />
+          <Route path="history/:orderId" element={<AdminOrderDetailPage />} />
           <Route path="withdrawals" element={<AdminPayoutsPage />} />
           <Route path="payouts" element={<AdminPayoutsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="zones" element={<ZonesPage />} />
+          <Route path="reports" element={<DashboardPage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path=":section" element={<PlaceholderPage />} />
         </Route>
 

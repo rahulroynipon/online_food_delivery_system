@@ -10,11 +10,13 @@ export function useSelect<T = string>({
   searchable = false,
   disabled = false,
   loading = false,
-}: Partial<SelectProps<T>>) {
+  ...restProps
+}: Partial<SelectProps<T>> & { onChange?: any }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [focusedIndex, setFocusedIndex] = React.useState(-1);
   const [openDirection, setOpenDirection] = React.useState<'bottom' | 'top'>('bottom');
+  const onChange = (restProps as any)?.onChange;
 
   const handleSetIsOpen = React.useCallback((val: boolean | ((prev: boolean) => boolean)) => {
     setIsOpen((prev) => {
@@ -124,12 +126,16 @@ export function useSelect<T = string>({
       if (value === undefined) {
         setSelectedValues(nextValues);
       }
+      const rawVal = multiple ? nextValues : nextValues[0] || ('' as T);
       if (onValueChange) {
-        onValueChange(multiple ? nextValues : nextValues[0] || ('' as T));
+        onValueChange(rawVal);
+      }
+      if (onChange) {
+        onChange({ target: { value: rawVal } } as any);
       }
       triggerRef.current?.focus();
     },
-    [multiple, selectedValues, value, onValueChange]
+    [multiple, selectedValues, value, onValueChange, onChange]
   );
 
   const handleClear = React.useCallback(
