@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 import { 
   Restaurant, 
   DeliveryZone, 
@@ -66,10 +66,37 @@ export const getPublicRestaurants = async (req, res, next) => {
       order: [['name', 'ASC']]
     });
 
+    // Query real aggregate review statistics grouped by restaurant
+    const reviewStats = await Review.findAll({
+      attributes: [
+        'restaurantId',
+        [Sequelize.fn('AVG', Sequelize.col('food_rating')), 'avgRating'],
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'reviewCount']
+      ],
+      group: ['restaurantId'],
+      raw: true
+    });
+
+    const statsMap = {};
+    reviewStats.forEach((st) => {
+      statsMap[st.restaurantId] = {
+        rating: st.avgRating ? parseFloat(Number(st.avgRating).toFixed(1)) : null,
+        reviewCount: parseInt(st.reviewCount, 10) || 0
+      };
+    });
+
+    const formattedRestaurants = restaurants.map((r) => {
+      const rJson = r.toJSON();
+      const st = statsMap[r.id];
+      rJson.rating = st && st.reviewCount > 0 ? st.rating : null;
+      rJson.reviewCount = st ? st.reviewCount : 0;
+      return rJson;
+    });
+
     return res.status(200).json({
       success: true,
-      count: restaurants.length,
-      restaurants
+      count: formattedRestaurants.length,
+      restaurants: formattedRestaurants
     });
   } catch (error) {
     next(error);
@@ -138,7 +165,7 @@ export const getPublicRestaurantBySlug = async (req, res, next) => {
     });
 
     const totalReviews = reviews.length;
-    let averageRating = 4.8;
+    let averageRating = null;
     if (totalReviews > 0) {
       const sum = reviews.reduce((acc, curr) => acc + curr.foodRating, 0);
       averageRating = parseFloat((sum / totalReviews).toFixed(1));

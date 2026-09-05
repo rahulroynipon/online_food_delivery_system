@@ -167,8 +167,8 @@ export default function RestaurantsPage() {
           // Client-side Sorting by Rating
           if (sortByRating) {
             list.sort((a: Restaurant, b: Restaurant) => {
-              const ratA = parseFloat(String(a.rating || '4.5'));
-              const ratB = parseFloat(String(b.rating || '4.5'));
+              const ratA = a.rating ? parseFloat(String(a.rating)) : 0;
+              const ratB = b.rating ? parseFloat(String(b.rating)) : 0;
               return ratB - ratA;
             });
           }
@@ -444,12 +444,14 @@ export default function RestaurantsPage() {
                           <h3 className="text-sm font-extrabold text-foreground group-hover:text-primary transition-colors truncate">
                             {res.name}
                           </h3>
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                            <span className="text-[11px] font-bold text-foreground">
-                              {res.rating ? Number(res.rating).toFixed(1) : '4.5'}
-                            </span>
-                          </div>
+                          {res.rating && (res.reviewCount === undefined || res.reviewCount > 0) ? (
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                              <span className="text-[11px] font-bold text-foreground">
+                                {Number(res.rating).toFixed(1)}
+                              </span>
+                            </div>
+                          ) : null}
                         </div>
                         <p className="text-xs text-muted-foreground line-clamp-2 leading-normal">
                           {res.description || 'Tasty cuisines, fast delivery, and premium quality meals.'}

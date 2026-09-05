@@ -80,6 +80,10 @@ export default function RestaurantMenuPage() {
   const [isSwitchWarningOpen, setIsSwitchWarningOpen] = useState(false);
   const cartRestaurantName = cart.length > 0 ? cart[0].restaurantName : null;
 
+  // Image error states
+  const [bannerError, setBannerError] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+
   // Set default active category when categories load
   useEffect(() => {
     if (categories.length > 0 && !activeCategoryId) {
@@ -285,15 +289,21 @@ export default function RestaurantMenuPage() {
           <div className="space-y-8">
             {/* Restaurant Cover Banner Image */}
             <div className="h-52 md:h-72 w-full relative overflow-hidden rounded-3xl border border-border/10 shadow-2xs select-none">
-              {restaurant.banner ? (
+              {restaurant.banner && !bannerError ? (
                 <img
                   src={getBannerUrl(restaurant.banner)}
                   alt={`${restaurant.name} banner`}
+                  onError={() => setBannerError(true)}
                   className="h-full w-full object-cover animate-fade-in"
                 />
               ) : (
-                <div className="h-full w-full bg-gradient-to-r from-primary/15 via-primary/5 to-transparent flex items-center justify-center">
-                  <Utensils className="h-16 w-16 text-primary/10" />
+                <div className="h-full w-full bg-gradient-to-r from-primary/20 via-primary/10 to-amber-500/10 flex flex-col items-center justify-center gap-2">
+                  <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                    <Utensils className="h-8 w-8" />
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-wider text-muted-foreground/80">
+                    {restaurant.name}
+                  </span>
                 </div>
               )}
             </div>
@@ -304,10 +314,11 @@ export default function RestaurantMenuPage() {
                 
                 {/* Restaurant Logo Avatar */}
                 <div className="h-20 w-20 md:h-24 md:w-24 rounded-2xl border border-border/20 bg-background overflow-hidden shrink-0 flex items-center justify-center shadow-xs select-none">
-                  {restaurant.logo ? (
+                  {restaurant.logo && !logoError ? (
                     <img
                       src={getLogoUrl(restaurant.logo)}
                       alt={restaurant.name}
+                      onError={() => setLogoError(true)}
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -337,13 +348,32 @@ export default function RestaurantMenuPage() {
                   </p>
 
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground font-semibold pt-1 border-t border-border/10">
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                      <span className="text-foreground font-bold">
-                        {restaurant.rating ? Number(restaurant.rating).toFixed(1) : '4.5'}
-                      </span>
-                      <span>(100+ ratings)</span>
-                    </div>
+                    {reviewData && reviewData.stats.totalReviews > 0 ? (
+                      <button
+                        onClick={() => setActiveTab('reviews')}
+                        className="flex items-center gap-1.5 hover:text-primary transition-all cursor-pointer group text-left"
+                        title="Click to view all reviews and ratings"
+                      >
+                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-foreground font-bold group-hover:text-primary transition-colors">
+                          {reviewData.stats.averageRating.toFixed(1)}
+                        </span>
+                        <span className="group-hover:underline underline-offset-2">
+                          ({reviewData.stats.totalReviews} {reviewData.stats.totalReviews === 1 ? 'review' : 'reviews'})
+                        </span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setActiveTab('reviews')}
+                        className="flex items-center gap-1.5 hover:text-primary transition-all cursor-pointer group text-left text-muted-foreground"
+                        title="Click to view reviews"
+                      >
+                        <Star className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-amber-400 group-hover:scale-110 transition-transform" />
+                        <span className="group-hover:underline underline-offset-2 font-medium">
+                          No reviews yet
+                        </span>
+                      </button>
+                    )}
                     <span>&bull;</span>
                     <div className="flex items-center gap-1">
                       <MapPin className="h-3.5 w-3.5 text-primary" />
@@ -484,10 +514,6 @@ export default function RestaurantMenuPage() {
                                   <div className="mt-4 flex items-center justify-between">
                                     <span className="text-xs font-black text-foreground">
                                       {getFoodPriceLabel(food)}
-                                    </span>
-                                    <span className="text-[9px] font-bold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                                      <Star className="h-2.5 w-2.5 fill-current" />
-                                      4.9
                                     </span>
                                   </div>
                                 </div>
