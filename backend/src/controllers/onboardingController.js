@@ -5,6 +5,7 @@ import { hashPassword } from '../utils/hash.js';
 import { generateUniqueSlug } from '../utils/slugify.js';
 import { sendOnboardingConfirmationEmail } from '../utils/email.js';
 import { broadcastToAdmins } from '../websocket/index.js';
+import { matchUnassignedOrders } from './orderController.js';
 
 /**
  * @desc    Submit Restaurant onboarding application
@@ -378,6 +379,10 @@ export const approveRider = async (req, res, next) => {
     }
 
     await transaction.commit();
+
+    // Trigger matching for any waiting READY orders
+    setTimeout(matchUnassignedOrders, 500);
+
     return res.status(200).json({ success: true, message: 'Rider application approved successfully.' });
   } catch (error) {
     await transaction.rollback();
@@ -683,10 +688,9 @@ export const getMyRider = async (req, res, next) => {
       rider = await Rider.create({
         userId: req.user.id,
         vehicleType: 'MOTORBIKE',
-        licenseNumber: 'PENDING',
-        status: RiderStatus.APPROVED,
-        isAvailable: true,
-        rating: 5.0,
+        vehicleNumber: 'BD-DHAKA-101',
+        status: RiderStatus.ACTIVE,
+        availability: RiderAvailability.AVAILABLE,
       });
       rider = await Rider.findOne({
         where: { userId: req.user.id },
@@ -698,7 +702,10 @@ export const getMyRider = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Rider profile not found.' });
     }
 
-    return res.status(200).json({ success: true, rider });
+    const riderJson = rider.toJSON();
+    riderJson.isAvailable = rider.availability === 'AVAILABLE';
+
+    return res.status(200).json({ success: true, rider: riderJson });
   } catch (error) {
     next(error);
   }
@@ -716,9 +723,9 @@ export const toggleMyRiderAvailability = async (req, res, next) => {
       rider = await Rider.create({
         userId: req.user.id,
         vehicleType: 'MOTORBIKE',
-        licenseNumber: 'PENDING',
-        status: RiderStatus.APPROVED,
-        isAvailable: true,
+        vehicleNumber: 'BD-DHAKA-101',
+        status: RiderStatus.ACTIVE,
+        availability: RiderAvailability.AVAILABLE,
       });
     }
 
@@ -726,13 +733,23 @@ export const toggleMyRiderAvailability = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Rider profile not found.' });
     }
 
-    rider.isAvailable = !rider.isAvailable;
+    const isCurrentlyOnline = rider.availability === 'AVAILABLE';
+    const nextAvailability = isCurrentlyOnline ? 'OFFLINE' : 'AVAILABLE';
+    rider.availability = nextAvailability;
     await rider.save();
+
+    const isAvailable = nextAvailability === 'AVAILABLE';
+
+    if (isAvailable) {
+      // Immediately match any waiting orders
+      setTimeout(matchUnassignedOrders, 300);
+    }
 
     return res.status(200).json({
       success: true,
-      message: rider.isAvailable ? 'You are now Online & Available for orders.' : 'You are now Offline.',
-      isAvailable: rider.isAvailable,
+      message: isAvailable ? 'You are now Online & Available for orders.' : 'You are now Offline.',
+      isAvailable,
+      availability: nextAvailability,
     });
   } catch (error) {
     next(error);

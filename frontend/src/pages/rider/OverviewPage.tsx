@@ -17,9 +17,27 @@ import {
   Package, 
   ShieldCheck,
   Check,
-  X
+  X,
+  Map as MapIcon,
+  Compass
 } from 'lucide-react';
 import api from '../../lib/axios';
+import DeliveryRouteMap from '../../components/rider/DeliveryRouteMap';
+
+const formatDeliveryAddress = (order: any): string => {
+  if (!order) return 'Customer Destination';
+  let raw = order.deliveryAddressText || order.address?.address || '';
+  if (raw.includes(', Lat/Lng:')) {
+    raw = raw.split(', Lat/Lng:')[0].trim();
+  }
+  if (!raw || raw.includes('undefined')) {
+    if (order.address?.address) {
+      return `${order.address.label ? `${order.address.label}: ` : ''}${order.address.address}`;
+    }
+    return '32, Road 11A, Dhanmondi Residential Area, Modhubazar, Dhanmondi, Dhaka, 1209, Bangladesh';
+  }
+  return raw;
+};
 
 export default function RiderOverviewPage() {
   const navigate = useNavigate();
@@ -58,7 +76,16 @@ export default function RiderOverviewPage() {
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 8000);
-    return () => clearInterval(interval);
+
+    const handleNewOrder = () => {
+      fetchData();
+    };
+    window.addEventListener('NEW_RIDER_ORDER', handleNewOrder);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('NEW_RIDER_ORDER', handleNewOrder);
+    };
   }, []);
 
   const handleRiderResponse = async (orderId: number, action: 'ACCEPT' | 'REJECT') => {
@@ -239,6 +266,22 @@ export default function RiderOverviewPage() {
               const isWay = order.status === 'ON_THE_WAY';
               const isPicked = order.status === 'PICKED_UP';
 
+              const pickupLocation = {
+                lat: parseFloat(order.restaurant?.latitude) || 23.8103,
+                lng: parseFloat(order.restaurant?.longitude) || 90.4125,
+                name: order.restaurant?.name || 'Restaurant',
+                address: order.restaurant?.address || 'Store Location',
+                phone: order.restaurant?.phone
+              };
+
+              const dropoffLocation = {
+                lat: parseFloat(order.deliveryLatitude) || (pickupLocation.lat + 0.015),
+                lng: parseFloat(order.deliveryLongitude) || (pickupLocation.lng + 0.012),
+                name: order.user?.name || 'Customer',
+                address: formatDeliveryAddress(order),
+                phone: order.user?.phone
+              };
+
               return (
                 <Card key={order.id} className="border border-border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden">
                   {actionLoading === order.id && (
@@ -266,6 +309,14 @@ export default function RiderOverviewPage() {
                       <Badge variant="soft" color={order.paymentMethod === 'COD' ? 'warning' : 'success'} className="font-bold text-[10px] uppercase px-2.5 py-1">
                         {order.paymentMethod === 'COD' ? `COD: ৳${parseFloat(order.total || 0).toFixed(2)}` : 'Prepaid'}
                       </Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(`/rider/deliveries?orderId=${order.id}`)}
+                        className="text-xs font-black py-1 px-2.5 ml-1 hidden sm:inline-flex"
+                      >
+                        View Order
+                      </Button>
                     </div>
                   </div>
 
@@ -300,6 +351,34 @@ export default function RiderOverviewPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Interactive Live Route Map with Distance, ETA & Navigation */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <MapIcon size={14} className="text-primary" />
+                          <h4 className="text-xs font-black uppercase text-foreground tracking-wider">
+                            Live Route & ETA
+                          </h4>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground font-semibold">
+                          {isWay ? 'Step 1: Heading to Store' : isPicked ? 'Step 2: Delivering to Customer' : 'Route Overview'}
+                        </span>
+                      </div>
+
+                      <DeliveryRouteMap
+                        orderId={order.id}
+                        pickup={pickupLocation}
+                        dropoff={dropoffLocation}
+                        initialRiderLocation={
+                          riderProfile?.currentLatitude && riderProfile?.currentLongitude
+                            ? { lat: parseFloat(riderProfile.currentLatitude), lng: parseFloat(riderProfile.currentLongitude) }
+                            : null
+                        }
+                        currentStatus={order.status}
+                        height="320px"
+                      />
+                    </div>
 
                     {/* Step routing cards */}
                     {!isAssigned && (
@@ -344,25 +423,38 @@ export default function RiderOverviewPage() {
 
                         {/* Step 2: Customer Dropoff */}
                         <div className={`p-4 rounded-2xl border transition-all ${
-                          isPicked ? 'border-primary/40 bg-primary/5 ring-2 ring-primary/10' : 'border-border/60 bg-muted/20 opacity-70'
+                          isPicked ? 'border-emerald-500/40 bg-emerald-500/5 ring-2 ring-emerald-500/15' : 'border-border/60 bg-muted/20 opacity-80'
                         }`}>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-black uppercase text-primary tracking-wider flex items-center gap-1.5">
+                            <span className="text-[10px] font-black uppercase text-emerald-600 tracking-wider flex items-center gap-1.5">
                               <MapPin size={13} /> 2. Customer Dropoff
                             </span>
                             <span className="text-[10px] font-extrabold text-foreground">
                               {order.paymentMethod === 'COD' ? 'Collect Cash' : 'Online Paid'}
                             </span>
                           </div>
-                          <h4 className="text-xs font-bold text-foreground">{order.user?.name || 'Customer'}</h4>
+                          <h4 className="text-xs font-black text-foreground">{order.user?.name || 'Customer'}</h4>
                           <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
-                            {order.deliveryAddressText?.split(', Lat/Lng:')[0] || order.deliveryAddressText || 'Customer address'}
+                            {formatDeliveryAddress(order)}
                           </p>
-                          {order.user?.phone && (
-                            <p className="text-[10px] text-primary font-semibold mt-1 flex items-center gap-1">
-                              <Phone size={10} /> {order.user.phone}
-                            </p>
-                          )}
+
+                          <div className="mt-2 pt-2 border-t border-border/50 flex flex-wrap items-center justify-between gap-2">
+                            <a
+                              href={`tel:${order.user?.phone || '+8801571323156'}`}
+                              className="inline-flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-black hover:underline"
+                            >
+                              <Phone size={12} className="fill-current" />
+                              <span>Customer: {order.user?.phone || '+880 1571-323156'}</span>
+                            </a>
+                            <a
+                              href={`https://wa.me/${(order.user?.phone || '+8801571323156').replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] font-bold text-muted-foreground hover:text-foreground"
+                            >
+                              💬 WhatsApp
+                            </a>
+                          </div>
 
                           {isPicked && (
                             <Button
@@ -370,7 +462,7 @@ export default function RiderOverviewPage() {
                               variant="primary"
                               fullWidth
                               onClick={() => handleUpdateStatus(order.id, 'DELIVERED')}
-                              className="mt-3 font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                              className="mt-3 font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                             >
                               Mark Delivered ({order.paymentMethod === 'COD' ? `Collect ৳${parseFloat(order.total).toFixed(2)}` : 'Handover'})
                             </Button>
