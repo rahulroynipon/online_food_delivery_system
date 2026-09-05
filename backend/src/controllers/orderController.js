@@ -485,7 +485,8 @@ export const getCustomerOrders = async (req, res, next) => {
       where: { userId: req.user.id },
       include: [
         { model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'logo'] },
-        { model: OrderItem, as: 'items', include: [{ model: OrderItemAddon, as: 'addons' }] }
+        { model: OrderItem, as: 'items', include: [{ model: OrderItemAddon, as: 'addons' }] },
+        { model: Review, as: 'review' }
       ],
       order: [['createdAt', 'DESC']]
     });
