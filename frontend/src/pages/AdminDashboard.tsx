@@ -236,7 +236,6 @@ export default function AdminDashboard() {
     { id: 'withdrawals', label: 'Withdrawals',  icon: <ArrowDownToLine size={18} />,  path: '/admin/withdrawals' },
     { id: 'categories',  label: 'Categories',   icon: <Layers size={18} />,           path: '/admin/categories' },
     { id: 'zones',       label: 'Zones',        icon: <MapIcon size={18} />,          path: '/admin/zones' },
-    { id: 'reports',     label: 'Reports',      icon: <BarChart3 size={18} />,        path: '/admin/reports' },
     { id: 'settings',    label: 'Settings',     icon: <Settings size={18} />,         path: '/admin/settings' },
   ];
 
