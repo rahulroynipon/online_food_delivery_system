@@ -194,55 +194,7 @@ export default function CheckoutPage() {
           {/* Left Columns: Inputs */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Address Selector Card */}
-            <Card className="border border-border/40 shadow-xs">
-              <CardHeader className="pb-3 border-b border-border/10">
-                <CardTitle className="text-sm font-black flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary animate-pulse" />
-                  Delivery Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-4">
-                {addresses.length === 0 ? (
-                  <div className="p-4 rounded-xl border border-dashed border-destructive/20 bg-destructive/5 text-center space-y-2">
-                    <ShieldAlert className="h-5 w-5 text-destructive mx-auto" />
-                    <p className="text-xs font-semibold text-foreground">No saved addresses found</p>
-                    <p className="text-[10px] text-muted-foreground">Click the location selector in the header to pin your coordinate-bounded address.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    {addresses.map((addr) => (
-                      <div
-                        key={addr.id}
-                        onClick={() => setSelectedAddrId(addr.id)}
-                        className={`p-4 rounded-2xl border cursor-pointer flex items-start gap-3 transition-all ${
-                          selectedAddrId === addr.id
-                            ? 'border-primary bg-primary/5 shadow-md shadow-primary/5'
-                            : 'border-border/60 hover:bg-muted/40 bg-card'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="checkout-address"
-                          checked={selectedAddrId === addr.id}
-                          onChange={() => setSelectedAddrId(addr.id)}
-                          className="mt-0.5 accent-primary cursor-pointer"
-                        />
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-foreground">{addr.label}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed truncate">
-                            {addr.addressLine1}
-                          </p>
-                          <p className="text-[9px] text-slate-500 mt-1 select-none font-medium">
-                            Coord: ({Number(addr.latitude).toFixed(4)}, {Number(addr.longitude).toFixed(4)})
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          
 
             {/* Payment Method Card */}
             <Card className="border border-border/40 shadow-xs">

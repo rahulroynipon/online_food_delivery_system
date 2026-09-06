@@ -203,7 +203,6 @@ function App() {
           <Route path="payouts" element={<AdminPayoutsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="zones" element={<ZonesPage />} />
-          <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path=":section" element={<PlaceholderPage />} />
         </Route>
