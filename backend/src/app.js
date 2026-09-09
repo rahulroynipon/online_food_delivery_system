@@ -38,8 +38,18 @@ app.use(express.urlencoded({ extended: true }));
 // Static Folder for Uploads
 app.use(`${API_PREFIX}/uploads`, express.static('uploads'));
 
+// Swagger UI Options with CDN assets for Serverless compatibility
+const swaggerUiOptions = {
+  customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui.min.css',
+  customJs: [
+    'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-bundle.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-standalone-preset.js',
+  ],
+  customSiteTitle: 'BiteSpeed API Docs',
+};
+
 // API Swagger Documentation
-app.use(`${API_PREFIX}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use(`${API_PREFIX}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 // Mount Routes
 app.use(`${API_PREFIX}/auth`, authRoutes);
