@@ -14,7 +14,9 @@ const server = app.listen(PORT, async () => {
   }
 });
 
-// Initialize modular WebSocket server
-initWebSocket(server);
+// Initialize modular WebSocket server (disabled in production/serverless)
+if (env.NODE_ENV !== 'production') {
+  initWebSocket(server);
+}
 
 export default server;

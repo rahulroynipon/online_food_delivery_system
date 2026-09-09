@@ -18,6 +18,11 @@ const messageHandlers = new Map();
  * @param {import('http').Server} server - HTTP Server instance
  */
 export const initWebSocket = (server) => {
+  if (process.env.NODE_ENV === 'production') {
+    console.log('[WebSocket] Skipped — not supported in production/serverless.');
+    return;
+  }
+
   wss = new WebSocketServer({ server });
 
   wss.on('connection', (ws, req) => {
@@ -162,6 +167,7 @@ const handleIncomingMessage = (ws, user, messageStr) => {
  * Send an event payload to a single WebSocket client
  */
 export const sendEvent = (ws, event, data) => {
+  if (process.env.NODE_ENV === 'production') return;
   if (ws.readyState === 1) { // 1 = OPEN
     ws.send(JSON.stringify({ event, data, timestamp: new Date() }));
   }
@@ -171,6 +177,7 @@ export const sendEvent = (ws, event, data) => {
  * Broadcast an event payload to all connected admin clients
  */
 export const broadcastToAdmins = (event, data) => {
+  if (process.env.NODE_ENV === 'production') return;
   if (!wss) return;
   const payload = JSON.stringify({ event, data, timestamp: new Date() });
   for (const client of adminClients) {
@@ -184,6 +191,7 @@ export const broadcastToAdmins = (event, data) => {
  * Send an event payload to all active connections of a specific user ID
  */
 export const sendToUser = (userId, event, data) => {
+  if (process.env.NODE_ENV === 'production') return;
   const userSockets = userClients.get(userId);
   if (!userSockets) return;
 
@@ -199,6 +207,7 @@ export const sendToUser = (userId, event, data) => {
  * Send an event payload to all users with a specific role
  */
 export const sendToRole = (role, event, data) => {
+  if (process.env.NODE_ENV === 'production') return;
   const payload = JSON.stringify({ event, data, timestamp: new Date() });
   if (role === 'ADMIN') {
     broadcastToAdmins(event, data);
@@ -218,6 +227,7 @@ export const sendToRole = (role, event, data) => {
  * Broadcast an event payload to all connected clients
  */
 export const broadcastToAll = (event, data) => {
+  if (process.env.NODE_ENV === 'production') return;
   const payload = JSON.stringify({ event, data, timestamp: new Date() });
   for (const [userId, sockets] of userClients.entries()) {
     for (const ws of sockets) {
