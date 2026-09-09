@@ -183,10 +183,13 @@ export const matchUnassignedOrders = async () => {
   }
 };
 
-// Continuous background polling daemon (runs every 8 seconds)
-setInterval(() => {
-  matchUnassignedOrders();
-}, 8000);
+// Continuous background polling daemon (runs every 8 seconds in development only)
+// Disabled in production/serverless — Vercel functions can't run long-lived background loops
+if (process.env.NODE_ENV !== 'production') {
+  setInterval(() => {
+    matchUnassignedOrders();
+  }, 8000);
+}
 
 /**
  * @desc    Create a new order (Checkout)
