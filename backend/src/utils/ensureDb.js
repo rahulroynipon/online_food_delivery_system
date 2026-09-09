@@ -6,8 +6,17 @@ const { Client } = pg;
 /**
  * Connects to the default 'postgres' database and verifies if the target database
  * exists. If it does not, it executes a CREATE DATABASE query to initialize it.
+ *
+ * NOTE: Skipped automatically when DATABASE_URL is set (cloud databases like
+ * Neon/Supabase already exist and don't need to be created).
  */
 export const ensureDatabaseExists = async () => {
+  // Skip for cloud databases — DATABASE_URL means the DB already exists
+  if (env.DATABASE_URL) {
+    console.log('[Database] Using DATABASE_URL — skipping local database creation check.');
+    return;
+  }
+
   const client = new Client({
     user: env.db.user,
     password: env.db.password,
@@ -18,7 +27,7 @@ export const ensureDatabaseExists = async () => {
 
   try {
     await client.connect();
-    
+
     // Check if target database exists
     const res = await client.query(
       'SELECT 1 FROM pg_database WHERE datname = $1',
@@ -45,3 +54,4 @@ export const ensureDatabaseExists = async () => {
 };
 
 export default ensureDatabaseExists;
+
