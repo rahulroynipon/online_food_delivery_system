@@ -36,6 +36,19 @@ const app = express();
 // Define API version prefix constant
 const API_PREFIX = '/api/v1';
 
+// Vercel Serverless Path Normalization
+app.use((req, res, next) => {
+  if (req.url === '/api/index.js' || req.url === '/api/index' || req.url === '/api') {
+    const matchedPath = req.headers['x-matched-path'] || req.headers['x-vercel-matched-path'];
+    if (matchedPath && !matchedPath.includes('/api/index')) {
+      req.url = matchedPath;
+    } else {
+      req.url = '/';
+    }
+  }
+  next();
+});
+
 // Standard Middlewares
 app.use(cors());
 app.use(express.json());
@@ -106,6 +119,19 @@ app.get('/', (req, res) => {
     status: `${API_PREFIX}/status`,
     docs: `${API_PREFIX}/api-docs`,
     timestamp: new Date(),
+  });
+});
+
+// Catch-all 404 Handler for undefined routes
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Route not found: ${req.method} ${req.originalUrl || req.url}`,
+    endpoints: {
+      status: `${API_PREFIX}/status`,
+      apiDocs: `${API_PREFIX}/api-docs`,
+      root: '/',
+    },
   });
 });
 
