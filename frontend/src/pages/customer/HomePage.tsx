@@ -34,6 +34,7 @@ interface Restaurant {
   phone: string;
   isOpen: boolean;
   rating?: number | string;
+  reviewCount?: number;
   openingTime?: string;
   closingTime?: string;
   logo?: string;
@@ -50,6 +51,7 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [foodsLoading, setFoodsLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   // Customizer modal state
   const [selectedFood, setSelectedFood] = useState<any>(null);
@@ -98,6 +100,7 @@ export default function HomePage() {
   // Fetch Platform Categories on mount
   useEffect(() => {
     const fetchCategories = async () => {
+      setCategoriesLoading(true);
       try {
         const res = await api.get('/platform-categories');
         if (res.data?.success) {
@@ -105,6 +108,8 @@ export default function HomePage() {
         }
       } catch (err) {
         console.error('Failed to load categories:', err);
+      } finally {
+        setCategoriesLoading(false);
       }
     };
     fetchCategories();
@@ -245,7 +250,7 @@ export default function HomePage() {
         </section>
 
         {/* Categories Section */}
-        {categories.length > 0 && (
+        {(categoriesLoading || categories.length > 0) && (
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-extrabold tracking-tight text-foreground">Categories</h2>
@@ -254,59 +259,71 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Horizontal Carousel scroll categories list */}
-            <div className="relative group/carousel px-1">
-              {/* Left Arrow Button */}
-              <button
-                onClick={scrollLeft}
-                className="absolute left-[-16px] top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card/90 border border-border/60 text-foreground shadow-md hover:bg-muted hover:border-primary/40 flex items-center justify-center transition-all opacity-0 group-hover/carousel:opacity-100 duration-200 cursor-pointer focus:outline-none select-none"
-                type="button"
-                aria-label="Scroll Left"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-
-              {/* Right Arrow Button */}
-              <button
-                onClick={scrollRight}
-                className="absolute right-[-16px] top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card/90 border border-border/60 text-foreground shadow-md hover:bg-muted hover:border-primary/40 flex items-center justify-center transition-all opacity-0 group-hover/carousel:opacity-100 duration-200 cursor-pointer focus:outline-none select-none"
-                type="button"
-                aria-label="Scroll Right"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-
-              {/* Scrollable Row */}
-              <div
-                ref={scrollContainerRef}
-                className="flex gap-5 overflow-x-auto scroll-smooth pb-3 px-1 scrollbar-none"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {categories.map((cat) => (
-                  <Link
-                    key={cat.id}
-                    to={`/restaurants?category=${cat.id}`}
-                    className="w-28 shrink-0 group flex flex-col items-center transition-all duration-200"
-                  >
-                    <div className="h-28 w-28 rounded-3xl overflow-hidden mb-2 relative bg-[#F5F6F7] border border-neutral-200/20 shadow-2xs group-hover:shadow-xs group-hover:scale-[1.02] transition-all duration-300 flex items-center justify-center">
-                      <img
-                        src={getCategoryImage(cat)}
-                        alt={cat.name}
-                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    </div>
-                    <span className="text-xs font-bold text-primary text-center truncate w-full mt-1.5 tracking-wide">
-                      {cat.name}
-                    </span>
-                  </Link>
+            {categoriesLoading ? (
+              /* Skeleton: horizontal row of circular tiles */
+              <div className="flex gap-5 overflow-x-hidden pb-3 px-1">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                  <div key={n} className="w-28 shrink-0 flex flex-col items-center gap-2 animate-pulse">
+                    <div className="h-28 w-28 rounded-3xl bg-neutral-200 dark:bg-neutral-800 border border-neutral-300/30 dark:border-neutral-700/30" />
+                    <div className="h-2.5 w-16 rounded-full bg-neutral-200 dark:bg-neutral-800" />
+                  </div>
                 ))}
               </div>
-            </div>
+            ) : (
+              /* Horizontal Carousel scroll categories list */
+              <div className="relative group/carousel px-1">
+                {/* Left Arrow Button */}
+                <button
+                  onClick={scrollLeft}
+                  className="absolute left-[-16px] top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card/90 border border-border/60 text-foreground shadow-md hover:bg-muted hover:border-primary/40 flex items-center justify-center transition-all opacity-0 group-hover/carousel:opacity-100 duration-200 cursor-pointer focus:outline-none select-none"
+                  type="button"
+                  aria-label="Scroll Left"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                {/* Right Arrow Button */}
+                <button
+                  onClick={scrollRight}
+                  className="absolute right-[-16px] top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card/90 border border-border/60 text-foreground shadow-md hover:bg-muted hover:border-primary/40 flex items-center justify-center transition-all opacity-0 group-hover/carousel:opacity-100 duration-200 cursor-pointer focus:outline-none select-none"
+                  type="button"
+                  aria-label="Scroll Right"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+
+                {/* Scrollable Row */}
+                <div
+                  ref={scrollContainerRef}
+                  className="flex gap-5 overflow-x-auto scroll-smooth pb-3 px-1 scrollbar-none"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {categories.map((cat) => (
+                    <Link
+                      key={cat.id}
+                      to={`/restaurants?category=${cat.id}`}
+                      className="w-28 shrink-0 group flex flex-col items-center transition-all duration-200"
+                    >
+                      <div className="h-28 w-28 rounded-3xl overflow-hidden mb-2 relative bg-[#F5F6F7] border border-neutral-200/20 shadow-2xs group-hover:shadow-xs group-hover:scale-[1.02] transition-all duration-300 flex items-center justify-center">
+                        <img
+                          src={getCategoryImage(cat)}
+                          alt={cat.name}
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-primary text-center truncate w-full mt-1.5 tracking-wide">
+                        {cat.name}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         )}
 
         {/* Popular Foods Section */}
-        {popularFoods.length > 0 && (
+        {(foodsLoading || popularFoods.length > 0) && (
           <section className="space-y-6 animate-fade-in">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-border/10 pb-4">
               <div>
@@ -327,7 +344,20 @@ export default function HomePage() {
             {foodsLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                 {[1, 2, 3, 4].map((n) => (
-                  <div key={n} className="h-44 rounded-2xl bg-card/45 border border-border/20 animate-pulse" />
+                  <div key={n} className="rounded-2xl bg-card border border-border/40 overflow-hidden flex flex-col animate-pulse shadow-2xs">
+                    {/* Image area */}
+                    <div className="h-32 bg-neutral-200 dark:bg-neutral-800" />
+                    {/* Content */}
+                    <div className="p-4 flex flex-col gap-2.5 flex-1">
+                      <div className="h-3 w-3/4 rounded-full bg-neutral-200 dark:bg-neutral-800" />
+                      <div className="h-2.5 w-full rounded-full bg-neutral-200/70 dark:bg-neutral-800/70" />
+                      <div className="h-2.5 w-2/3 rounded-full bg-neutral-200/70 dark:bg-neutral-800/70" />
+                      <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/10">
+                        <div className="h-3 w-16 rounded-full bg-neutral-200 dark:bg-neutral-800" />
+                        <div className="h-7 w-7 rounded-lg bg-neutral-200 dark:bg-neutral-800" />
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -406,8 +436,28 @@ export default function HomePage() {
 
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((n) => (
-                <div key={n} className="h-48 rounded-2xl bg-card/45 border border-border/20 animate-pulse" />
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <div key={n} className="rounded-2xl bg-card border border-border/40 overflow-hidden flex flex-col animate-pulse shadow-2xs">
+                  {/* Banner area */}
+                  <div className="h-32 bg-neutral-200 dark:bg-neutral-800 relative">
+                    {/* Status pill */}
+                    <div className="absolute top-2 right-2 h-4 w-10 rounded-md bg-neutral-300 dark:bg-neutral-700" />
+                  </div>
+                  {/* Logo avatar overlap */}
+                  <div className="relative px-4 h-6">
+                    <div className="absolute -top-6 left-4 h-12 w-12 rounded-xl border-2 border-card bg-neutral-300 dark:bg-neutral-700" />
+                  </div>
+                  {/* Content */}
+                  <div className="p-4 pt-2 flex flex-col gap-2.5 flex-1">
+                    <div className="h-3 w-3/4 rounded-full bg-neutral-200 dark:bg-neutral-800" />
+                    <div className="h-2.5 w-full rounded-full bg-neutral-200/70 dark:bg-neutral-800/70" />
+                    <div className="h-2.5 w-1/2 rounded-full bg-neutral-200/70 dark:bg-neutral-800/70" />
+                    <div className="flex items-center gap-1.5 mt-auto pt-3 border-t border-border/10">
+                      <div className="h-3 w-3 rounded-full bg-neutral-200 dark:bg-neutral-800" />
+                      <div className="h-2.5 w-28 rounded-full bg-neutral-200/70 dark:bg-neutral-800/70" />
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           ) : restaurants.length === 0 ? (

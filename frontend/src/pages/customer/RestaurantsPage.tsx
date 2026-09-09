@@ -31,6 +31,7 @@ interface Restaurant {
   phone: string;
   isOpen: boolean;
   rating?: number | string;
+  reviewCount?: number;
   openingTime?: string;
   closingTime?: string;
   logo?: string;
@@ -363,8 +364,36 @@ export default function RestaurantsPage() {
         {activeTab === 'RESTAURANTS' ? (
           loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((n) => (
-                <div key={n} className="h-48 rounded-2xl bg-card/45 border border-border/20 animate-pulse" />
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <div key={n} className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden animate-pulse shadow-xs">
+                  {/* Banner */}
+                  <div className="h-32 bg-gray-200 dark:bg-gray-700 relative">
+                    {/* Status badge */}
+                    <div className="absolute top-2 right-2 h-4 w-10 rounded-md bg-gray-300 dark:bg-gray-600" />
+                  </div>
+
+                  {/* Logo overlap */}
+                  <div className="relative px-4 h-6">
+                    <div className="absolute -top-6 left-4 h-12 w-12 rounded-xl bg-gray-300 dark:bg-gray-600 border-2 border-white dark:border-gray-900" />
+                  </div>
+
+                  {/* Body */}
+                  <div className="p-4 pt-2 space-y-3">
+                    {/* Name + rating */}
+                    <div className="flex items-center justify-between">
+                      <div className="h-4 w-28 rounded bg-gray-200 dark:bg-gray-700" />
+                      <div className="h-4 w-8 rounded bg-gray-200 dark:bg-gray-700" />
+                    </div>
+                    {/* Description */}
+                    <div className="h-3 w-full rounded bg-gray-100 dark:bg-gray-800" />
+                    <div className="h-3 w-3/4 rounded bg-gray-100 dark:bg-gray-800" />
+                    {/* Hours row */}
+                    <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-800">
+                      <div className="h-3 w-3 rounded bg-gray-200 dark:bg-gray-700" />
+                      <div className="h-3 w-32 rounded bg-gray-100 dark:bg-gray-800" />
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           ) : restaurants.length === 0 ? (
@@ -475,8 +504,29 @@ export default function RestaurantsPage() {
         ) : (
           loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((n) => (
-                <div key={n} className="h-44 rounded-2xl bg-card/45 border border-border/20 animate-pulse" />
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <div key={n} className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden animate-pulse shadow-xs flex flex-col">
+                  {/* Food image */}
+                  <div className="h-32 bg-gray-200 dark:bg-gray-700 relative">
+                    {/* Restaurant name badge */}
+                    <div className="absolute bottom-2 left-2 h-4 w-20 rounded-md bg-gray-300 dark:bg-gray-600" />
+                  </div>
+
+                  {/* Body */}
+                  <div className="p-4 flex-1 flex flex-col justify-between space-y-2">
+                    {/* Food name */}
+                    <div className="h-3.5 w-28 rounded bg-gray-200 dark:bg-gray-700" />
+                    {/* Description */}
+                    <div className="h-3 w-full rounded bg-gray-100 dark:bg-gray-800" />
+                    <div className="h-3 w-3/4 rounded bg-gray-100 dark:bg-gray-800" />
+
+                    {/* Price + button row */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+                      <div className="h-4 w-16 rounded bg-gray-200 dark:bg-gray-700" />
+                      <div className="h-7 w-7 rounded-lg bg-gray-200 dark:bg-gray-700" />
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           ) : foods.length === 0 ? (

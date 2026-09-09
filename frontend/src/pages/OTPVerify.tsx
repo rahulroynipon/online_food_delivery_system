@@ -92,17 +92,17 @@ export default function OTPVerify() {
 
       <div className="w-full max-w-md relative z-10 animate-fade-in">
         {/* Brand Logo and Title */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 mb-3">
+        <Link to="/" className="flex flex-col items-center mb-8 group cursor-pointer">
+          <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 mb-3 group-hover:scale-110 transition-transform duration-300">
             <UtensilsCrossed className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent group-hover:text-primary transition-colors">
             BiteSpeed
           </h1>
           <p className="text-xs text-muted-foreground font-medium">
             Online Food Delivery System
           </p>
-        </div>
+        </Link>
 
         {/* OTP Card */}
         <Card hoverable className="backdrop-blur-md bg-card/80 border-border shadow-xl rounded-2xl overflow-hidden">

@@ -273,9 +273,112 @@ export default function RestaurantMenuPage() {
         </Link>
 
         {loading ? (
-          <div className="space-y-6 animate-pulse">
-            <div className="h-52 rounded-3xl bg-card border border-border/20" />
-            <div className="h-60 rounded-3xl bg-card border border-border/20" />
+          <div className="space-y-8 animate-pulse">
+
+            {/* ── Banner ── */}
+            <div className="h-52 md:h-72 w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
+
+            {/* ── Restaurant Profile Overlap Card (mirrors: -mt-16 mx-4 md:mx-8) ── */}
+            <div className="relative z-10 -mt-16 mx-4 md:mx-8 rounded-3xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 md:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-md">
+              
+              {/* Left: Logo + Details */}
+              <div className="flex flex-col md:flex-row gap-5 items-start">
+                {/* Logo */}
+                <div className="h-20 w-20 md:h-24 md:w-24 rounded-2xl bg-gray-200 dark:bg-gray-700 shrink-0" />
+
+                {/* Text details */}
+                <div className="space-y-3 flex-1">
+                  {/* Name + Status badge */}
+                  <div className="flex items-center gap-3">
+                    <div className="h-7 w-52 rounded-lg bg-gray-200 dark:bg-gray-700" />
+                    <div className="h-5 w-16 rounded-md bg-gray-200 dark:bg-gray-700" />
+                  </div>
+                  {/* Description lines */}
+                  <div className="h-3.5 w-full max-w-md rounded bg-gray-100 dark:bg-gray-800" />
+                  <div className="h-3.5 w-3/4 max-w-sm rounded bg-gray-100 dark:bg-gray-800" />
+                  {/* Meta row: rating • address • phone */}
+                  <div className="flex items-center gap-3 pt-1 border-t border-gray-100 dark:border-gray-800">
+                    <div className="h-3 w-20 rounded bg-gray-200 dark:bg-gray-700" />
+                    <div className="h-3 w-1 rounded-full bg-gray-200 dark:bg-gray-700" />
+                    <div className="h-3 w-36 rounded bg-gray-200 dark:bg-gray-700" />
+                    <div className="h-3 w-1 rounded-full bg-gray-200 dark:bg-gray-700" />
+                    <div className="h-3 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Hours Card */}
+              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 flex items-center gap-3 shrink-0 self-start lg:self-center">
+                <div className="h-9 w-9 rounded-xl bg-gray-200 dark:bg-gray-700" />
+                <div className="space-y-1.5">
+                  <div className="h-3.5 w-28 rounded bg-gray-200 dark:bg-gray-700" />
+                  <div className="h-2.5 w-20 rounded bg-gray-100 dark:bg-gray-800" />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Tab Bar ── */}
+            <div className="flex items-center gap-3 border-b border-gray-100 dark:border-gray-800 pb-3">
+              <div className="h-9 w-32 rounded-2xl bg-gray-200 dark:bg-gray-700" />
+              <div className="h-9 w-36 rounded-2xl bg-gray-100 dark:bg-gray-800" />
+            </div>
+
+            {/* ── Menu Content: Sidebar + Food Grid ── */}
+            <div className="flex flex-col md:flex-row items-start gap-8">
+
+              {/* Category Sticky Sidebar */}
+              <div className="w-full md:w-56 shrink-0 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-3 space-y-1.5">
+                {/* "Menu Categories" label */}
+                <div className="h-3 w-28 rounded bg-gray-100 dark:bg-gray-800 mb-3" />
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div
+                    key={i}
+                    className="h-9 rounded-xl bg-gray-200 dark:bg-gray-700 border-l-4 border-gray-300 dark:border-gray-600"
+                    style={{ opacity: 1 - (i - 1) * 0.1 }}
+                  />
+                ))}
+              </div>
+
+              {/* Food Cards: 2 categories × 4 cards */}
+              <div className="flex-1 w-full space-y-12">
+                {[1, 2].map((section) => (
+                  <div key={section} className="space-y-4">
+                    {/* Category heading with border-b */}
+                    <div className="h-6 w-40 rounded-lg bg-gray-200 dark:bg-gray-700 border-b border-gray-100 dark:border-gray-800 pb-2" />
+
+                    {/* 2-column food card grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {[1, 2, 3, 4].map((card) => (
+                        <div
+                          key={card}
+                          className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 flex gap-3 shadow-xs"
+                        >
+                          {/* Food image */}
+                          <div className="h-24 w-24 rounded-xl bg-gray-200 dark:bg-gray-700 shrink-0" />
+
+                          {/* Food info */}
+                          <div className="flex-1 flex flex-col justify-between py-0.5">
+                            <div className="space-y-2">
+                              {/* Food name */}
+                              <div className="h-4 w-32 rounded bg-gray-200 dark:bg-gray-700" />
+                              {/* Description line 1 */}
+                              <div className="h-3 w-full rounded bg-gray-100 dark:bg-gray-800" />
+                              {/* Description line 2 */}
+                              <div className="h-3 w-4/5 rounded bg-gray-100 dark:bg-gray-800" />
+                            </div>
+                            {/* Price + Add button row */}
+                            <div className="flex items-center justify-between mt-3">
+                              <div className="h-4 w-16 rounded bg-gray-200 dark:bg-gray-700" />
+                              <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         ) : !restaurant ? (
           <Card className="p-8 text-center bg-card/30 border border-border/30 max-w-sm mx-auto">
@@ -561,18 +664,39 @@ export default function RestaurantMenuPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   
                   {/* Overall Score */}
-                  <Card className="border border-border/40 bg-gradient-to-br from-amber-500/10 via-card to-card p-6 flex flex-col items-center justify-center text-center space-y-2">
-                    <span className="text-4xl font-black text-foreground">
-                      {reviewData?.stats.averageRating ? reviewData.stats.averageRating.toFixed(1) : '4.8'}
-                    </span>
-                    <div className="flex items-center gap-1 text-amber-400">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star key={s} className="h-5 w-5 fill-current" />
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground font-bold">
-                      Based on {reviewData?.stats.totalReviews || 0} customer reviews
-                    </p>
+                  <Card className="border border-border/40 bg-gradient-to-br from-amber-500/10 via-card to-card p-6 flex flex-col items-center justify-center text-center">
+                    {reviewData?.stats.totalReviews ? (
+                      <>
+                        <span className="mt-2 text-4xl font-black text-foreground">
+                          {reviewData.stats.averageRating.toFixed(1)}
+                        </span>
+                        <div className="flex items-center justify-center gap-1 text-amber-400">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`h-5 w-5 ${
+                                s <= Math.round(reviewData.stats.averageRating)
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'fill-muted text-muted-foreground'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground font-bold">
+                          Based on {reviewData.stats.totalReviews} customer review{reviewData.stats.totalReviews !== 1 ? 's' : ''}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-black text-muted-foreground/60">No Rating</span>
+                        <div className="mt-2 flex items-center justify-center gap-1 text-muted-foreground/30">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star key={s} className="h-5 w-5 fill-current" />
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground font-bold">No customer reviews yet</p>
+                      </>
+                    )}
                   </Card>
 
                   {/* Rating Breakdown Bars */}
@@ -581,9 +705,9 @@ export default function RestaurantMenuPage() {
                       Rating Breakdown
                     </p>
                     {[5, 4, 3, 2, 1].map((stars) => {
-                      const count = reviewData?.stats.ratingBreakdown[stars] || 0;
-                      const total = reviewData?.stats.totalReviews || 1;
-                      const pct = reviewData?.stats.totalReviews ? Math.round((count / total) * 100) : (stars === 5 ? 85 : stars === 4 ? 15 : 0);
+                      const count = reviewData?.stats.ratingBreakdown?.[stars] || 0;
+                      const total = reviewData?.stats.totalReviews || 0;
+                      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
 
                       return (
                         <div key={stars} className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
