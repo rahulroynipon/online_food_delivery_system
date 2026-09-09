@@ -4,6 +4,8 @@ import swaggerUi from 'swagger-ui-express';
 
 import swaggerSpec from './config/swagger.js';
 import errorHandler from './middleware/errorMiddleware.js';
+import sequelize from './config/db.js';
+import env from './config/env.js';
 
 // Route Imports
 import authRoutes from './routes/authRoutes.js';
@@ -58,17 +60,36 @@ app.use(`${API_PREFIX}/payments`, paymentRoutes);
 app.use(`${API_PREFIX}/reviews`, reviewRoutes);
 
 // Status Endpoint
-app.get(`${API_PREFIX}/status`, (req, res) => {
+app.get(`${API_PREFIX}/status`, async (req, res) => {
+  let dbStatus = 'disconnected';
+  let dbError = null;
+
+  try {
+    await sequelize.authenticate();
+    dbStatus = 'connected';
+  } catch (err) {
+    dbError = err.message;
+  }
+
   res.status(200).json({
     success: true,
-    message: 'Backend API status is active.',
+    message: 'Backend API is active.',
+    database: dbStatus,
+    ...(dbError && { dbError }),
+    environment: env.NODE_ENV,
     timestamp: new Date(),
   });
 });
 
-// Root path redirects to API docs
+// Root path
 app.get('/', (req, res) => {
-  res.redirect(`${API_PREFIX}/api-docs`);
+  res.status(200).json({
+    success: true,
+    message: 'Online Food Delivery API backend is running.',
+    status: `${API_PREFIX}/status`,
+    docs: `${API_PREFIX}/api-docs`,
+    timestamp: new Date(),
+  });
 });
 
 // Centralized Error Handler Middleware
