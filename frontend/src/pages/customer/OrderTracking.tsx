@@ -529,7 +529,7 @@ export default function OrderTrackingPage() {
                         variant="primary"
                         size="md"
                         onClick={handleInlineSubmitReview}
-                        isLoading={submittingRating}
+                        loading={submittingRating}
                         className="w-full font-bold text-xs py-2.5 rounded-xl shadow-xs"
                       >
                         Submit Review
