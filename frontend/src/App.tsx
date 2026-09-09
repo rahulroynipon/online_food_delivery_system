@@ -37,6 +37,7 @@ import Checkout from './pages/customer/Checkout';
 import PaymentGateway from './pages/customer/PaymentGateway';
 import OrderTracking from './pages/customer/OrderTracking';
 import CustomerOrders from './pages/customer/OrdersPage';
+import NotFoundPage from './pages/NotFoundPage';
 import RiderDashboard from './pages/RiderDashboard';
 import RiderOverview from './pages/rider/OverviewPage';
 import RiderDeliveries from './pages/rider/DeliveriesPage';
@@ -244,7 +245,7 @@ function App() {
         <Route path="/restaurants" element={<CustomerRestaurants />} />
         <Route path="/restaurant/:slug" element={<CustomerRestaurantMenu />} />
         <Route path="/cart" element={<CartPage />} />
-        <Route path="*" element={<DashboardRedirect />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );
