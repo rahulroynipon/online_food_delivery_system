@@ -12,9 +12,10 @@ import {
   Notification, 
   RestaurantAddon, 
   FoodAddon,
-  PlatformSettings
+  PlatformSettings,
+  UserAddress
 } from '../models/index.js';
-import { UserRole, UserStatus, RestaurantStatus, ActiveStatus } from '../enums/index.js';
+import { UserRole, UserStatus, RestaurantStatus, ActiveStatus, RiderStatus, RiderAvailability } from '../enums/index.js';
 import { configureAssociations } from '../utils/syncModels.js';
 import { hashPassword } from '../utils/hash.js';
 import { slugify } from '../utils/slugify.js';
@@ -54,40 +55,81 @@ const seed = async () => {
     await RestaurantCategory.destroy({ where: {}, force: true });
     await Restaurant.destroy({ where: {}, force: true });
     await Rider.destroy({ where: {}, force: true });
+    await UserAddress.destroy({ where: {}, force: true });
     await Notification.destroy({ where: {}, force: true });
     await PlatformCategory.destroy({ where: {}, force: true });
     await DeliveryZone.destroy({ where: {}, force: true });
-    
-    // Delete all users EXCEPT the Admin user
-    await User.destroy({
-      where: {
-        role: {
-          [Op.ne]: UserRole.ADMIN
-        }
-      },
-      force: true
-    });
+    await User.destroy({ where: {}, force: true });
     console.log('Database cleanup completed.');
 
-    // 2. Ensure Admin User exists
-    const adminEmail = 'bitespeed@gmail.com';
-    // Remove the old admin user if they exist
-    await User.destroy({ where: { email: 'admin@fooddelivery.com' } });
-    
-    let admin = await User.findOne({ where: { email: adminEmail } });
-    if (!admin) {
-      console.log('Seeding system admin user...');
-      const hashedPassword = await hashPassword('123456');
-      admin = await User.create({
-        name: 'System Admin',
-        email: adminEmail,
-        phone: '+8801700000000',
-        password: hashedPassword,
-        role: UserRole.ADMIN,
-        status: UserStatus.ACTIVE,
-      });
-      console.log('System Admin user seeded successfully.');
-    }
+    // 2. Seed Default Demo Users (Password for all: 123456)
+    const demoPasswordHash = await hashPassword('123456');
+
+    // 2a. Admin Users (bitespeed@demo.com & bitespeed@gmail.com)
+    console.log('Seeding demo admin accounts...');
+    await User.create({
+      name: 'System Admin',
+      email: 'bitespeed@demo.com',
+      phone: '+8801700000001',
+      password: demoPasswordHash,
+      role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE,
+      walletBalance: 1000.00,
+    });
+
+    await User.create({
+      name: 'System Admin Backup',
+      email: 'bitespeed@gmail.com',
+      phone: '+8801700000000',
+      password: demoPasswordHash,
+      role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE,
+      walletBalance: 1000.00,
+    });
+
+    // 2b. Customer User (customer@demo.com)
+    console.log('Seeding demo customer account...');
+    const demoCustomer = await User.create({
+      name: 'Demo Customer',
+      email: 'customer@demo.com',
+      phone: '+8801700000004',
+      password: demoPasswordHash,
+      role: UserRole.CUSTOMER,
+      status: UserStatus.ACTIVE,
+      walletBalance: 500.00,
+    });
+
+    await UserAddress.create({
+      userId: demoCustomer.id,
+      label: 'Home',
+      address: 'House 42, Road 7/A, Dhanmondi, Dhaka',
+      latitude: 23.7461,
+      longitude: 90.3742,
+      isDefault: true,
+    });
+
+    // 2c. Rider User (rider@demo.com)
+    console.log('Seeding demo rider account & profile...');
+    const demoRiderUser = await User.create({
+      name: 'Demo Rider',
+      email: 'rider@demo.com',
+      phone: '+8801700000003',
+      password: demoPasswordHash,
+      role: UserRole.RIDER,
+      status: UserStatus.ACTIVE,
+      walletBalance: 250.00,
+    });
+
+    await Rider.create({
+      userId: demoRiderUser.id,
+      vehicleType: 'MOTORBIKE',
+      vehicleNumber: 'DHAKA-METRO-HA-5432',
+      currentLatitude: 23.7461,
+      currentLongitude: 90.3742,
+      availability: RiderAvailability.AVAILABLE,
+      status: RiderStatus.ACTIVE,
+    });
+    console.log('Demo showcase users seeded successfully.');
 
     // 3. Seed Default Platform Categories (with real, beautiful food category images)
     console.log('Seeding platform categories...');
@@ -177,8 +219,8 @@ const seed = async () => {
       zoneMap[z.name] = z.id;
     });
 
-    // Hash common password
-    const commonHashedPassword = await hashPassword('password123');
+    // Hash common password (123456 for all demo accounts)
+    const commonHashedPassword = demoPasswordHash;
 
     // 5. Setup data templates for programmatically seeding 30 restaurants
     const restaurantTemplates = [
@@ -1110,8 +1152,8 @@ const seed = async () => {
       
       console.log(`[${restIndex}/30] Seeding Restaurant: ${template.name}...`);
 
-      // 6a. Create unique merchant user
-      const merchantEmail = `merchant${restIndex}@demo.com`;
+      // 6a. Create unique merchant user (First restaurant is merchant@demo.com, rest are merchant2..30@demo.com)
+      const merchantEmail = restIndex === 1 ? 'merchant@demo.com' : `merchant${restIndex}@demo.com`;
       const merchantUser = await User.create({
         name: `Merchant ${restIndex} (${template.name})`,
         email: merchantEmail,
@@ -1231,8 +1273,12 @@ const seed = async () => {
     console.log('\n======================================================');
     console.log('Database seeding successfully finished!');
     console.log(`Seeded exactly 30 Restaurants with unique menus, variants, and addons.`);
-    console.log(`Admin Credentials: bitespeed@gmail.com / 123456`);
-    console.log(`Merchant Credentials range: merchant1@demo.com to merchant30@demo.com (Password: password123)`);
+    console.log(`Demo Showcase Accounts (Password for all: 123456):`);
+    console.log(`  1. Admin:      bitespeed@demo.com`);
+    console.log(`  2. Restaurant: merchant@demo.com`);
+    console.log(`  3. Rider:      rider@demo.com`);
+    console.log(`  4. Customer:   customer@demo.com`);
+    console.log(`  (Also merchant2@demo.com to merchant30@demo.com - Password: 123456)`);
     console.log('======================================================\n');
     
     process.exit(0);

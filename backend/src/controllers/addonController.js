@@ -1,13 +1,9 @@
 import { RestaurantAddon, Restaurant } from '../models/index.js';
 import { generateUniqueSlug } from '../utils/slugify.js';
-import fs from 'fs';
+import { deleteStoredFile } from '../config/cloudinary.js';
 
 const deleteAddonImage = (imagePath) => {
-  if (imagePath && !imagePath.startsWith('http')) {
-    fs.unlink(imagePath, (err) => {
-      if (err) console.error(`Failed to delete local addon image file: ${imagePath}`, err);
-    });
-  }
+  deleteStoredFile(imagePath);
 };
 
 /**

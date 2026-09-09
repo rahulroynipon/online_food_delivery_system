@@ -1,18 +1,13 @@
 import { PlatformCategory } from '../models/index.js';
 import { ActiveStatus } from '../enums/index.js';
 import { generateUniqueSlug } from '../utils/slugify.js';
-import fs from 'fs';
-import path from 'path';
+import { deleteStoredFile } from '../config/cloudinary.js';
 
 /**
- * Helper to delete local file image if replacement occurs or category is deleted.
+ * Helper to delete file image if replacement occurs or category is deleted (local or Cloudinary).
  */
 const deleteCategoryImage = (imagePath) => {
-  if (imagePath && !imagePath.startsWith('http')) {
-    fs.unlink(imagePath, (err) => {
-      if (err) console.error(`Failed to delete local image file: ${imagePath}`, err);
-    });
-  }
+  deleteStoredFile(imagePath);
 };
 
 /**

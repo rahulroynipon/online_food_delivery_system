@@ -1,13 +1,9 @@
 import { Food, FoodVariant, RestaurantCategory, Restaurant, RestaurantAddon } from '../models/index.js';
 import { generateUniqueSlug } from '../utils/slugify.js';
-import fs from 'fs';
+import { deleteStoredFile } from '../config/cloudinary.js';
 
 const deleteFoodImage = (imagePath) => {
-  if (imagePath && !imagePath.startsWith('http')) {
-    fs.unlink(imagePath, (err) => {
-      if (err) console.error(`Failed to delete local image file: ${imagePath}`, err);
-    });
-  }
+  deleteStoredFile(imagePath);
 };
 
 const cleanAllFiles = (files) => {
