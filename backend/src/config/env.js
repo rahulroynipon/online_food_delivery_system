@@ -6,6 +6,7 @@ dotenv.config();
 const env = {
   PORT: process.env.PORT || 5005,
   NODE_ENV: process.env.NODE_ENV || 'development',
+  DATABASE_URL: process.env.DATABASE_URL || process.env.POSTGRES_URL || '',
   db: {
     user: process.env.PGUSER || 'postgres',
     host: process.env.PGHOST || 'localhost',
