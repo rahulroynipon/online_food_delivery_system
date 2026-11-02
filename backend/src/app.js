@@ -24,6 +24,7 @@ import orderRoutes from './routes/orderRoutes.js';
 import walletRoutes from './routes/walletRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import testReportRoutes from './routes/testReportRoutes.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -94,6 +95,10 @@ app.use(`${API_PREFIX}/wallets`, walletRoutes);
 app.use(`${API_PREFIX}/payments`, paymentRoutes);
 app.use(`${API_PREFIX}/reviews`, reviewRoutes);
 
+// Test Report Endpoints - Returns PDF Report
+app.use('/api/test-report', testReportRoutes);
+app.use(`${API_PREFIX}/test-report`, testReportRoutes);
+
 // Status Endpoint
 app.get(`${API_PREFIX}/status`, async (req, res) => {
   let dbStatus = 'disconnected';
@@ -123,6 +128,7 @@ app.get('/', (req, res) => {
     message: 'Online Food Delivery API backend is running.',
     status: `${API_PREFIX}/status`,
     docs: `${API_PREFIX}/api-docs`,
+    testReport: '/api/test-report',
     timestamp: new Date(),
   });
 });
@@ -135,6 +141,7 @@ app.use((req, res) => {
     endpoints: {
       status: `${API_PREFIX}/status`,
       apiDocs: `${API_PREFIX}/api-docs`,
+      testReport: '/api/test-report',
       root: '/',
     },
   });

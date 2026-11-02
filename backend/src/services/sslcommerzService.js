@@ -5,7 +5,7 @@ export const SSL_CONFIG = {
   storePasswd: process.env.SSLCOMMERZ_STORE_PASS || 'bitespeed_sandbox@ssl',
   isSandbox: process.env.SSLCOMMERZ_IS_SANDBOX !== 'false',
   backendUrl: process.env.BACKEND_URL || `http://localhost:${env.PORT || 5005}`,
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5174',
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
 };
 
 const getBaseUrl = () => {
@@ -78,9 +78,15 @@ export const initSSLCommerzPayment = async ({ order, user, address }) => {
       };
     }
 
-    console.warn('[SSLCommerz] Gateway initialization returned non-success, using built-in interactive sandbox:', data);
+    console.warn(
+      '[SSLCommerz] Gateway initialization returned non-success, using built-in interactive sandbox:',
+      data
+    );
   } catch (error) {
-    console.error('[SSLCommerz] Error connecting to SSLCommerz API, falling back to built-in simulation:', error.message);
+    console.error(
+      '[SSLCommerz] Error connecting to SSLCommerz API, falling back to built-in simulation:',
+      error.message
+    );
   }
 
   // Built-in interactive sandbox simulation fallback (Card/bKash/Nagad/Rocket)

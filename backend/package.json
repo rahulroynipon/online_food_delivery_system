@@ -7,6 +7,17 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "test": "node tests/run_all.js",
+    "test:register": "node tests/modules/01_auth_register.test.js",
+    "test:login": "node tests/modules/02_auth_login.test.js",
+    "test:otp": "node tests/modules/03_auth_otp.test.js",
+    "test:zones": "node tests/modules/04_delivery_zones.test.js",
+    "test:addresses": "node tests/modules/05_user_addresses.test.js",
+    "test:foods": "node tests/modules/06_foods.test.js",
+    "test:orders": "node tests/modules/07_orders.test.js",
+    "test:status": "node tests/modules/08_order_status.test.js",
+    "test:payments": "node tests/modules/09_payments.test.js",
+    "test:reviews": "node tests/modules/10_reviews.test.js",
     "format": "prettier --write .",
     "seed": "node src/seeddata/seed.js"
   },
@@ -23,6 +34,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
     "nodemailer": "^9.0.5",
+    "pdfkit": "^0.20.2",
     "pg": "^8.12.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.8",
@@ -32,6 +44,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.4",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "supertest": "^7.3.1"
   }
 }

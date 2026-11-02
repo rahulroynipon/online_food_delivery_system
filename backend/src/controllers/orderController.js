@@ -184,11 +184,14 @@ export const matchUnassignedOrders = async () => {
 };
 
 // Continuous background polling daemon (runs every 8 seconds in development only)
-// Disabled in production/serverless — Vercel functions can't run long-lived background loops
-if (process.env.NODE_ENV !== 'production') {
-  setInterval(() => {
+// Disabled in production/serverless & test — Vercel functions can't run long-lived background loops
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
+  const matchTimer = setInterval(() => {
     matchUnassignedOrders();
   }, 8000);
+  if (matchTimer && typeof matchTimer.unref === 'function') {
+    matchTimer.unref();
+  }
 }
 
 /**
