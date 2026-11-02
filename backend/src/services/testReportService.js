@@ -17,6 +17,16 @@ const MODULE_FILES = [
   '08_order_status.test.js',
   '09_payments.test.js',
   '10_reviews.test.js',
+  '11_platform_categories.test.js',
+  '12_food_addons.test.js',
+  '13_wallets.test.js',
+  '14_notifications.test.js',
+  '15_users.test.js',
+  '16_restaurant_categories.test.js',
+  '17_public_restaurants.test.js',
+  '18_settings.test.js',
+  '19_onboarding_restaurant.test.js',
+  '20_onboarding_rider.test.js',
 ];
 
 /**
@@ -193,14 +203,7 @@ export async function generateTestReportPDF(res) {
       // Divider line
       doc.rect(margin, 108, contentWidth, 1).fill('#cbd5e1');
 
-      // Summary Description
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000').text('Live Test Execution Summary:', margin, 120);
-      doc.font('Helvetica').fontSize(8.2).fillColor('#334155').text(
-        'This automated report documents the live verification and validation test suites executed against the 10 core REST API modules of the Online Food Delivery System. Each API module contains 5 structured test functions executing real HTTP requests via Supertest against the live Express controllers, database models, and authentication middleware.',
-        margin, 134, { width: contentWidth, lineGap: 2.5 }
-      );
-
-      // Summary Statistics Table
+      // Summary Statistics Table Calculation
       const totalApis = liveData.length;
       const totalTests = totalApis * 5;
       let totalPassed = 0;
@@ -211,6 +214,13 @@ export async function generateTestReportPDF(res) {
           else totalFailed++;
         });
       });
+
+      // Summary Description
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000').text('Live Test Execution Summary:', margin, 120);
+      doc.font('Helvetica').fontSize(8.2).fillColor('#334155').text(
+        `This automated report documents the live verification and validation test suites executed against all ${totalApis} REST API modules of the Online Food Delivery System. Each API module contains 5 structured test functions executing real HTTP requests via Supertest against the live Express controllers, database models, and authentication middleware.`,
+        margin, 134, { width: contentWidth, lineGap: 2.5 }
+      );
 
       let curY = 180;
       doc.rect(margin, curY, contentWidth, 42).fillAndStroke('#f8fafc', '#94a3b8');
