@@ -50,8 +50,9 @@ export function recordResult(testId, scenario, assertion, expected = '', inputs 
 /**
  * Filter and run specific test functions if passed via CLI argument.
  */
-export async function executeTestCases(suiteName, testMap) {
-  const targetFilter = process.argv[2]?.toLowerCase();
+export async function executeTestCases(suiteName, testMap, specificFilter = null) {
+  const isDirectFile = process.argv[1] && !process.argv[1].endsWith('run_all.js');
+  const targetFilter = (specificFilter !== null ? specificFilter : (isDirectFile ? process.argv[2] : null))?.toLowerCase();
 
   console.log('\n' + '='.repeat(65));
   console.log(`  TEST SUITE: ${suiteName.toUpperCase()}`);

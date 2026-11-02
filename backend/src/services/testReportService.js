@@ -279,7 +279,7 @@ export async function generateTestReportPDF(res) {
       });
 
       // Bottom Prominent Note
-      doc.rect(margin, curY + 12, contentWidth, 34).fillAndStroke('#f8fafc', '#94a3b8');
+      doc.rect(margin, curY + 12, contentWidth, 38).fillAndStroke('#f8fafc', '#94a3b8');
       doc.font('Helvetica-Bold').fontSize(8).fillColor('#0f172a').text('SQA Design Benchmark Note:', margin + 10, curY + 18);
       doc.font('Helvetica').fontSize(7.2).fillColor('#1e293b').text(
         'All tests in this report are dynamically executed from tests/modules/*.test.js using Supertest against the live Express backend. Test 5 in each module evaluates an intentional inverted assertion to verify that test runners accurately detect and flag violations.',
@@ -423,7 +423,7 @@ export async function generateTestReportPDF(res) {
         y += outBoxHeight + 18;
 
         // 4. Prominent Professional Engineering / SQA Note Section
-        doc.rect(margin, y, contentWidth, 48).fillAndStroke('#f8fafc', '#94a3b8');
+        doc.rect(margin, y, contentWidth, 58).fillAndStroke('#f8fafc', '#94a3b8');
         doc.font('Helvetica-Bold').fontSize(8).fillColor('#0f172a').text('Note on Verification & SQA Compliance:', margin + 12, y + 8);
         doc.font('Helvetica').fontSize(7.2).fillColor('#334155').text(
           `This module is executed against the live Express route using Supertest with live PostgreSQL Sequelize transactions. Tests 1 to 4 validate functional acceptance criteria, data integrity, and route guards. Test 5 is an intentional negative test case configured with an inverted assertion to ensure that the test harness accurately detects and flags non-conforming responses. Overall evaluation: ${passCount} Passed, ${failCount} Failed.`,

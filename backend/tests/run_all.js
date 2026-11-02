@@ -18,6 +18,16 @@ import { allTests as tests07 } from './modules/07_orders.test.js';
 import { allTests as tests08 } from './modules/08_order_status.test.js';
 import { allTests as tests09 } from './modules/09_payments.test.js';
 import { allTests as tests10 } from './modules/10_reviews.test.js';
+import { allTests as tests11 } from './modules/11_platform_categories.test.js';
+import { allTests as tests12 } from './modules/12_food_addons.test.js';
+import { allTests as tests13 } from './modules/13_wallets.test.js';
+import { allTests as tests14 } from './modules/14_notifications.test.js';
+import { allTests as tests15 } from './modules/15_users.test.js';
+import { allTests as tests16 } from './modules/16_restaurant_categories.test.js';
+import { allTests as tests17 } from './modules/17_public_restaurants.test.js';
+import { allTests as tests18 } from './modules/18_settings.test.js';
+import { allTests as tests19 } from './modules/19_onboarding_restaurant.test.js';
+import { allTests as tests20 } from './modules/20_onboarding_rider.test.js';
 
 import { executeTestCases } from './helpers/testUtils.js';
 
@@ -32,6 +42,16 @@ const suites = [
   { name: '08: Order Status Lifecycle (PUT /api/v1/orders/:id/status)', tests: tests08, key: 'status' },
   { name: '09: Payment Gateway (POST /api/v1/payments/sslcommerz/init)', tests: tests09, key: 'payment' },
   { name: '10: Customer Reviews & Ratings (POST /api/v1/reviews)', tests: tests10, key: 'review' },
+  { name: '11: Platform Categories (GET / POST /api/v1/platform-categories)', tests: tests11, key: 'category' },
+  { name: '12: Food Addons & Extras (GET / POST /api/v1/addons)', tests: tests12, key: 'addon' },
+  { name: '13: Customer & Merchant Wallets (GET / POST /api/v1/wallets)', tests: tests13, key: 'wallet' },
+  { name: '14: Push Notifications & Alerts (GET / PUT /api/v1/notifications)', tests: tests14, key: 'notification' },
+  { name: '15: User Administration & Roles (GET / POST /api/v1/users)', tests: tests15, key: 'user' },
+  { name: '16: Restaurant Menu Categories (GET / POST /api/v1/restaurant-categories)', tests: tests16, key: 'restaurant-category' },
+  { name: '17: Public Restaurants & Foods (GET /api/v1/public/restaurants)', tests: tests17, key: 'public' },
+  { name: '18: Global Platform Settings (GET / PUT /api/v1/settings/platform)', tests: tests18, key: 'setting' },
+  { name: '19: Restaurant Partner Onboarding (POST /api/v1/onboarding/restaurant)', tests: tests19, key: 'onboard-restaurant' },
+  { name: '20: Delivery Rider Onboarding (POST /api/v1/onboarding/rider)', tests: tests20, key: 'onboard-rider' },
 ];
 
 async function run() {
